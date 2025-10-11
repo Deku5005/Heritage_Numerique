@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'login_screen.dart';
-import 'splash_screen.dart';
+import 'registration_screen.dart';
+import 'dashboard_screen.dart';
 
-/// Écran d'inscription pour créer un nouveau compte
-class RegistrationScreen extends StatefulWidget {
-  const RegistrationScreen({super.key});
+/// Écran de connexion pour accéder au compte
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RegistrationScreen> createState() => _RegistrationScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RegistrationScreenState extends State<RegistrationScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   // Contrôleurs pour les champs de saisie
   final _formKey = GlobalKey<FormState>();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-  bool _acceptTerms = false;
 
   // Couleurs
   static const Color _accentColor = Color(0xFFA56C00);
@@ -30,17 +25,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  /// Fonction de soumission de l'inscription
-  void _registerAccount() {
-    if (_formKey.currentState!.validate() && _acceptTerms) {
+  /// Fonction de soumission de la connexion
+  void _loginAccount() {
+    if (_formKey.currentState!.validate()) {
       // Afficher un indicateur de chargement
       showDialog(
         context: context,
@@ -52,25 +44,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         ),
       );
 
-      // Simuler l'inscription
+      // Simuler l'authentification
       Future.delayed(const Duration(seconds: 2), () {
         Navigator.pop(context); // Fermer le dialog de chargement
         // Afficher un message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Inscription réussie !'),
+            content: Text('Connexion réussie !'),
             backgroundColor: Colors.green,
           ),
         );
-        // TODO: Naviguer vers la page d'accueil (Dashboard)
+        // Naviguer vers la page Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
       });
-    } else if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez accepter les conditions d\'utilisation'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 
@@ -100,13 +89,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     left: 10,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_ios, color: _standardTextColor),
-                      onPressed: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SplashScreen()),
-                      ),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                  // Image de la femme avec le bébé
+                  // Image de l'homme assis
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 50.0),
@@ -145,7 +131,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   const SizedBox(height: 5),
                   // Sous-titre en couleur A56C00
                   const Text(
-                    'Rejoignez notre communauté culturelle',
+                    'Préserver et Promouvoir la culture Malienne',
                     style: TextStyle(
                       fontSize: 16,
                       color: _accentColor,
@@ -177,34 +163,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Champ Prénom
-                          _buildStyledTextField(
-                            controller: _firstNameController,
-                            icon: Icons.person_outline,
-                            hintText: 'Prénom',
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Veuillez entrer votre prénom';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Champ Nom
-                          _buildStyledTextField(
-                            controller: _lastNameController,
-                            icon: Icons.person_outline,
-                            hintText: 'Nom',
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Veuillez entrer votre nom';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
                           // Champ Email
                           _buildStyledTextField(
                             controller: _emailController,
@@ -244,78 +202,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Veuillez entrer votre mot de passe';
                               }
-                              if (value.length < 6) {
-                                return 'Le mot de passe doit contenir au moins 6 caractères';
-                              }
                               return null;
                             },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Champ Confirmer mot de passe
-                          _buildStyledTextField(
-                            controller: _confirmPasswordController,
-                            icon: Icons.lock_outline,
-                            hintText: 'Confirmer le mot de passe',
-                            obscureText: !_isConfirmPasswordVisible,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                color: _accentColor,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                                });
-                              },
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Veuillez confirmer votre mot de passe';
-                              }
-                              if (value != _passwordController.text) {
-                                return 'Les mots de passe ne correspondent pas';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Checkbox pour accepter les conditions
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _acceptTerms,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _acceptTerms = value ?? false;
-                                  });
-                                },
-                                activeColor: _accentColor,
-                              ),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _acceptTerms = !_acceptTerms;
-                                    });
-                                  },
-                                  child: const Text(
-                                    'J\'accepte les conditions d\'utilisation',
-                                    style: TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
                           const SizedBox(height: 40),
                           
-                          // --- 4. BOUTON D'INSCRIPTION ---
+                          // --- 4. BOUTON DE CONNEXION ---
                           SizedBox(
                             height: 55,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _registerAccount,
+                              onPressed: _loginAccount,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _accentColor,
                                 foregroundColor: Colors.white,
@@ -325,7 +222,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 elevation: 5,
                               ),
                               child: const Text(
-                                'S\'inscrire',
+                                'Connexion',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -335,12 +232,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           ),
                           const SizedBox(height: 20),
                           
-                          // --- 5. LIEN VERS LA CONNEXION ---
+                          // --- 5. LIEN VERS L'INSCRIPTION ---
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               const Text(
-                                'Déjà un compte? ',
+                                'Pas de compte? ',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: _standardTextColor,
@@ -350,11 +247,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                    MaterialPageRoute(builder: (context) => const RegistrationScreen()),
                                   );
                                 },
                                 child: const Text(
-                                  'Se connecter',
+                                  'S\'inscrire',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -375,7 +272,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Inscription avec Google'),
+                                    content: Text('Connexion avec Google'),
                                   ),
                                 );
                               },
@@ -393,7 +290,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   const Icon(Icons.g_mobiledata, color: Colors.blue, size: 30),
                                   const SizedBox(width: 5),
                                   const Text(
-                                    'S\'inscrire avec Google',
+                                    'Se connecter avec Google',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: _standardTextColor,
