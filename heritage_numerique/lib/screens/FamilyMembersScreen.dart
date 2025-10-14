@@ -4,39 +4,38 @@ import 'HomeDashboardScreen.dart';
 import 'AppDrawer.dart'; // Assurez-vous que le nom de fichier correspond
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
+const Color _searchBackground = Color(0xFFF7F2E8);
 
 
 class FamilyMembersScreen extends StatelessWidget {
   const FamilyMembersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) { 
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(), 
+      drawer: const AppDrawer(),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // CORRECTION: Utiliser un Builder pour obtenir un context sous le Scaffold.
+            // 1. En-tête Personnalisé (Menu et Titre)
             Builder(
-              builder: (BuildContext innerContext) {
-                // On passe le nouveau context 'innerContext' qui est valide pour Scaffold.of()
-                return _buildCustomHeader(innerContext);
-              }
-            ), 
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
+            ),
             const SizedBox(height: 20),
 
             // 2. Titre et sous-titre
             _buildPageTitle(),
             const SizedBox(height: 20),
 
-            // 3. Barre de recherche et Boutons d'action
+            // 3. Barre de recherche et Boutons d'action (Correction Débordement 46px)
             _buildActionSection(),
             const SizedBox(height: 20),
 
@@ -50,7 +49,7 @@ class FamilyMembersScreen extends StatelessWidget {
   }
 
   // --- 1. En-tête Personnalisé (Menu et Titre) ---
-  Widget _buildCustomHeader(BuildContext context) { 
+  Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -59,7 +58,6 @@ class FamilyMembersScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.menu, color: _cardTextColor, size: 30),
             onPressed: () {
-              // Action pour ouvrir le Drawer - Utilisation du context valide
               Scaffold.of(context).openDrawer();
             },
           ),
@@ -77,7 +75,7 @@ class FamilyMembersScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // --- 2. Titre et sous-titre de la page ---
   Widget _buildPageTitle() {
     return const Padding(
@@ -106,7 +104,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // --- 3. Barre de recherche et Boutons d'action (MODIFIÉ) ---
+  // --- 3. Barre de recherche et Boutons d'action ---
   Widget _buildActionSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -135,63 +133,68 @@ class FamilyMembersScreen extends StatelessWidget {
           const SizedBox(width: 10),
 
           // Boutons d'action (Ajouter/Inviter)
-          _buildActionButton(
-            text: 'Ajouter manuellement', 
-            isPrimary: false, 
-            onPressed: (context) => _showAddManualDialog(context),
+          Expanded(
+            child: _buildActionButton(
+              text: 'Ajouter manuellement',
+              isPrimary: false,
+              onPressed: (context) => _showAddManualDialog(context),
+            ),
           ),
           const SizedBox(width: 10),
-          _buildActionButton(
-            text: 'Inviter un membre', 
-            isPrimary: true,
-            onPressed: (context) => _showInviteMemberDialog(context),
+          Expanded(
+            child: _buildActionButton(
+              text: 'Inviter un membre',
+              isPrimary: true,
+              onPressed: (context) => _showInviteMemberDialog(context),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- Construction des boutons d'action (MODIFIÉ) ---
+  // --- Construction des boutons d'action (Correction Débordement 46px) ---
   Widget _buildActionButton({
-    required String text, 
+    required String text,
     required bool isPrimary,
-    required Function(BuildContext) onPressed, 
+    required Function(BuildContext) onPressed,
   }) {
-    // Le Builder est indispensable ici pour obtenir un BuildContext valide pour showDialog
-    return Builder( 
-      builder: (context) {
-        return ElevatedButton.icon(
-          onPressed: () => onPressed(context),
-          icon: Icon(
-            isPrimary ? Icons.person_add : Icons.add,
-            color: isPrimary ? Colors.white : _cardTextColor,
-            size: 16,
-          ),
-          label: Text(
-            text,
-            style: TextStyle(
+    return Builder(
+        builder: (context) {
+          return ElevatedButton.icon(
+            onPressed: () => onPressed(context),
+            icon: Icon(
+              isPrimary ? Icons.person_add : Icons.add,
               color: isPrimary ? Colors.white : _cardTextColor,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
+              size: 16,
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isPrimary ? _mainAccentColor : _searchBackground,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5),
-              side: isPrimary ? BorderSide.none : const BorderSide(color: Colors.transparent),
+            label: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isPrimary ? Colors.white : _cardTextColor,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        );
-      }
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isPrimary ? _mainAccentColor : _searchBackground,
+              // CORRECTION: Suppression du padding horizontal (passé à 0)
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+                side: isPrimary ? BorderSide.none : const BorderSide(color: Colors.transparent),
+              ),
+            ),
+          );
+        }
     );
   }
 
-  // --- 4. Tableau des membres de la famille (Inchangé) ---
+  // 4. Tableau des membres de la famille (Inchangé)
   Widget _buildMembersTable() {
-    // Données simulées pour le tableau
     final List<Map<String, String>> members = [
       {'membre': 'Amadou Diakité', 'role': 'Administrateur', 'lien': 'Père', 'date': '01/10/2023', 'statut': 'Actif'},
       {'membre': 'Niskale Diakité', 'role': 'Contributeur', 'lien': 'Sœur', 'date': '07/11/2023', 'statut': 'Actif'},
@@ -208,17 +211,15 @@ class FamilyMembersScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // En-têtes du tableau
             _buildTableRow(
               isHeader: true,
               data: {'membre': 'Membre', 'role': 'Rôle', 'lien': 'Lien', 'date': 'Date ajout', 'statut': 'Statut', 'action': 'Action'},
             ),
-            
-            // Lignes de données
+
             ...members.map((member) {
               return _buildTableRow(
                 isHeader: false,
-                data: member..['action'] = '...', 
+                data: member..['action'] = '...',
               );
             }).toList(),
           ],
@@ -227,7 +228,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // --- Ligne de tableau (Inchangé) ---
+  // Ligne de tableau (Inchangé)
   Widget _buildTableRow({required bool isHeader, required Map<String, String> data}) {
     Color getColorForRole(String role) {
       if (role.toLowerCase().contains('admin')) return Colors.lightGreen.shade100;
@@ -235,7 +236,7 @@ class FamilyMembersScreen extends StatelessWidget {
       if (role.toLowerCase().contains('lecteur')) return Colors.orange.shade100;
       return Colors.transparent;
     }
-    
+
     Color getColorForStatus(String status) {
       if (status.toLowerCase() == 'actif') return Colors.green.shade50;
       if (status.toLowerCase() == 'en attente') return Colors.orange.shade50;
@@ -261,7 +262,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // --- Cellule de tableau (Texte) (Inchangé) ---
+  // Cellule de tableau (Texte) (Inchangé)
   Widget _buildTableCell(String text, {required bool isHeader, bool isAction = false}) {
     if (isAction && !isHeader) {
       return const Icon(Icons.more_vert, size: 18, color: Colors.grey);
@@ -277,8 +278,8 @@ class FamilyMembersScreen extends StatelessWidget {
       ),
     );
   }
-  
-  // --- Puce (Chip) pour le rôle (Inchangé) ---
+
+  // Puce (Chip) pour le rôle (Inchangé)
   Widget _buildRoleChip(String text, bool isHeader, Color color) {
     if (isHeader) return _buildTableCell(text, isHeader: true);
     return Container(
@@ -294,7 +295,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // --- Puce (Chip) pour le statut (Inchangé) ---
+  // Puce (Chip) pour le statut (Inchangé)
   Widget _buildStatusChip(String text, bool isHeader, Color color) {
     if (isHeader) return _buildTableCell(text, isHeader: true);
     return Container(
@@ -311,10 +312,10 @@ class FamilyMembersScreen extends StatelessWidget {
   }
 
   // =======================================================
-  // --- Fonctions des Pop-ups (NOUVEAU) ---
+  // --- Fonctions des Pop-ups (MODIFIÉES) ---
   // =======================================================
 
-  // Pop-up 1 : Ajouter un membre manuellement
+  // Pop-up 1 : Ajouter un membre manuellement (Icône 'X' retirée et bouton Annuler ajouté)
   void _showAddManualDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -329,32 +330,23 @@ class FamilyMembersScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // En-tête et bouton Fermer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // En-tête (Icône de fermeture 'X' retirée)
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ajouter un membre manuellement',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
-                          ),
-                          Text(
-                            'Pour les membres n\'ayant pas de connexion internet',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
+                      Text(
+                        'Ajouter un membre manuellement',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () => Navigator.of(context).pop(),
+                      Text(
+                        'Pour les membres n\'ayant pas de connexion internet',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Champs de formulaire
+
+                  // Champs de formulaire (inchangés)
                   _buildInputField('Nom Complet', hint: 'Ex: Niakale Diakité'),
                   _buildInputField('Lien de parenté', hint: 'Ex: Oncle, Tante, Cousin'),
                   _buildInputField('Téléphone', hint: 'Ex: +223 78787878'),
@@ -362,20 +354,30 @@ class FamilyMembersScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Bouton d'action
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Logique pour ajouter le membre
-                        Navigator.of(context).pop();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _mainAccentColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                  // Bouton d'action (Ajout d'un bouton Annuler)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // Bouton Annuler
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Annuler', style: TextStyle(color: Colors.grey, fontSize: 14)),
                       ),
-                      child: const Text('Ajouter le membre', style: TextStyle(color: Colors.white, fontSize: 14)),
-                    ),
+                      const SizedBox(width: 10),
+                      // Bouton Ajouter
+                      ElevatedButton(
+                        onPressed: () {
+                          // Logique pour ajouter le membre
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _mainAccentColor,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        ),
+                        child: const Text('Ajouter le membre', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -386,7 +388,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // Pop-up 2 : Inviter un membre de la famille
+  // Pop-up 2 : Inviter un membre de la famille (Icône 'X' retirée + Correction Débordement 133px)
   void _showInviteMemberDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -401,35 +403,26 @@ class FamilyMembersScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // En-tête et bouton Fermer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // En-tête (Icône de fermeture 'X' retirée)
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Inviter un membre de la famille',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
-                          ),
-                          Text(
-                            'Envoyer une invitation par email pour rejoindre votre espace familial',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
+                      Text(
+                        'Inviter un membre de la famille',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () => Navigator.of(context).pop(),
+                      Text(
+                        'Envoyer une invitation par email pour rejoindre votre espace familial',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // Champs de formulaire
+                  // Champs de formulaire (inchangés)
                   _buildInputField('Nom Complet', hint: 'Ex: Niakale Diakité'),
                   _buildInputField('Email', hint: 'Ex: diakitetenin99@gmail.com'),
-                  _buildInputField('Téléphone', hint: 'Ex: 78787878'), 
+                  _buildInputField('Téléphone', hint: 'Ex: 78787878'),
                   _buildInputField('Lien de parenté', hint: 'Ex: sœur, frère'),
 
                   const SizedBox(height: 30),
@@ -438,29 +431,35 @@ class FamilyMembersScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Bouton Annuler
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.grey),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                      // Bouton Annuler (Déjà Flexible)
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            // CORRECTION: Padding horizontal réduit (10 au lieu de 20)
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          ),
+                          child: const Text('Annuler', style: TextStyle(color: _cardTextColor, fontSize: 14)),
                         ),
-                        child: const Text('Annuler', style: TextStyle(color: _cardTextColor, fontSize: 14)),
                       ),
                       const SizedBox(width: 10),
-                      // Bouton Envoyer
-                      ElevatedButton(
-                        onPressed: () {
-                          // Logique pour envoyer l'invitation
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _mainAccentColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                      // Bouton Envoyer (Déjà Flexible)
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Logique pour envoyer l'invitation
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _mainAccentColor,
+                            // CORRECTION: Padding horizontal réduit (10 au lieu de 20)
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          ),
+                          child: const Text('Envoyer l\'invitation', style: TextStyle(color: Colors.white, fontSize: 14)),
                         ),
-                        child: const Text('Envoyer l\'invitation', style: TextStyle(color: Colors.white, fontSize: 14)),
                       ),
                     ],
                   ),
@@ -473,7 +472,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // Widget helper pour les champs de saisie de texte standard
+  // Widget helper pour les champs de saisie de texte standard (Inchangé)
   Widget _buildInputField(String label, {required String hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -503,7 +502,7 @@ class FamilyMembersScreen extends StatelessWidget {
     );
   }
 
-  // Widget helper pour les champs de saisie de texte multiligne (Description/Souvenir)
+  // Widget helper pour les champs de saisie de texte multiligne (Description/Souvenir) (Inchangé)
   Widget _buildDescriptionField(String label, {required String hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
