@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _welcomeCardBackground = Color(0xFFF7F2E8); 
+const Color _welcomeCardBackground = Color(0xFFF7F2E8);
 
 class HomeDashboardScreen extends StatelessWidget {
   const HomeDashboardScreen({super.key});
@@ -21,7 +21,7 @@ class HomeDashboardScreen extends StatelessWidget {
       key: scaffoldKey,
       backgroundColor: _backgroundColor,
       drawer: const AppDrawer(), // L'AppDrawer est const
-      
+
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
         child: Column(
@@ -85,7 +85,7 @@ class HomeDashboardScreen extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16.0),
       // CORRECTION : BoxDecoration est const si tous ses arguments le sont.
-      decoration: BoxDecoration( 
+      decoration: BoxDecoration(
         color: _welcomeCardBackground,
         borderRadius: BorderRadius.circular(15),
       ),
@@ -116,7 +116,7 @@ class HomeDashboardScreen extends StatelessWidget {
 
   // --- 3. Grille des Statistiques ---
   Widget _buildStatsGrid() {
-    const List<Map<String, dynamic>> stats = [ 
+    const List<Map<String, dynamic>> stats = [
       {'title': 'Famille', 'count': 12, 'icon': Icons.group_outlined},
       {'title': 'Récit', 'count': 24, 'icon': Icons.book_outlined},
       {'title': 'Photos', 'count': 37, 'icon': Icons.photo_outlined},
@@ -133,7 +133,7 @@ class HomeDashboardScreen extends StatelessWidget {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 2.2, 
+          childAspectRatio: 2.2,
         ),
         itemBuilder: (context, index) {
           final stat = stats[index];
@@ -224,7 +224,7 @@ class HomeDashboardScreen extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 220, 
+      height: 220,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,9 +243,9 @@ class HomeDashboardScreen extends StatelessWidget {
   /// Construction d'une carte d'ajout récent
   Widget _buildRecentAdditionCard(Map<String, String> item) {
     Color tagColor = item['type'] == 'Photo' ? Colors.black.withOpacity(0.5) : _mainAccentColor;
-    
+
     return Container(
-      width: 150, 
+      width: 150,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -269,7 +269,8 @@ class HomeDashboardScreen extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                   color: Colors.grey.shade300,
                   image: DecorationImage(
-                    image: AssetImage(item['image'] ?? 'assets/images/placeholder.jpg'), 
+                    // L'erreur d'Asset n'est pas corrigée ici, mais elle est gérée par AssetImage
+                    image: AssetImage(item['image'] ?? 'assets/images/placeholder.jpg'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -306,7 +307,7 @@ class HomeDashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Texte et Détails
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -324,16 +325,22 @@ class HomeDashboardScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
+                // --- CORRECTION DU DÉBORDEMENT (OVERFLOW) ICI ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      item['by']!,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
+                    Expanded( // Permet au texte long de l'auteur de se réduire et de tronquer
+                      child: Text(
+                        item['by']!,
+                        maxLines: 1, // Assure que la troncature fonctionne
+                        overflow: TextOverflow.ellipsis, // Affiche des points de suspension
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 5), // Ajout d'un petit espace
                     Text(
                       item['date']!,
                       style: TextStyle(
@@ -343,6 +350,7 @@ class HomeDashboardScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                // ------------------------------------------------
               ],
             ),
           ),

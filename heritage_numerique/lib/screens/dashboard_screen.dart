@@ -4,9 +4,9 @@ import 'HomeDashboardScreen.dart';
 
 // --- Constantes de Couleurs ---
 // AA7311 est la couleur Ocre (Golden/Brownish Yellow)
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 // D9D9D9 avec 53% d'opacité (gris clair transparent)
-const Color _buttonOpacityColor = Color(0x87D9D9D9); 
+const Color _buttonOpacityColor = Color(0x87D9D9D9);
 // Couleur blanche pour le fond
 const Color _backgroundColor = Colors.white;
 // Couleurs supplémentaires réutilisées pour les détails de carte
@@ -44,7 +44,7 @@ class DashboardScreen extends StatelessWidget {
             // 4. Titre "Famille"
             _buildSectionTitle('Famille'),
             const SizedBox(height: 15),
-            
+
             // 5. Grille des membres de la Famille
             _buildFamilyGrid(),
             const SizedBox(height: 30),
@@ -76,7 +76,7 @@ class DashboardScreen extends StatelessWidget {
         border: Border.all(color: _mainAccentColor, width: 2),
         image: const DecorationImage(
           // Image simulée pour le logo ou l'avatar
-          image: AssetImage('assets/images/logo_dabo.png'), 
+          image: AssetImage('assets/images/logo_dabo.png'),
           fit: BoxFit.cover,
         ),
       ),
@@ -139,7 +139,7 @@ class DashboardScreen extends StatelessWidget {
         // Icône
         Icon(icon, color: _mainAccentColor, size: 30),
         const SizedBox(height: 8),
-        
+
         // Titre
         Text(
           title,
@@ -150,7 +150,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        
+
         // Bouton de comptage (D9D9D9 53% opacité)
         Container(
           width: 60,
@@ -190,7 +190,7 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // --- 5. Grille des Membres de la Famille ---
   Widget _buildFamilyGrid() {
     return GridView.builder(
@@ -209,7 +209,7 @@ class DashboardScreen extends StatelessWidget {
       },
     );
   }
-  
+
   /// Construction d'une carte de Membre de la Famille
   Widget _buildFamilyCard(BuildContext context, int index) {
     return GestureDetector(
@@ -237,10 +237,10 @@ class DashboardScreen extends StatelessWidget {
           children: [
             // Icône Famille
             const Icon(Icons.group, color: _mainAccentColor, size: 30),
-            
+
             // Texte DOLÒ
             const Text('DOLÒ', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
-            
+
             // Texte de statut (noir à gauche, D9D9D9 à droite)
             _buildFamilyDetailRow('Admin de la famille:', 'Oui', isLast: false),
             _buildFamilyDetailRow('Membre depuis:', '15 Jrs', isLast: false),
@@ -264,7 +264,7 @@ class DashboardScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(5),
                   boxShadow: [
-                     BoxShadow(
+                    BoxShadow(
                       color: Colors.black.withOpacity(0.1),
                       blurRadius: 3,
                       offset: const Offset(0, 2),
@@ -294,10 +294,10 @@ class DashboardScreen extends StatelessWidget {
             label,
             style: const TextStyle(fontSize: 8, color: Colors.black),
           ),
-          // MODIFICATION: J'ai corrigé l'utilisation de _buttonOpacityColor ici
+          // Correction de l'utilisation de _buttonOpacityColor (la couleur est déjà définie)
           Text(
             value,
-            style: TextStyle(fontSize: 8, color: _buttonOpacityColor),
+            style: const TextStyle(fontSize: 8, color: _cardTextColor),
           ),
         ],
       ),
@@ -316,7 +316,7 @@ class DashboardScreen extends StatelessWidget {
         crossAxisCount: 3,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.7, 
+        childAspectRatio: 0.7,
       ),
       itemBuilder: (context, index) {
         return _buildInvitationCard(context, index);
@@ -357,7 +357,7 @@ class DashboardScreen extends StatelessWidget {
         children: [
           // Icône d'Invitation
           const Icon(Icons.send, color: _mainAccentColor, size: 30),
-          
+
           // Détails de l'invitation (noir à gauche, D9D9D9 à droite)
           _buildFamilyDetailRow('Membre de la famille:', 'Oui', isLast: false),
           _buildFamilyDetailRow('Admin de la famille:', 'Non', isLast: false),
@@ -382,7 +382,7 @@ class DashboardScreen extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(5),
             boxShadow: [
-               BoxShadow(
+              BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 3,
                 offset: const Offset(0, 2),
@@ -391,7 +391,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           child: const Text('Refuser', style: TextStyle(fontSize: 10, color: _cardTextColor)),
         ),
-        
+
         // Bouton Accepter (Blanc)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -399,7 +399,7 @@ class DashboardScreen extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(5),
             boxShadow: [
-               BoxShadow(
+              BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 3,
                 offset: const Offset(0, 2),
@@ -411,7 +411,7 @@ class DashboardScreen extends StatelessWidget {
       ],
     );
   }
-  
+
   /// Cercle de validation/refus pour les cartes non en attente
   Widget _buildActionCircle(IconData icon, Color iconColor) {
     return Container(
@@ -425,7 +425,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- 7. Conteneur d'Actions en Bas ---
+  // --- 7. Conteneur d'Actions en Bas (CORRIGÉ) ---
   Widget _buildActionContainer(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -446,25 +446,35 @@ class DashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Boutons d'action
-            Row(
-              children: [
-                _buildBottomButton(context, 'Découvrir la culture Malienne', onTap: () {
-                  // Action pour découvrir la culture Malienne
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Découvrir la culture Malienne')),
-                  );
-                }),
-                const SizedBox(width: 10),
-                _buildBottomButton(context, 'Créer un compte familial', onTap: () {
-                  // Navigation vers CreateFamilyAccountScreen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CreateFamilyAccountScreen()),
-                  );
-                }),
-              ],
+            Expanded( // Ajout de Expanded ici pour donner de l'espace à la colonne des boutons
+              child: Row(
+                children: [
+                  // CORRECTION: Expanded sur le premier bouton
+                  Expanded(
+                    child: _buildBottomButton(context, 'Découvrir la culture Malienne', onTap: () {
+                      // Action pour découvrir la culture Malienne
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Découvrir la culture Malienne')),
+                      );
+                    }),
+                  ),
+                  const SizedBox(width: 10),
+                  // CORRECTION: Expanded sur le second bouton
+                  Expanded(
+                    child: _buildBottomButton(context, 'Créer un compte familial', onTap: () {
+                      // Navigation vers CreateFamilyAccountScreen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CreateFamilyAccountScreen()),
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
-            
+
+            const SizedBox(width: 10), // Espace entre les boutons et l'icône
+
             // Cercle avec icône/image (Arbre)
             Container(
               width: 50,
@@ -472,15 +482,11 @@ class DashboardScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _buttonOpacityColor,
-                image: const DecorationImage(
-                  // Image simulée pour l'arbre
-                  image: AssetImage('assets/images/tree_icon.png'), 
-                  fit: BoxFit.cover,
-                ),
+                // L'image d'asset peut ne pas exister, on garde l'icône de substitution
               ),
               child: const Center(
-                 // Icône de substitution si l'image n'est pas trouvée
-                child: Icon(Icons.park, color: _mainAccentColor), 
+                // Icône de substitution si l'image n'est pas trouvée
+                child: Icon(Icons.park, color: _mainAccentColor),
               ),
             ),
           ],
@@ -494,16 +500,19 @@ class DashboardScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        // Padding réduit légèrement pour donner plus de flexibilité au texte
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          // CORRECTION DEMANDÉE : Couleur de fond AA7311
-          color: _mainAccentColor, 
+          color: _mainAccentColor,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           text,
+          textAlign: TextAlign.center,
+          maxLines: 2, // Permettre au texte de s'enrouler
+          overflow: TextOverflow.ellipsis, // S'assurer qu'il ne déborde pas
           style: const TextStyle(
-            color: Colors.white, // Texte en blanc
+            color: Colors.white,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),

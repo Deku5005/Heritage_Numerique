@@ -252,7 +252,7 @@ class MusicScreen extends StatelessWidget {
                 builder: (context) => MusicDetailScreen(
                   musicTitle: track['title'] as String,
                   artistName: track['artist'] as String,
-                  description: track['description'] as String, 
+                  description: track['description'] as String,
                   audioUrl: 'url_audio_${index + 1}', // URL Audio simulé
                   imageUrl: track['image'] as String,
                   details: track['details'] as Map<String, dynamic>,
@@ -282,58 +282,80 @@ class MusicScreen extends StatelessWidget {
       String imagePath,
       int likes,
       ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 3))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Image du morceau avec icône de lecture
-          Expanded(
-            flex: 3,
-            child: _buildVideoImage(imagePath),
-          ),
+    // Calcule la hauteur totale disponible pour la carte (basé sur childAspectRatio=0.75)
+    // Nous allons utiliser un ratio approximatif de 70% pour l'image et 30% pour le texte.
 
-          // 2. Section du texte et des actions
-          Expanded(
-            flex: 1,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text(title, style: const TextStyle(color: _cardTextColor, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // Pour éviter les débordements (overflow) de RenderFlex, on utilise un LayoutBuilder
+    // pour garantir que les enfants de Column ont des contraintes de taille précises,
+    // même si on est dans un GridView.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // La hauteur de la carte est gérée par GridView, on utilise la largeur pour estimer la hauteur.
+        final cardHeight = constraints.maxHeight;
+        // CORRECTION MAJEURE: Augmentation de l'espace alloué au texte pour éviter le débordement.
+        // On passe de 70/30% à 65/35% (Image/Texte)
+        final imageSectionHeight = cardHeight * 0.65; // 65% pour l'image
+        final textSectionHeight = cardHeight * 0.35; // 35% pour les détails
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 3))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Image du morceau avec icône de lecture (Hauteur fixe)
+              SizedBox(
+                height: imageSectionHeight, // Hauteur calculée
+                child: _buildVideoImage(imagePath),
+              ),
+
+              // 2. Section du texte et des actions (Hauteur fixe)
+              SizedBox(
+                height: textSectionHeight, // Hauteur calculée
+                child: Padding(
+                  // Garde le padding vertical à 6.0
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    // Garde le mainAxisAlignment à spaceAround
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      Flexible(
-                        child: Row(
-                          children: [
-                            Icon(Icons.person, size: 12, color: _cardTextColor.withOpacity(0.6)),
-                            const SizedBox(width: 2),
-                            Expanded(
-                              child: Text(artistName, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9), overflow: TextOverflow.ellipsis),
+                      // Titre
+                      Text(title, style: const TextStyle(color: _cardTextColor, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+
+                      // Artiste, Durée, Likes
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Row(
+                              children: [
+                                Icon(Icons.person, size: 12, color: _cardTextColor.withOpacity(0.6)),
+                                const SizedBox(width: 2),
+                                Expanded( // Expanded est essentiel ici pour gérer le débordement horizontal
+                                  child: Text(artistName, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9), overflow: TextOverflow.ellipsis),
+                                ),
+                                const SizedBox(width: 5),
+                                Icon(Icons.timer, size: 12, color: _cardTextColor.withOpacity(0.6)),
+                                const SizedBox(width: 2),
+                                Text(duration, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9)),
+                              ],
                             ),
-                            const SizedBox(width: 5),
-                            Icon(Icons.timer, size: 12, color: _cardTextColor.withOpacity(0.6)),
-                            const SizedBox(width: 2),
-                            Text(duration, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9)),
-                          ],
-                        ),
+                          ),
+                          _buildLikeButton(likes),
+                        ],
                       ),
-                      _buildLikeButton(likes),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -363,11 +385,14 @@ class MusicScreen extends StatelessWidget {
 
   /// Bouton J'aime/Cœur en bas de la carte.
   Widget _buildLikeButton(int likes) {
+    // Ce bouton a été optimisé pour un usage minimal de l'espace.
     return IconButton(
       icon: const Icon(Icons.favorite_border, size: 18, color: Colors.grey),
       onPressed: () {},
+      // Supprime l'espace intérieur inutile
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+      // Contraintes minimales pour le bouton pour éviter de le rendre invisible.
+      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
     );
   }
 }
