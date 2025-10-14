@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/quizQuestion.dart';
 
-// Assurez-vous que le chemin d'importation de votre AppDrawer est correct
+// ASSUREZ-VOUS QUE CES CHEMINS D'IMPORTATION SONT CORRECTS DANS VOTRE PROJET
+
+
 import 'AppDrawer.dart';
 
 // Définition du modèle de données pour une tuile de quiz
@@ -41,13 +44,13 @@ class QuizScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         titleSpacing: 0,
 
-        // CORRECTION MAJEURE: Utilisation de 'leading' avec un Builder pour ouvrir le Drawer
+        // CORRECTION DRAWER: Utilisation de 'leading' avec un Builder pour obtenir le bon context
         leading: Builder(
           builder: (BuildContext innerContext) {
             return IconButton(
               icon: const Icon(Icons.menu, color: Colors.black),
               onPressed: () {
-                // Utilise l'innerContext qui est enfant du Scaffold pour ouvrir le Drawer
+                // Ouvre le tiroir
                 Scaffold.of(innerContext).openDrawer();
               },
             );
@@ -109,7 +112,6 @@ class QuizScreen extends StatelessWidget {
               child: Text(
                 'Quiz pour les contes',
                 style: TextStyle(
-                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w500,
                   fontSize: 16,
                   color: Colors.black,
@@ -123,7 +125,8 @@ class QuizScreen extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: quizList.length,
               itemBuilder: (context, index) {
-                return _buildQuizTile(quizList[index]);
+                // Le context utilisé ici est le bon pour la navigation
+                return _buildQuizTile(context, quizList[index]);
               },
             ),
             const SizedBox(height: 20),
@@ -153,11 +156,11 @@ class QuizScreen extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            // 1. Image de fond (CORRIGÉE : Utilisation de Opacity)
+            // 1. Image de fond (Utilisation de Opacity pour corriger l'erreur de type 'double')
             Opacity(
-              opacity: 0.8, // Opacité appliquée via le widget Opacity
+              opacity: 0.8,
               child: Image.asset(
-                'assets/images/mali.jpg',
+                'assets/images/mali.png',
                 fit: BoxFit.cover,
               ),
             ),
@@ -170,21 +173,21 @@ class QuizScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Tester vos connaissance en culture malienne',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
                     'Développer votre culture',
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
                       fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tester vos connaissance en culture malienne',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Inter',
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -197,9 +200,9 @@ class QuizScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour une seule tuile de quiz
-  Widget _buildQuizTile(QuizTileData data) {
-    const Color primaryColor = Color(0xFFE9A000);
+  // Widget pour une seule tuile de quiz (MODIFIÉ pour la navigation)
+  Widget _buildQuizTile(BuildContext context, QuizTileData data) {
+    const Color primaryColor = Color(0xFFBB8F40);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -244,8 +247,16 @@ class QuizScreen extends StatelessWidget {
           ),
           // Score / Cercle de progression
           trailing: _buildScoreCircle(data.currentScore, data.totalQuestions, primaryColor),
+
+          // ACTION : Navigation vers QuestionScreen
           onTap: () {
-            // Action
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                // Lance l'écran de question
+                builder: (context) => const QuestionScreen(),
+              ),
+            );
           },
         ),
       ),
