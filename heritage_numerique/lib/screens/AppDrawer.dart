@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
 import 'HomeDashboardScreen.dart';     
 import 'FamilyMembersScreen.dart';   
@@ -134,7 +135,9 @@ class AppDrawer extends StatelessWidget {
                 }),
                 
                 // 4. Artisanat/ Photos
-                _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {}),
+                _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {
+
+                }),
                 
                 // 5. Arbre Généalogique (FamilyTreeScreen)
                 _buildDrawerItem(Icons.link, 'Arbre Généalogique', onTap: () {
@@ -160,7 +163,9 @@ class AppDrawer extends StatelessWidget {
                 }),
 
                 // 10. Quiz
-                _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {}),
+                _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {
+                  _navigateToReplace(context, const QuizScreen());
+                }),
 
                 // 11. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
