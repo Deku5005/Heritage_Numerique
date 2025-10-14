@@ -157,7 +157,7 @@ class QuizScreen extends StatelessWidget {
             Opacity(
               opacity: 0.8, // Opacité appliquée via le widget Opacity
               child: Image.asset(
-                'assets/images/mali.jpg',
+                'assets/images/mali.png',
                 fit: BoxFit.cover,
               ),
             ),
