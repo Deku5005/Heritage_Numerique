@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/artisanat.dart';
+import 'package:heritage_numerique/screens/proverbe.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
 import 'HomeDashboardScreen.dart';     
@@ -136,7 +138,7 @@ class AppDrawer extends StatelessWidget {
                 
                 // 4. Artisanat/ Photos
                 _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {
-
+                _navigateToReplace(context, const ContenuArtisanalScreen());
                 }),
                 
                 // 5. Arbre Généalogique (FamilyTreeScreen)
@@ -145,7 +147,9 @@ class AppDrawer extends StatelessWidget {
                 }),
 
                 // 6. Proverbes
-                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {}),
+                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {
+                  _navigateToReplace(context, const ProverbeCollectionScreen());
+                }),
 
                 // 7. Musiques et Chants
                 _buildDrawerItem(Icons.music_note_outlined, 'Musiques et Chants', onTap: () {

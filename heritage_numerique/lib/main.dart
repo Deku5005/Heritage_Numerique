@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/artisanat.dart';
 import 'package:heritage_numerique/screens/musicDash.dart';
+import 'package:heritage_numerique/screens/proverbe.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 import 'package:heritage_numerique/screens/quizQuestion.dart';
 import 'package:heritage_numerique/screens/quizResultat.dart';
@@ -20,7 +22,7 @@ class HeritageNumeriqueApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber),
         useMaterial3: true,
       ),
-      home: const MusicDashScreen(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

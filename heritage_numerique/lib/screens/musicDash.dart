@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 
+// Assurez-vous d'importer votre AppDrawer correctement
 import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs ---
-const Color _searchBgColor = Color(0xFFFCF8F1);
+const Color _searchBgColor = Color(0xFFFCF8F1); // Couleur de fond demandée
 const Color _searchBorderColor = Color(0xFFEAE6DF);
 const Color _primaryTextColor = Color(0xFF000000);
 const Color _secondaryTextColor = Color(0xFF99928F);
 const Color _accentTextColor = Color(0xFF49521D);
-const Color _featuredTileBg = Color(0xE8DFE9); // E8DFE9 est proche de rgba(232, 223, 201, 0.3)
+// L'ancienne couleur _featuredTileBg a été remplacée par _searchBgColor
 
 class MusicDashScreen extends StatelessWidget {
   const MusicDashScreen({super.key});
 
   // Fonction pour simuler la tuile d'un élément de la collection
   Widget _buildMusicListItem(String title, String author) {
+    // La taille de police de l'auteur a été augmentée à 12 (CORRIGÉ)
+    const double authorFontSize = 12.0;
+
     return Column(
       children: [
         ListTile(
@@ -27,7 +31,7 @@ class MusicDashScreen extends StatelessWidget {
               // Simulate image and play button
               color: Colors.grey[300],
               image: const DecorationImage(
-                image: AssetImage('assets/african-music-instruments.jpg'), // Remplacez par votre chemin d'image
+                image: AssetImage('assets/images/african-traditional-music-instruments.jpg'), // Remplacez par votre chemin d'image
                 fit: BoxFit.cover,
               ),
             ),
@@ -38,7 +42,6 @@ class MusicDashScreen extends StatelessWidget {
           title: Text(
             title,
             style: const TextStyle(
-              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 12,
               color: Color.fromRGBO(0, 0, 0, 0.8),
@@ -47,9 +50,8 @@ class MusicDashScreen extends StatelessWidget {
           subtitle: Text(
             author,
             style: const TextStyle(
-              fontFamily: 'Roboto',
               fontWeight: FontWeight.w400,
-              fontSize: 10,
+              fontSize: authorFontSize, // Taille ajustée
               color: _accentTextColor,
             ),
           ),
@@ -70,7 +72,7 @@ class MusicDashScreen extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        color: _featuredTileBg,
+        color: _searchBgColor, // Couleur ajustée pour correspondre à la barre de recherche (CORRIGÉ)
         borderRadius: BorderRadius.circular(5),
         boxShadow: [
           BoxShadow(
@@ -92,7 +94,7 @@ class MusicDashScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(5),
               color: Colors.grey[400],
               image: const DecorationImage(
-                image: AssetImage('assets/african-traditional-music-instruments.jpg'), // Remplacez par votre chemin d'image
+                image: AssetImage('assets/images/african-traditional-music-instruments.jpg'), // Remplacez par votre chemin d'image
                 fit: BoxFit.cover,
               ),
             ),
@@ -118,9 +120,8 @@ class MusicDashScreen extends StatelessWidget {
                 const Text(
                   'Chant de mariage traditionnel',
                   style: TextStyle(
-                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: 15,
                     color: _primaryTextColor,
                   ),
                 ),
@@ -128,9 +129,8 @@ class MusicDashScreen extends StatelessWidget {
                 const Text(
                   'Enregistrer par oumou Diakite lors du mariage de son petit fils à 2002...',
                   style: TextStyle(
-                    fontFamily: 'Roboto',
                     fontWeight: FontWeight.w400,
-                    fontSize: 10,
+                    fontSize: 12,
                     height: 1.2,
                     color: _accentTextColor,
                   ),
@@ -197,7 +197,6 @@ class MusicDashScreen extends StatelessWidget {
                   child: Text(
                     'Héritage Numérique',
                     style: const TextStyle(
-                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
                       color: Colors.black,
@@ -246,7 +245,6 @@ class MusicDashScreen extends StatelessWidget {
                       Text(
                         'Contenus culturels',
                         style: TextStyle(
-                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                           fontSize: 20,
                           color: _primaryTextColor,
@@ -256,7 +254,6 @@ class MusicDashScreen extends StatelessWidget {
                       Text(
                         'Explorez les mélodies et chants traditionnels de la famille',
                         style: TextStyle(
-                          fontFamily: 'Roboto',
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                           color: _secondaryTextColor,
@@ -287,22 +284,22 @@ class MusicDashScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: _searchBgColor,
                   border: Border.all(color: _searchBorderColor, width: 1),
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(5), // Taille ajustée pour le design
                 ),
                 child: const TextField(
                   decoration: InputDecoration(
                     hintText: 'Rechercher contenu...',
                     hintStyle: TextStyle(
-                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w400,
-                      fontSize: 12,
+                      fontSize: 10, // Taille ajustée pour le design
                       color: Color(0xFF6E6967),
                     ),
                     prefixIcon: Icon(Icons.search, color: Color(0xFF6E6967)),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.only(top: 8.0),
+                    // contentPadding ajusté pour aligner le texte avec l'icône (CORRIGÉ)
+                    contentPadding: EdgeInsets.only(top: 00.0, bottom: 15.0),
                   ),
-                  style: TextStyle(fontSize: 14),
+                  style: TextStyle(fontSize: 12), // Taille du texte saisi
                 ),
               ),
             ),
@@ -338,9 +335,8 @@ class MusicDashScreen extends StatelessWidget {
                       child: Text(
                         'Collection musicale',
                         style: TextStyle(
-                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 16,
                           color: Color.fromRGBO(0, 0, 0, 0.8),
                         ),
                       ),
