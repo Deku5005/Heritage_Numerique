@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/Profil.dart';
 import 'package:heritage_numerique/screens/artisanat.dart';
 import 'package:heritage_numerique/screens/proverbe.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
@@ -91,7 +92,7 @@ class AppDrawer extends StatelessWidget {
                 'Héritage',
                 style: TextStyle(
                   color: _drawerTextColor,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -99,7 +100,7 @@ class AppDrawer extends StatelessWidget {
                 'Numérique',
                 style: TextStyle(
                   color: Colors.grey, 
-                  fontSize: 14,
+                  fontSize: 16,
                 ),
               ),
             ],
@@ -170,8 +171,11 @@ class AppDrawer extends StatelessWidget {
                 _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {
                   _navigateToReplace(context, const QuizScreen());
                 }),
-
-                // 11. Paramètre
+                //11.Profil
+                _buildDrawerItem(Icons.person, 'Profil',onTap: () {
+                  _navigateToReplace(context, const ProfilePage() );
+                }),
+                // 12. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
                      _navigateToReplace(context, const SettingsScreen());
                 }),

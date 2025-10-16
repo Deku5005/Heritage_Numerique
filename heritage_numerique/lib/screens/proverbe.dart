@@ -42,7 +42,7 @@ class ProverbeData {
 // Données de démonstration
 final List<ProverbeData> proverbeList = [
   ProverbeData(
-    text: "Si tu veux aller vite, marche seul. Si tu veux aller loin, marchons ensemble.",
+    text: "Si tu veux aller vite, marche seul.Si tu veux allé vite marchons ensemble ",
     origin: "Proverbe africain",
     imagePath: 'assets/images/african-savanne.jpg',
     signification: "Ce proverbe souligne l'importance de la collaboration et de l'entraide. Bien que l'individualisme puisse apporter des résultats rapides, c'est l'union et la solidarité qui permettent d'accomplir de grandes choses durables.",
@@ -81,7 +81,7 @@ class ProverbeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 111,
+      height: 120,
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
       decoration: BoxDecoration(
         color: _proverbCardBgColor,
@@ -122,7 +122,7 @@ class ProverbeCard extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
-                      fontSize: 12,
+                      fontSize: 15,
                       height: 1.6,
                       color: _primaryTextColor,
                     ),
@@ -144,7 +144,7 @@ class ProverbeCard extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 8,
+                          fontSize: 13,
                           color: _proverbAccentColor,
                         ),
                       ),
@@ -213,7 +213,6 @@ class ProverbeCollectionScreen extends StatelessWidget {
           child: Text(
             'Héritage Numérique',
             style: const TextStyle(
-              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 24,
               color: _primaryTextColor,
@@ -239,7 +238,7 @@ class ProverbeCollectionScreen extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
-                              fontSize: 20,
+                              fontSize: 22,
                               color: _primaryTextColor,
                             ),
                           ),
@@ -251,7 +250,7 @@ class ProverbeCollectionScreen extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Roboto',
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 14,
                           color: _secondaryTextColor,
                         ),
                       ),
@@ -270,7 +269,7 @@ class ProverbeCollectionScreen extends StatelessWidget {
                             hintText: 'Rechercher contenu...',
                             hintStyle: TextStyle(
                               fontWeight: FontWeight.w400,
-                              fontSize: 10,
+                              fontSize: 12,
                               color: _searchHintColor,
                             ),
                             prefixIcon: Icon(Icons.search, color: _searchHintColor),

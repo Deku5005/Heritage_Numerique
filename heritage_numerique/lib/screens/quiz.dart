@@ -68,7 +68,6 @@ class QuizScreen extends StatelessWidget {
                 child: Text(
                   'Héritage Numérique',
                   style: const TextStyle(
-                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 24,
                     color: Colors.black,
@@ -112,8 +111,8 @@ class QuizScreen extends StatelessWidget {
               child: Text(
                 'Quiz pour les contes',
                 style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
                   color: Colors.black,
                 ),
               ),
@@ -140,7 +139,7 @@ class QuizScreen extends StatelessWidget {
 // WIDGETS DE CONSTRUCTION
 // ===============================================
 
-  // Widget pour la carte orange en haut (Image Seule en fond)
+  // Widget pour (Image Seule en fond)
   Widget _buildHeaderCard(BuildContext context) {
     const Color cardColor = Color(0xFFE9A000);
 
@@ -177,7 +176,7 @@ class QuizScreen extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -187,7 +186,7 @@ class QuizScreen extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Inter',
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -239,9 +238,9 @@ class QuizScreen extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${data.totalQuestions} Question',
+            '${data.totalQuestions} Questions',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: Colors.grey,
             ),
           ),

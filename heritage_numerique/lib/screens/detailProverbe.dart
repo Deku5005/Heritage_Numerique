@@ -3,15 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/proverbe.dart';
 
-
-// IMPORTANT : Assurez-vous d'importer le fichier contenant la classe ProverbeData.
-// Si vous la laissez dans ProverbeCollectionScreen.dart, vous devrez peut-être la déplacer.
-// Pour l'instant, supposons que ProverbeData sera importée ici.
-// import 'proverbe_data.dart'; // Si vous avez un fichier séparé pour le modèle
-
-// Pour la compilation actuelle, laissons ProverbeData de côté dans ce bloc,
-// car elle est définie dans l'autre fichier fourni.
-
 // --- Constantes de Couleurs Spécifiques au Détail ---
 const Color _detailContentBg = Color(0x75000000); // Noir, 46% opacité
 const Color _detailContentBorder = Color(0xFF49521D);
@@ -21,10 +12,6 @@ const Color _detailLineColor = Color(0x80FFC107); // Jaune/Or, 50% opacité
 
 
 class ProverbeDetailScreen extends StatelessWidget {
-  // Définition de ProverbeData manquante, mais nous utiliserons celle du fichier de collection
-  // pour éviter la redéfinition. Assurez-vous d'importer la classe ProverbeData
-  // ou de la définir dans un fichier séparé.
-  // Laisser ce code tel quel, en supposant que l'IDE résoudra ProverbeData par l'importation.
   final ProverbeData proverbe;
 
   const ProverbeDetailScreen({super.key, required this.proverbe});
@@ -67,7 +54,7 @@ class ProverbeDetailScreen extends StatelessWidget {
           Positioned(
             left: 20,
             right: 20,
-            top: 173,
+            top: 300,
             height: 532,
             child: Container(
               decoration: BoxDecoration(
@@ -96,7 +83,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                          fontSize: 18,
                           height: 1.67,
                           color: Colors.white,
                         ),
@@ -112,7 +99,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         // Ligne Décorative Gauche
                         Container(
                           width: 75,
-                          height: 1,
+                          height: 2,
                           margin: const EdgeInsets.only(right: 8),
                           color: _detailLineColor,
                         ),
@@ -123,7 +110,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                            fontSize: 14,
                             height: 1.67,
                             color: _detailOriginColor,
                           ),
@@ -131,8 +118,8 @@ class ProverbeDetailScreen extends StatelessWidget {
 
                         // Ligne Décorative Droite
                         Container(
-                          width: 77,
-                          height: 1,
+                          width: 70,
+                          height: 2,
                           margin: const EdgeInsets.only(left: 8),
                           color: _detailLineColor,
                         ),
@@ -149,7 +136,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                          fontSize: 20,
                           height: 1.33,
                           color: _detailAccentColor,
                         ),
@@ -166,7 +153,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 18,
                           height: 2.08,
                           color: Colors.white,
                         ),
