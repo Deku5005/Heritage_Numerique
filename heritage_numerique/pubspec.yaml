@@ -35,6 +35,12 @@ dependencies:
   # Le package pour la sélection de fichiers (essentiel pour la photo)
   file_picker: ^10.3.3
 
+  #Le facteur http
+  http: ^1.1.1
+  shared_preferences: ^2.2.2
+
+
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
