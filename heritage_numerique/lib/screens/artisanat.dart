@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/detailArtisanal.dart';
 
-// Assurez-vous que le chemin est correct pour votre projet
 import 'AppDrawer.dart';
 
 
@@ -67,13 +66,13 @@ class ContenuArtisanalScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              const Icon(Icons.book, size: 7.5, color: _primaryTextColor), // Utiliser l'icône Book
+              const Icon(Icons.photo, size: 8, color: _primaryTextColor), // Utiliser l'icône Book
               const SizedBox(width: 3),
             ],
             Text(
               text,
               style: const TextStyle(
-                fontSize: 8,
+                fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: _primaryTextColor,
               ),
@@ -166,7 +165,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                           'OD',
                           style: TextStyle(
                             fontWeight: FontWeight.w400,
-                            fontSize: 10,
+                            fontSize: 12,
                             color: _primaryTextColor,
                           ),
                         ),
@@ -179,7 +178,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                         data.author,
                         style: const TextStyle(
                           fontWeight: FontWeight.w400,
-                          fontSize: 10,
+                          fontSize: 12,
                           color: _primaryTextColor,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -193,7 +192,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                   data.time,
                   style: const TextStyle(
                     fontWeight: FontWeight.w400,
-                    fontSize: 8,
+                    fontSize: 10,
                     color: _primaryTextColor,
                   ),
                 ),
@@ -284,7 +283,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                     'Contenus culturels',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 20,
+                      fontSize: 22,
                       color: _primaryTextColor,
                     ),
                   ),
@@ -293,7 +292,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                     'Récits, musiques, artisanat et proverbes de votre famille',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 12,
+                      fontSize: 14,
                       color: _secondaryTextColor,
                     ),
                   ),
@@ -318,7 +317,7 @@ class ContenuArtisanalScreen extends StatelessWidget {
                     hintText: 'Rechercher contenu...',
                     hintStyle: TextStyle(
                       fontWeight: FontWeight.w400,
-                      fontSize: 10,
+                      fontSize: 12,
                       color: Color(0xFF6E6967),
                     ),
                     prefixIcon: Icon(Icons.search, color: Color(0xFF6E6967)),

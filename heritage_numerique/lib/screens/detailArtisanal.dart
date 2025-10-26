@@ -72,13 +72,13 @@ class ArtisanatDetailModal extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 10, color: isPrimaryTag ? Colors.white : _primaryTextColor),
+            Icon(icon, size: 12, color: isPrimaryTag ? Colors.white : _primaryTextColor),
             const SizedBox(width: 4),
           ],
           Text(
             text,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: isPrimaryTag ? Colors.white : _primaryTextColor,
             ),
@@ -130,7 +130,7 @@ class ArtisanatDetailModal extends StatelessWidget {
           Row(
             children: [
               _buildTag('${data.category} / ${data.type}', icon: Icons.image_outlined, bgColor: Colors.transparent),
-              const SizedBox(width: 8),
+              const SizedBox(width: 14),
               _buildTag(data.tag, bgColor: _bambaraTagBg),
             ],
           ),
@@ -157,7 +157,7 @@ class ArtisanatDetailModal extends StatelessWidget {
             'Contenu original',
             style: TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 10,
+              fontSize: 16,
               color: _primaryTextColor,
             ),
           ),
@@ -169,7 +169,7 @@ class ArtisanatDetailModal extends StatelessWidget {
             data.description,
             style: const TextStyle(
               fontWeight: FontWeight.w400,
-              fontSize: 10,
+              fontSize: 14,
               color: _primaryTextColor,
               height: 1.6,
             ),
@@ -196,7 +196,7 @@ class ArtisanatDetailModal extends StatelessWidget {
                         'OD',
                         style: TextStyle(
                           fontWeight: FontWeight.w400,
-                          fontSize: 12,
+                          fontSize: 14,
                           color: _primaryTextColor,
                         ),
                       ),
@@ -208,7 +208,7 @@ class ArtisanatDetailModal extends StatelessWidget {
                     data.author,
                     style: const TextStyle(
                       fontWeight: FontWeight.w400,
-                      fontSize: 10,
+                      fontSize: 14,
                       color: _primaryTextColor,
                     ),
                   ),
@@ -220,7 +220,7 @@ class ArtisanatDetailModal extends StatelessWidget {
                 data.time,
                 style: const TextStyle(
                   fontWeight: FontWeight.w400,
-                  fontSize: 8,
+                  fontSize: 12,
                   color: _primaryTextColor,
                 ),
               ),

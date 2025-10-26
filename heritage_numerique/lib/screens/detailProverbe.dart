@@ -3,15 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/proverbe.dart';
 
-
-// IMPORTANT : Assurez-vous d'importer le fichier contenant la classe ProverbeData.
-// Si vous la laissez dans ProverbeCollectionScreen.dart, vous devrez peut-être la déplacer.
-// Pour l'instant, supposons que ProverbeData sera importée ici.
-// import 'proverbe_data.dart'; // Si vous avez un fichier séparé pour le modèle
-
-// Pour la compilation actuelle, laissons ProverbeData de côté dans ce bloc,
-// car elle est définie dans l'autre fichier fourni.
-
 // --- Constantes de Couleurs Spécifiques au Détail ---
 const Color _detailContentBg = Color(0x75000000); // Noir, 46% opacité
 const Color _detailContentBorder = Color(0xFF49521D);
@@ -21,7 +12,7 @@ const Color _detailLineColor = Color(0x80FFC107); // Jaune/Or, 50% opacité
 
 
 class ProverbeDetailScreen extends StatelessWidget {
-    final ProverbeData proverbe;
+  final ProverbeData proverbe;
 
   const ProverbeDetailScreen({super.key, required this.proverbe});
 
@@ -36,7 +27,7 @@ class ProverbeDetailScreen extends StatelessWidget {
       // Reste du code du widget ProverbeDetailScreen (identique à votre première partie de code)
       body: Stack(
         children: [
-          // 1. Image de fond
+          // 1. Image de fond (Frame 79)
           Positioned.fill(
             child: Image.asset(
               proverbe.imagePath,
@@ -63,7 +54,7 @@ class ProverbeDetailScreen extends StatelessWidget {
           Positioned(
             left: 20,
             right: 20,
-            top: 273,
+            top: 300,
             height: 532,
             child: Container(
               decoration: BoxDecoration(
@@ -92,7 +83,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                          fontSize: 18,
                           height: 1.67,
                           color: Colors.white,
                         ),
@@ -108,7 +99,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         // Ligne Décorative Gauche
                         Container(
                           width: 75,
-                          height: 1,
+                          height: 2,
                           margin: const EdgeInsets.only(right: 8),
                           color: _detailLineColor,
                         ),
@@ -127,8 +118,8 @@ class ProverbeDetailScreen extends StatelessWidget {
 
                         // Ligne Décorative Droite
                         Container(
-                          width: 77,
-                          height: 1,
+                          width: 70,
+                          height: 2,
                           margin: const EdgeInsets.only(left: 8),
                           color: _detailLineColor,
                         ),
@@ -145,7 +136,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                          fontSize: 20,
                           height: 1.33,
                           color: _detailAccentColor,
                         ),
@@ -162,7 +153,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                          fontSize: 18,
                           height: 2.08,
                           color: Colors.white,
                         ),
