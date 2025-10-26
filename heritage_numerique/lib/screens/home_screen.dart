@@ -3,6 +3,7 @@ import 'contes_screen.dart';
 import 'artisans_screen.dart';
 import 'music_screen.dart';
 import 'proverb_screen.dart';
+import 'splash_screen.dart'; // IMPORTANT: Assurez-vous d'importer votre SplashScreen ici
 
 /// Écran principal de l'application affichant les catégories de patrimoine culturel.
 class HomeScreen extends StatelessWidget {
@@ -35,6 +36,42 @@ class HomeScreen extends StatelessWidget {
     },
   ];
 
+  // Définition des styles de BorderRadius uniques pour chaque carte
+  static const double largeRadius = 50.0;
+  static const double smallRadius = 00.0;
+
+  final List<BorderRadius> uniqueCardBorders = const [
+    // 0: Contes (Top-Left/Bottom-Right dominant)
+    BorderRadius.only(
+      topLeft: Radius.circular(largeRadius),
+      topRight: Radius.circular(largeRadius),
+      bottomLeft: Radius.circular(largeRadius),
+      bottomRight: Radius.circular(smallRadius),
+    ),
+    // 1: Musiques (Top-Right/Bottom-Left dominant)
+    BorderRadius.only(
+      topLeft: Radius.circular(largeRadius),
+      topRight: Radius.circular(largeRadius),
+      bottomLeft: Radius.circular(smallRadius),
+      bottomRight: Radius.circular(largeRadius),
+    ),
+    // 2: Artisanat (Inversé: Top-Right/Bottom-Left dominant)
+    BorderRadius.only(
+      topLeft: Radius.circular(largeRadius),
+      topRight: Radius.circular(smallRadius),
+      bottomLeft: Radius.circular(largeRadius),
+      bottomRight: Radius.circular(largeRadius),
+    ),
+    // 3: Proverbes (Inversé: Top-Left/Bottom-Right dominant)
+    BorderRadius.only(
+      topLeft: Radius.circular(smallRadius),
+      topRight: Radius.circular(largeRadius),
+      bottomLeft: Radius.circular(largeRadius),
+      bottomRight: Radius.circular(largeRadius),
+    ),
+  ];
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,14 +84,17 @@ class HomeScreen extends StatelessWidget {
             automaticallyImplyLeading: false,
             pinned: true,
             titleSpacing: 0,
-            title: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: _accentColor),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: _accentColor),
+              onPressed: () {
+                // MODIFICATION CLÉ: Utilisation de pushAndRemoveUntil pour vider la pile
+                // et revenir à l'écran de splash (la racine).
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SplashScreen()),
+                      (Route<dynamic> route) => false, // Supprime toutes les routes précédentes
+                );
+              },
             ),
           ),
 
@@ -131,6 +171,7 @@ class HomeScreen extends StatelessWidget {
                       categories[index]['title']!,
                       categories[index]['subtitle']!,
                       categories[index]['image_path']!,
+                      index, // PASSAGE DE L'INDEX
                     );
                   },
                 ),
@@ -146,11 +187,16 @@ class HomeScreen extends StatelessWidget {
 
   /// Fonction pour construire chaque carte de catégorie
   Widget _buildCategoryCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    String imagePath,
-  ) {
+      BuildContext context,
+      String title,
+      String subtitle,
+      String imagePath,
+      int index, // NOUVEAU PARAMÈTRE: l'index de la carte dans la grille
+      ) {
+
+    // Sélectionne le BorderRadius unique basé sur l'index
+    final BorderRadius cardRadius = uniqueCardBorders[index];
+
     return GestureDetector(
       onTap: () {
         // Navigation vers la page correspondante
@@ -171,7 +217,7 @@ class HomeScreen extends StatelessWidget {
           default:
             return;
         }
-        
+
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => targetScreen),
@@ -179,7 +225,7 @@ class HomeScreen extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: cardRadius, // Applique le BorderRadius dynamique et unique
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -189,7 +235,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: cardRadius, // Applique le même BorderRadius au contenu de la carte (image)
           child: Stack(
             fit: StackFit.expand,
             children: [

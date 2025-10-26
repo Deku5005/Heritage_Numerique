@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/Profil.dart';
+import 'package:heritage_numerique/screens/artisanat.dart';
+import 'package:heritage_numerique/screens/devinette.dart';
+import 'package:heritage_numerique/screens/proverbe.dart';
+import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
 import 'HomeDashboardScreen.dart';     
 import 'FamilyMembersScreen.dart';   
@@ -88,7 +93,7 @@ class AppDrawer extends StatelessWidget {
                 'Héritage',
                 style: TextStyle(
                   color: _drawerTextColor,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -96,7 +101,7 @@ class AppDrawer extends StatelessWidget {
                 'Numérique',
                 style: TextStyle(
                   color: Colors.grey, 
-                  fontSize: 14,
+                  fontSize: 16,
                 ),
               ),
             ],
@@ -129,12 +134,14 @@ class AppDrawer extends StatelessWidget {
                 }),
                 
                 // 3. Récits
-                _buildDrawerItem(Icons.book_outlined, 'Récits', onTap: () {
+                _buildDrawerItem(Icons.book_outlined, 'Contes', onTap: () {
                     _navigateToReplace(context, const CulturalContentScreen());
                 }),
                 
                 // 4. Artisanat/ Photos
-                _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {}),
+                _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {
+                _navigateToReplace(context, const ContenuArtisanalScreen());
+                }),
                 
                 // 5. Arbre Généalogique (FamilyTreeScreen)
                 _buildDrawerItem(Icons.link, 'Arbre Généalogique', onTap: () {
@@ -142,11 +149,13 @@ class AppDrawer extends StatelessWidget {
                 }),
 
                 // 6. Proverbes
-                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {}),
+                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {
+                  _navigateToReplace(context, const ProverbeCollectionScreen());
+                }),
 
                 // 7. Musiques et Chants
-                _buildDrawerItem(Icons.music_note_outlined, 'Musiques et Chants', onTap: () {
-                    _navigateToReplace(context, const MusicDashScreen());
+                _buildDrawerItem(Icons.music_note_outlined, 'Devinettes', onTap: () {
+                    _navigateToReplace(context, const RiddleScreen());
                 }),
 
                 // 8. Contributions
@@ -160,9 +169,14 @@ class AppDrawer extends StatelessWidget {
                 }),
 
                 // 10. Quiz
-                _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {}),
-
-                // 11. Paramètre
+                _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {
+                  _navigateToReplace(context, const QuizScreen());
+                }),
+                //11.Profil
+                _buildDrawerItem(Icons.person, 'Profil',onTap: () {
+                  _navigateToReplace(context, const ProfilePage() );
+                }),
+                // 12. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
                      _navigateToReplace(context, const SettingsScreen());
                 }),
