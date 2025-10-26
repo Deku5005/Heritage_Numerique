@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/artisanat.dart';
+import 'package:heritage_numerique/screens/devinette.dart';
 import 'package:heritage_numerique/screens/proverbe.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
@@ -132,7 +133,7 @@ class AppDrawer extends StatelessWidget {
                 }),
                 
                 // 3. Récits
-                _buildDrawerItem(Icons.book_outlined, 'Récits', onTap: () {
+                _buildDrawerItem(Icons.book_outlined, 'Contes', onTap: () {
                     _navigateToReplace(context, const CulturalContentScreen());
                 }),
                 
@@ -152,8 +153,8 @@ class AppDrawer extends StatelessWidget {
                 }),
 
                 // 7. Musiques et Chants
-                _buildDrawerItem(Icons.music_note_outlined, 'Musiques et Chants', onTap: () {
-                    _navigateToReplace(context, const MusicDashScreen());
+                _buildDrawerItem(Icons.music_note_outlined, 'Devinettes', onTap: () {
+                    _navigateToReplace(context, const RiddleScreen());
                 }),
 
                 // 8. Contributions

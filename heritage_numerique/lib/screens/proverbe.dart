@@ -24,7 +24,7 @@ const Color _proverbCardBgColor = _searchBgColor;
 // MODÈLE ET DONNÉES (Gardées ici UNIQUEMENT)
 // =============================================================
 
-// Modèle de données pour un proverbe (Laisser la définition ici)
+// Modèle de données pour un proverbe
 class ProverbeData {
   final String text;
   final String origin;
@@ -175,7 +175,6 @@ class ProverbeCollectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ... Reste du code de ProverbeCollectionScreen (identique) ...
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: const AppDrawer(),

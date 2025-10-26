@@ -21,11 +21,7 @@ const Color _detailLineColor = Color(0x80FFC107); // Jaune/Or, 50% opacité
 
 
 class ProverbeDetailScreen extends StatelessWidget {
-  // Définition de ProverbeData manquante, mais nous utiliserons celle du fichier de collection
-  // pour éviter la redéfinition. Assurez-vous d'importer la classe ProverbeData
-  // ou de la définir dans un fichier séparé.
-  // Laisser ce code tel quel, en supposant que l'IDE résoudra ProverbeData par l'importation.
-  final ProverbeData proverbe;
+    final ProverbeData proverbe;
 
   const ProverbeDetailScreen({super.key, required this.proverbe});
 
@@ -40,7 +36,7 @@ class ProverbeDetailScreen extends StatelessWidget {
       // Reste du code du widget ProverbeDetailScreen (identique à votre première partie de code)
       body: Stack(
         children: [
-          // 1. Image de fond (Frame 79)
+          // 1. Image de fond
           Positioned.fill(
             child: Image.asset(
               proverbe.imagePath,
@@ -67,7 +63,7 @@ class ProverbeDetailScreen extends StatelessWidget {
           Positioned(
             left: 20,
             right: 20,
-            top: 173,
+            top: 273,
             height: 532,
             child: Container(
               decoration: BoxDecoration(
@@ -123,7 +119,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
-                            fontSize: 12,
+                            fontSize: 14,
                             height: 1.67,
                             color: _detailOriginColor,
                           ),
@@ -149,7 +145,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 15,
+                          fontSize: 16,
                           height: 1.33,
                           color: _detailAccentColor,
                         ),
@@ -166,7 +162,7 @@ class ProverbeDetailScreen extends StatelessWidget {
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                          fontSize: 14,
                           height: 2.08,
                           color: Colors.white,
                         ),
