@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-// CORRECTION D'IMPORTATION : Assurez-vous que ce chemin est correct. 
-// Si HomeDashboardScreen est dans lib/screens, et AppDrawer est dans lib/screens, utilisez l'importation relative.
+import 'package:heritage_numerique/Service/Auth-service.dart'; // Pour le token/familleId si non passé
+import 'package:heritage_numerique/Service/dashboardServices.dart'; // Le service que vous devez implémenter
+import 'package:heritage_numerique/model/family_response_dashboard.dart'; // Le modèle de réponse
+
+// CORRECTION D'IMPORTATION : Assurez-vous que ce chemin est correct.
 import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
@@ -9,45 +12,98 @@ const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _welcomeCardBackground = Color(0xFFF7F2E8);
 
-class HomeDashboardScreen extends StatelessWidget {
-  const HomeDashboardScreen({super.key});
+class HomeDashboardScreen extends StatefulWidget {
+  final int? familyId;
+  final String? familyName;
+
+  const HomeDashboardScreen({super.key, this.familyId, this.familyName});
+
+  @override
+  State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
+}
+
+class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
+  // Services
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final DashboardService _dashboardService = DashboardService();
+
+  // État des données
+  Future<FamilyDashboardResponse>? _dashboardData;
+  final int _mockFamilyId = 9; // Fallback ou Mock ID
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  // Fonction de chargement des données
+  void _loadDashboardData() {
+    final int id = widget.familyId ?? _mockFamilyId;
+    setState(() {
+      _dashboardData = _dashboardService.fetchFamilyDashboard(familleId: id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Clé nécessaire pour que le Scaffold sache comment gérer le Drawer
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Scaffold(
-      key: scaffoldKey,
+      key: _scaffoldKey,
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(), // L'AppDrawer est const
+      drawer: const AppDrawer(),
 
-      body: SingleChildScrollView(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. En-tête (Menu + Titre)
-            _buildCustomHeader(scaffoldKey),
-            const SizedBox(height: 20),
+      body: FutureBuilder<FamilyDashboardResponse>(
+        future: _dashboardData,
+        builder: (context, snapshot) {
+          // 1. État de chargement
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
+          }
 
-            // 2. Carte de Bienvenue 
-            _buildWelcomeCard(),
-            const SizedBox(height: 30),
+          // 2. État d'erreur
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  "Erreur de chargement: ${snapshot.error.toString().replaceAll('Exception: ', '')}",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            );
+          }
 
-            // 3. Grille des Statistiques 
-            _buildStatsGrid(),
-            const SizedBox(height: 30),
+          // 3. État des données prêtes
+          if (snapshot.hasData) {
+            final data = snapshot.data!;
 
-            // 4. Titre "Récents Ajouts"
-            _buildSectionTitle('Récents Ajouts'),
-            const SizedBox(height: 15),
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. En-tête (Menu + Titre)
+                  _buildCustomHeader(_scaffoldKey),
+                  const SizedBox(height: 20),
 
-            // 5. Grille des Récents Ajouts
-            _buildRecentAdditionsGrid(),
-            const SizedBox(height: 30),
-          ],
-        ),
+                  // 2. Carte de Bienvenue (avec le nom de famille réel)
+                  _buildWelcomeCard(data.nomFamille),
+                  const SizedBox(height: 30),
+
+                  // 3. Grille des Statistiques (avec les données réelles)
+                  _buildStatsGrid(data),
+                  const SizedBox(height: 30),
+
+                  // La section "Récents Ajouts" (Titre et Grille) a été supprimée.
+                ],
+              ),
+            );
+          }
+
+          // 4. Aucune donnée
+          return const Center(child: Text("Aucune donnée de tableau de bord disponible."));
+        },
       ),
     );
   }
@@ -79,12 +135,11 @@ class HomeDashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- 2. Carte de Bienvenue ---
-  Widget _buildWelcomeCard() {
+  // --- 2. Carte de Bienvenue (Mise à jour pour recevoir le nom de famille) ---
+  Widget _buildWelcomeCard(String nomFamille) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16.0),
-      // CORRECTION : BoxDecoration est const si tous ses arguments le sont.
       decoration: BoxDecoration(
         color: _welcomeCardBackground,
         borderRadius: BorderRadius.circular(15),
@@ -92,9 +147,9 @@ class HomeDashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bienvenue dans la mémoire familiale des Diakité',
-            style: TextStyle(
+          Text(
+            'Bienvenue dans la mémoire familiale des $nomFamille',
+            style: const TextStyle(
               color: _cardTextColor,
               fontWeight: FontWeight.bold,
               fontSize: 18,
@@ -114,13 +169,15 @@ class HomeDashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- 3. Grille des Statistiques ---
-  Widget _buildStatsGrid() {
-    const List<Map<String, dynamic>> stats = [
-      {'title': 'Famille', 'count': 12, 'icon': Icons.group_outlined},
-      {'title': 'Récit', 'count': 24, 'icon': Icons.book_outlined},
-      {'title': 'Photos', 'count': 37, 'icon': Icons.photo_outlined},
-      {'title': 'Proverbes', 'count': 12, 'icon': Icons.format_quote},
+  // --- 3. Grille des Statistiques (Mise à jour pour utiliser les données réelles) ---
+  Widget _buildStatsGrid(FamilyDashboardResponse data) {
+    final List<Map<String, dynamic>> stats = [
+      {'title': 'Membres', 'count': data.nombreMembres, 'icon': Icons.group_outlined},
+      {'title': 'Contenus Publics', 'count': data.nombreContenusPublics, 'icon': Icons.public},
+      {'title': 'Contenus Privés', 'count': data.nombreContenusPrives, 'icon': Icons.lock_outline},
+      {'title': 'Quiz Actifs', 'count': data.nombreQuizActifs, 'icon': Icons.quiz_outlined},
+      {'title': 'Invitations', 'count': data.nombreInvitationsEnAttente, 'icon': Icons.mail_outline},
+      {'title': 'Arbres', 'count': data.nombreArbreGenealogiques, 'icon': Icons.account_tree_outlined},
     ];
 
     return Padding(
@@ -198,164 +255,5 @@ class HomeDashboardScreen extends StatelessWidget {
       ),
     );
   }
-
-  // --- 4. Titre de Section ---
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: _cardTextColor,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
-  // --- 5. Grille des Récents Ajouts ---
-  Widget _buildRecentAdditionsGrid() {
-    const List<Map<String, String>> additions = [
-      {'type': 'Musique', 'title': 'Chant traditionnel de mariage', 'by': 'OD Oumou Diakité', 'date': 'il y a 2 heures', 'tag': 'Bambara', 'image': 'assets/images/music_drum.jpg'},
-      {'type': 'Récit', 'title': 'L\'histoire de notre grand père Amadou', 'by': 'ND Niskale Diakité', 'date': 'il y a 2 heures', 'tag': 'Bambara', 'image': 'assets/images/story_telling.jpg'},
-      {'type': 'Proverbe', 'title': 'Proverbe sur la sagesse', 'by': 'ND Niskale Diakité', 'date': 'il y a 3 heures', 'tag': 'Bambara', 'image': 'assets/images/proverb_bg.jpg'},
-      {'type': 'Photo', 'title': 'Photo de famille', 'by': 'OD Oumou Diakité', 'date': 'il y a 3 heures', 'tag': 'Photo', 'image': 'assets/images/photo_bg.jpg'},
-    ];
-
-    return SizedBox(
-      height: 220,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: additions.length,
-        itemBuilder: (context, index) {
-          final item = additions[index];
-          return Padding(
-            padding: const EdgeInsets.only(right: 15),
-            child: _buildRecentAdditionCard(item),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Construction d'une carte d'ajout récent
-  Widget _buildRecentAdditionCard(Map<String, String> item) {
-    Color tagColor = item['type'] == 'Photo' ? Colors.black.withOpacity(0.5) : _mainAccentColor;
-
-    return Container(
-      width: 150,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image / Type Tag
-          Stack(
-            children: [
-              Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                  color: Colors.grey.shade300,
-                  image: DecorationImage(
-                    // L'erreur d'Asset n'est pas corrigée ici, mais elle est gérée par AssetImage
-                    image: AssetImage(item['image'] ?? 'assets/images/placeholder.jpg'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: tagColor,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    item['type']!,
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    item['tag']!,
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // Texte et Détails
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['title']!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _cardTextColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                // --- CORRECTION DU DÉBORDEMENT (OVERFLOW) ICI ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded( // Permet au texte long de l'auteur de se réduire et de tronquer
-                      child: Text(
-                        item['by']!,
-                        maxLines: 1, // Assure que la troncature fonctionne
-                        overflow: TextOverflow.ellipsis, // Affiche des points de suspension
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5), // Ajout d'un petit espace
-                    Text(
-                      item['date']!,
-                      style: TextStyle(
-                        color: _mainAccentColor.withOpacity(0.7),
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
-                ),
-                // ------------------------------------------------
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
+// Les méthodes _buildSectionTitle, _buildRecentAdditionsGrid et _buildRecentAdditionCard ont été supprimées.

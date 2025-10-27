@@ -34,6 +34,8 @@ dependencies:
 
   # Le package pour la sélection de fichiers (essentiel pour la photo)
   file_picker: ^10.3.3
+  http: ^0.13.3
+  flutter_secure_storage: ^9.2.4
 
 
   # The following adds the Cupertino Icons font to your application.

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// Nettoyage des imports
+import 'package:heritage_numerique/Service/Auth-service.dart';
+import 'package:heritage_numerique/model/auth-response.dart';
+// import 'package:heritage_numerique/screens/HomeDashboardScreen.dart'; // Non utilisé dans la navigation
 import 'registration_screen.dart';
 import 'dashboard_screen.dart';
+
+
 
 /// Écran de connexion pour accéder au compte
 class LoginScreen extends StatefulWidget {
@@ -16,7 +22,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _invitationCodeController = TextEditingController();
+
+  // Service et état
+  final AuthService _authService = AuthService();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   // Couleurs
   static const Color _accentColor = Color(0xFFA56C00);
@@ -27,39 +38,73 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _invitationCodeController.dispose();
     super.dispose();
   }
 
   /// Fonction de soumission de la connexion
-  void _loginAccount() {
-    if (_formKey.currentState!.validate()) {
-      // Afficher un indicateur de chargement
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
-          ),
-        ),
+  void _loginAccount() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Afficher l'indicateur de chargement
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final String? code = _invitationCodeController.text.trim().isNotEmpty
+          ? _invitationCodeController.text.trim()
+          : null;
+
+      // 1. Appel de la méthode de connexion de l'AuthService
+      final AuthResponse authResponse = await _authService.login(
+        email: _emailController.text.trim(),
+        motDePasse: _passwordController.text,
+        codeInvitation: code,
       );
 
-      // Simuler l'authentification
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context); // Fermer le dialog de chargement
-        // Afficher un message de succès
+      // 2. ✅ Connexion réussie : Affichage du succès et navigation
+      if (mounted) {
+        // Afficher un message de succès (avec le prénom si possible)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connexion réussie !'),
+          SnackBar(
+            content: Text(
+                'Connexion réussie ! Bienvenue ${authResponse.prenom}.'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2), // Ajout d'une durée
           ),
         );
-        // Naviguer vers la page Dashboard
+        // Naviguer vers la page Dashboard en remplaçant l'écran actuel
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(
+            // ✅ CORRECTION : Utilisation de const, car l'erreur de "Not a constant expression" était liée au lambda
+            // Si la classe DashboardScreen a un constructeur const, cette ligne est correcte.
+            builder: (context) =>  DashboardScreen(),
+          ),
         );
-      });
+      }} on Exception catch (e) {
+
+      // 3. ❌ Échec de la connexion
+      if (mounted) {
+        final errorMessage = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5), // Laisse le temps de lire l'erreur
+          ),
+        );
+      }
+    } finally {
+      // 4. Masquer l'indicateur de chargement
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -138,9 +183,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 30),
-                  
+
                   // --- 3. CONTENEUR DU FORMULAIRE BLANC AVEC BORDURE ACCENTUÉE ---
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -180,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Champ Mot de passe
                           _buildStyledTextField(
                             controller: _passwordController,
@@ -205,14 +250,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 20),
+
+                          // Champ Code d'invitation (Optionnel)
+                          _buildStyledTextField(
+                            controller: _invitationCodeController,
+                            icon: Icons.card_giftcard_outlined,
+                            hintText: 'Code d\'invitation (Optionnel)',
+                          ),
+
                           const SizedBox(height: 40),
-                          
+
                           // --- 4. BOUTON DE CONNEXION ---
                           SizedBox(
                             height: 55,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _loginAccount,
+                              onPressed: _isLoading ? null : _loginAccount, // Désactivé si chargement
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _accentColor,
                                 foregroundColor: Colors.white,
@@ -221,7 +275,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 elevation: 5,
                               ),
-                              child: const Text(
+                              child: _isLoading
+                                  ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                                  : const Text(
                                 'Connexion',
                                 style: TextStyle(
                                   fontSize: 18,
@@ -231,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // --- 5. LIEN VERS L'INSCRIPTION ---
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -263,16 +326,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // --- 6. BOUTON GOOGLE ---
                           SizedBox(
                             height: 55,
                             width: double.infinity,
                             child: OutlinedButton(
-                              onPressed: () {
+                              onPressed: _isLoading ? null : () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Connexion avec Google'),
+                                    content: Text('Connexion avec Google (non implémentée)'),
                                   ),
                                 );
                               },
@@ -284,12 +347,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.g_mobiledata, color: Colors.blue, size: 30),
-                                  const SizedBox(width: 5),
-                                  const Text(
+                                  Icon(Icons.g_mobiledata, color: Colors.blue, size: 30),
+                                  SizedBox(width: 5),
+                                  Text(
                                     'Se connecter avec Google',
                                     style: TextStyle(
                                       fontSize: 16,

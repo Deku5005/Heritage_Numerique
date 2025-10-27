@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// NOTE: Assurez-vous que ces chemins d'importation sont corrects
+import 'package:heritage_numerique/Service/Auth-service.dart';
+import 'package:heritage_numerique/model/auth-response.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
 
@@ -17,11 +20,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();     // numeroTelephone
+  final _ethnieController = TextEditingController();    // ethnie
+  final _invitationCodeController = TextEditingController(); // codeInvitation (Optionnel)
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  // États de l'UI
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
+  bool _isLoading = false;
+
+  // Service d'API
+  final AuthService _authService = AuthService();
 
   // Couleurs
   static const Color _accentColor = Color(0xFFA56C00);
@@ -33,44 +45,83 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _ethnieController.dispose();
+    _invitationCodeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
   /// Fonction de soumission de l'inscription
-  void _registerAccount() {
-    if (_formKey.currentState!.validate() && _acceptTerms) {
-      // Afficher un indicateur de chargement
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
-          ),
-        ),
-      );
-
-      // Simuler l'inscription
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context); // Fermer le dialog de chargement
-        // Afficher un message de succès
+  void _registerAccount() async {
+    // 1. Validation du formulaire
+    if (!_formKey.currentState!.validate() || !_acceptTerms) {
+      if (!_acceptTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Inscription réussie !'),
+            content: Text('Veuillez accepter les conditions d\'utilisation'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // 2. Afficher l'indicateur de chargement
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 3. Appel de l'API avec les données des contrôleurs
+      await _authService.register(
+        nom: _lastNameController.text.trim(),
+        prenom: _firstNameController.text.trim(),
+        email: _emailController.text.trim(),
+        numeroTelephone: _phoneController.text.trim(),
+        ethnie: _ethnieController.text.trim(),
+        motDePasse: _passwordController.text,
+        codeInvitation: _invitationCodeController.text.trim().isNotEmpty
+            ? _invitationCodeController.text.trim()
+            : null,
+      );
+
+      // 4. ✅ Succès de l'inscription et décodage JSON réussi
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Inscription réussie ! Veuillez vous connecter.'),
             backgroundColor: Colors.green,
           ),
         );
-        // TODO: Naviguer vers la page d'accueil (Dashboard)
-      });
-    } else if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez accepter les conditions d\'utilisation'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+        // Redirection vers la page de connexion
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+
+    } on Exception catch (e) {
+      // 5. ❌ Échec de l'inscription (inclut les erreurs de type/format du 200 ou les erreurs 4xx/5xx)
+      if (mounted) {
+        // Le replaceFirst est pour supprimer le préfixe 'Exception: '
+        final errorMessage = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      // 6. Arrêter l'indicateur de chargement
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -94,7 +145,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
               child: Stack(
                 children: [
-                  // Icône de retour
                   Positioned(
                     top: 40,
                     left: 10,
@@ -106,7 +156,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       ),
                     ),
                   ),
-                  // Image de la femme avec le bébé
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 50.0),
@@ -132,7 +181,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Texte principal en gras: Heritage Numerique
                   const Text(
                     'Heritage Numerique',
                     style: TextStyle(
@@ -143,7 +191,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 5),
-                  // Sous-titre en couleur A56C00
                   const Text(
                     'Rejoignez notre communauté culturelle',
                     style: TextStyle(
@@ -152,10 +199,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 30),
-                  
-                  // --- 3. CONTENEUR DU FORMULAIRE BLANC AVEC BORDURE ACCENTUÉE ---
+
+                  // --- 3. CONTENEUR DU FORMULAIRE ---
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -177,7 +224,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          // Champ Prénom
+                          // Prénom (prenom)
                           _buildStyledTextField(
                             controller: _firstNameController,
                             icon: Icons.person_outline,
@@ -190,8 +237,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
-                          // Champ Nom
+
+                          // Nom (nom)
                           _buildStyledTextField(
                             controller: _lastNameController,
                             icon: Icons.person_outline,
@@ -204,8 +251,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
-                          // Champ Email
+
+                          // Email (email)
                           _buildStyledTextField(
                             controller: _emailController,
                             icon: Icons.email_outlined,
@@ -222,8 +269,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
-                          // Champ Mot de passe
+
+                          // Numéro de Téléphone (numeroTelephone)
+                          _buildStyledTextField(
+                            controller: _phoneController,
+                            icon: Icons.phone_outlined,
+                            hintText: 'Numéro de Téléphone',
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer votre numéro de téléphone';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Ethnie (ethnie)
+                          _buildStyledTextField(
+                            controller: _ethnieController,
+                            icon: Icons.public_outlined,
+                            hintText: 'Ethnie',
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer votre ethnie';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Code d'invitation (codeInvitation - optionnel)
+                          _buildStyledTextField(
+                            controller: _invitationCodeController,
+                            icon: Icons.card_giftcard_outlined,
+                            hintText: 'Code d\'invitation (Optionnel)',
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Mot de passe (motDePasse)
                           _buildStyledTextField(
                             controller: _passwordController,
                             icon: Icons.lock_outline,
@@ -251,8 +335,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
-                          // Champ Confirmer mot de passe
+
+                          // Confirmer mot de passe
                           _buildStyledTextField(
                             controller: _confirmPasswordController,
                             icon: Icons.lock_outline,
@@ -280,7 +364,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Checkbox pour accepter les conditions
                           Row(
                             children: [
@@ -309,13 +393,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ],
                           ),
                           const SizedBox(height: 40),
-                          
+
                           // --- 4. BOUTON D'INSCRIPTION ---
                           SizedBox(
                             height: 55,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _registerAccount,
+                              onPressed: _isLoading ? null : _registerAccount,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _accentColor,
                                 foregroundColor: Colors.white,
@@ -324,7 +408,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 ),
                                 elevation: 5,
                               ),
-                              child: const Text(
+                              child: _isLoading
+                                  ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                              )
+                                  : const Text(
                                 'S\'inscrire',
                                 style: TextStyle(
                                   fontSize: 18,
@@ -334,7 +427,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // --- 5. LIEN VERS LA CONNEXION ---
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -366,16 +459,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // --- 6. BOUTON GOOGLE ---
                           SizedBox(
                             height: 55,
                             width: double.infinity,
                             child: OutlinedButton(
-                              onPressed: () {
+                              onPressed: _isLoading ? null : () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Inscription avec Google'),
+                                    content: Text('Inscription avec Google (non implémentée)'),
                                   ),
                                 );
                               },
