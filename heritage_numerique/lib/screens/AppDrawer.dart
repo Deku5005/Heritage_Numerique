@@ -1,62 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
-import 'HomeDashboardScreen.dart';     
-import 'FamilyMembersScreen.dart';   
-import 'FamilyTreeScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-import 'CreateTreeScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-import 'ContributionsScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-import 'SettingsScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-import 'CulturalContentScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-import 'MusicDashScreen.dart'; // NOUVEL ÉCRAN IMPORTÉ
-
-
-
-
-
+import 'HomeDashboardScreen.dart';
+import 'FamilyMembersScreen.dart';
+import 'FamilyTreeScreen.dart';
+import 'CreateTreeScreen.dart';
+import 'ContributionsScreen.dart'; // NÉCESSITE familyId maintenant
+import 'SettingsScreen.dart';
+import 'CulturalContentScreen.dart';
+import 'MusicDashScreen.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _drawerBackgroundColor = Color(0xFF2E2E2E);
 const Color _drawerTextColor = Colors.white;
 const Color _dividerColor = Color(0xFFAA7311);
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  // 💡 Le champ familyId est requis
+  final int? familyId;
+
+  const AppDrawer({super.key, required this.familyId});
 
   // Fonction réutilisable pour naviguer et remplacer l'écran actuel
   void _navigateToReplace(BuildContext context, Widget screen) {
-    Navigator.pop(context); // 1. Ferme le tiroir
+    Navigator.pop(context);
 
-    // 2. Exécute la navigation juste après la fin de la trame actuelle (Solution pour le problème du double clic)
     Future.microtask(() {
-        Navigator.pushReplacement( 
-          context,
-          MaterialPageRoute(builder: (context) => screen),
-        );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => screen),
+      );
     });
   }
 
   // Fonction réutilisable pour créer un élément de la liste du tiroir
   Widget _buildDrawerItem(IconData icon, String title, {required VoidCallback onTap}) {
     return ListTile(
-      leading: Icon(icon, color: _mainAccentColor, size: 28), 
+      leading: Icon(icon, color: _mainAccentColor, size: 28),
       title: Text(
         title,
         style: const TextStyle(
-          color: _drawerTextColor, 
+          color: _drawerTextColor,
           fontSize: 16,
         ),
       ),
       onTap: onTap,
     );
   }
-  
-  // En-tête du Tiroir
+
+  // En-tête du Tiroir (Inchangé)
   Widget _buildDrawerHeader(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20, 
+        top: MediaQuery.of(context).padding.top + 20,
         bottom: 16.0,
         left: 16.0,
       ),
@@ -96,7 +93,7 @@ class AppDrawer extends StatelessWidget {
               Text(
                 'Numérique',
                 style: TextStyle(
-                  color: Colors.grey, 
+                  color: Colors.grey,
                   fontSize: 14,
                 ),
               ),
@@ -109,67 +106,91 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Récupération sécurisée de l'ID de famille
+    final int safeFamilyId = familyId ?? 0;
+
+    // Fonction utilitaire pour vérifier l'ID avant la navigation
+    void navigateToFamilyScreen(Widget screen) {
+      if (safeFamilyId > 0) {
+        // 💡 Retrait de 'const' ici car 'screen' n'est plus constant
+        _navigateToReplace(context, screen);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("ID de famille non trouvé. Veuillez vous reconnecter.")),
+        );
+      }
+    }
+
     return Drawer(
       backgroundColor: _drawerBackgroundColor,
       child: Column(
         children: <Widget>[
           _buildDrawerHeader(context),
-          const Divider(color: _dividerColor, height: 1), 
+          const Divider(color: _dividerColor, height: 1),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
-                // 1. Accueil (HomeDashboard)
+                // 1. Accueil (HomeDashboard) - Pas besoin d'ID ici, HomeDashboard le gère lui-même
                 _buildDrawerItem(Icons.home_outlined, 'Accueil', onTap: () {
-                   _navigateToReplace(context, const HomeDashboardScreen()); 
+                  _navigateToReplace(context, const HomeDashboardScreen());
                 }),
-                
+
                 // 2. Membre Famille (FamilyMembersScreen)
                 _buildDrawerItem(Icons.group_outlined, 'Membre Famille', onTap: () {
-                  _navigateToReplace(context, const FamilyMembersScreen());
+                  navigateToFamilyScreen(FamilyMembersScreen(familleId: safeFamilyId));
                 }),
-                
+
                 // 3. Récits
                 _buildDrawerItem(Icons.book_outlined, 'Récits', onTap: () {
-                    _navigateToReplace(context, const CulturalContentScreen());
+                  // 💡 CORRECTION : Ajout de familyId et retrait de 'const'
+                  _navigateToReplace(context, CulturalContentScreen(familyId: safeFamilyId));
                 }),
-                
+
                 // 4. Artisanat/ Photos
                 _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {
-
+                  // Action non définie
                 }),
-                
+
                 // 5. Arbre Généalogique (FamilyTreeScreen)
                 _buildDrawerItem(Icons.link, 'Arbre Généalogique', onTap: () {
-                  _navigateToReplace(context, const FamilyTreeScreen()); // NOUVEAU
+                  // 💡 Retrait de 'const'
+                  navigateToFamilyScreen(FamilyTreeScreen(familyId: safeFamilyId));
                 }),
 
                 // 6. Proverbes
-                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {}),
+                _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {
+                  // Action non définie
+                }),
 
                 // 7. Musiques et Chants
                 _buildDrawerItem(Icons.music_note_outlined, 'Musiques et Chants', onTap: () {
-                    _navigateToReplace(context, const MusicDashScreen());
+                  // 💡 CORRECTION : Ajout de familyId et retrait de 'const'
+                  _navigateToReplace(context, MusicDashScreen(familyId: safeFamilyId));
                 }),
 
-                // 8. Contributions
+                // 8. Contributions (ContributionsScreen)
                 _buildDrawerItem(Icons.show_chart, 'Contributions', onTap: () {
-                    _navigateToReplace(context, const ContributionsScreen());
+                  // 💡 Retrait de 'const'
+                  navigateToFamilyScreen(ContributionsScreen(familyId: safeFamilyId));
                 }),
 
-                // 9. Créer arbre (Action à définir, peut-être une autre page)
+                // 9. Créer arbre (CreateTreeScreen)
                 _buildDrawerItem(Icons.auto_graph_outlined, 'Créer arbre', onTap: () {
-                     _navigateToReplace(context, const CreateTreeScreen()); // Changement ici!
+                  // 💡 Retrait de 'const'
+                  navigateToFamilyScreen(CreateTreeScreen(familyId: safeFamilyId));
                 }),
 
                 // 10. Quiz
                 _buildDrawerItem(Icons.quiz_outlined, 'Quiz', onTap: () {
-                  _navigateToReplace(context, const QuizScreen());
+                  // 💡 Retrait de 'const'
+                  _navigateToReplace(context, QuizScreen(familyId: safeFamilyId));
                 }),
 
                 // 11. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
-                     _navigateToReplace(context, const SettingsScreen());
+                  // 💡 Retrait de 'const'
+                  _navigateToReplace(context, SettingsScreen(familyId: safeFamilyId));
                 }),
               ],
             ),

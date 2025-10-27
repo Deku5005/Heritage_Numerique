@@ -1,15 +1,22 @@
-// lib/Service/Auth-service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:heritage_numerique/model/auth-response.dart';
 import 'package:heritage_numerique/model/dashboard-models.dart';
 import 'token-storage-service.dart'; // Import du service de stockage
 
+/// Service centralisé pour l'authentification et les appels d'API protégés.
 class AuthService {
   // Service pour gérer le stockage sécurisé du token
   final TokenStorageService _tokenStorageService = TokenStorageService();
 
+  // CONSTRUCTEUR AJOUTÉ/MODIFIÉ POUR LA COMPATIBILITÉ
+  // Il accepte l'argument nommé 'authToken', mais l'ignore car le service utilise
+  // déjà TokenStorageService pour la persistance.
+  AuthService({String? authToken});
+
+
   // *********** Configuration des Endpoints ***********
+  // NOTE: Adresse IP locale de l'émulateur Android vers l'hôte (Backend Java/Spring)
   static const String _baseUrl = 'http://10.0.2.2:8080';
 
   static const String _registerUrl = '$_baseUrl/api/auth/register';

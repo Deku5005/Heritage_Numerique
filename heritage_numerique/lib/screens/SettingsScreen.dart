@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 // Importez l'AppDrawer
-import 'AppDrawer.dart'; 
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
+const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _roleAdminColor = Color(0xFFE5B0B0); // Rouge pâle pour Administrateur
 const Color _roleTextColor = Color(0xFF7B521A); // Couleur marron foncé pour le texte des rôles
 const Color _acceptedColor = Color(0xFFE6F3E6); // Vert pâle pour "Accepté"
@@ -14,7 +14,11 @@ const Color _pendingColor = Color(0xFFF7E8D8); // Beige pâle pour "En attente"
 
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+  // 💡 AJOUT : familyId est requis pour être passé au Drawer
+  final int familyId;
+
+  // 💡 MISE À JOUR : Le constructeur requiert familyId
+  const SettingsScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,8 @@ class SettingsScreen extends StatelessWidget {
       length: 2, // Nombre d'onglets (Envoyées et Reçues)
       child: Scaffold(
         backgroundColor: _backgroundColor,
-        drawer: const AppDrawer(),
+        // 💡 CORRECTION : familyId est passé à AppDrawer et 'const' est retiré.
+        drawer: AppDrawer(familyId: familyId),
         body: SingleChildScrollView(
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
           child: Column(
@@ -31,10 +36,10 @@ class SettingsScreen extends StatelessWidget {
             children: [
               // 1. En-tête (Menu Burger, Titre, Bouton Fermer)
               Builder(
-                builder: (BuildContext innerContext) {
-                  return _buildCustomHeader(innerContext, context);
-                }
-              ), 
+                  builder: (BuildContext innerContext) {
+                    return _buildCustomHeader(innerContext, context);
+                  }
+              ),
               const SizedBox(height: 20),
 
               // 2. Corps de la page (Titre, Profil, Invitations)
@@ -61,7 +66,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     // Section Profil
                     _buildProfileSection(),
                     const SizedBox(height: 20),
@@ -80,7 +85,7 @@ class SettingsScreen extends StatelessWidget {
 
   // --- Widgets de Construction de l'Écran ---
 
-  Widget _buildCustomHeader(BuildContext innerContext, BuildContext pageContext) { 
+  Widget _buildCustomHeader(BuildContext innerContext, BuildContext pageContext) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -238,9 +243,9 @@ class SettingsScreen extends StatelessWidget {
                   child: TabBar(
                     indicatorSize: TabBarIndicatorSize.tab,
                     indicator: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.white, // Indicateur blanc
-                      border: Border.all(color: Colors.grey.shade300)
+                        borderRadius: BorderRadius.circular(5),
+                        color: Colors.white, // Indicateur blanc
+                        border: Border.all(color: Colors.grey.shade300)
                     ),
                     labelColor: _cardTextColor,
                     unselectedLabelColor: Colors.grey,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:heritage_numerique/Service/Auth-service.dart'; // Pour le token/familleId si non passé
-import 'package:heritage_numerique/Service/dashboardServices.dart'; // Le service que vous devez implémenter
-import 'package:heritage_numerique/model/family_response_dashboard.dart'; // Le modèle de réponse
+import 'package:heritage_numerique/Service/Auth-service.dart';
+import 'package:heritage_numerique/Service/dashboardServices.dart';
+import 'package:heritage_numerique/model/family_response_dashboard.dart';
 
 // CORRECTION D'IMPORTATION : Assurez-vous que ce chemin est correct.
 import 'AppDrawer.dart';
@@ -47,22 +47,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(),
+    // 💡 Déplacement du FutureBuilder pour gérer le Scaffold et le Drawer
+    return FutureBuilder<FamilyDashboardResponse>(
+      future: _dashboardData,
+      builder: (context, snapshot) {
+        // 1. État de chargement
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: _mainAccentColor)),
+          );
+        }
 
-      body: FutureBuilder<FamilyDashboardResponse>(
-        future: _dashboardData,
-        builder: (context, snapshot) {
-          // 1. État de chargement
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
-          }
-
-          // 2. État d'erreur
-          if (snapshot.hasError) {
-            return Center(
+        // 2. État d'erreur
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Text(
@@ -71,14 +70,23 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               ),
-            );
-          }
+            ),
+          );
+        }
 
-          // 3. État des données prêtes
-          if (snapshot.hasData) {
-            final data = snapshot.data!;
+        // 3. État des données prêtes
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          final int currentFamilyId = data.idFamille; // Récupération de l'ID dynamique
 
-            return SingleChildScrollView(
+          // 💡 Le Scaffold est construit ICI avec l'ID de famille
+          return Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: _backgroundColor,
+            // 💡 Transmission de l'ID au Drawer
+            drawer: AppDrawer(familyId: currentFamilyId),
+
+            body: SingleChildScrollView(
               padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,21 +102,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   // 3. Grille des Statistiques (avec les données réelles)
                   _buildStatsGrid(data),
                   const SizedBox(height: 30),
-
-                  // La section "Récents Ajouts" (Titre et Grille) a été supprimée.
                 ],
               ),
-            );
-          }
+            ),
+          );
+        }
 
-          // 4. Aucune donnée
-          return const Center(child: Text("Aucune donnée de tableau de bord disponible."));
-        },
-      ),
+        // 4. Aucune donnée
+        return const Scaffold(body: Center(child: Text("Aucune donnée de tableau de bord disponible.")));
+      },
     );
   }
 
-  // --- 1. En-tête Personnalisé (Menu et Titre) ---
+  // ... (Reste des méthodes _buildCustomHeader, _buildWelcomeCard, _buildStatsGrid, _buildStatItemCard inchangées) ...
+
   Widget _buildCustomHeader(GlobalKey<ScaffoldState> scaffoldKey) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -117,7 +124,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.menu, color: _cardTextColor, size: 30),
             onPressed: () {
-              // Ouvre le Drawer via la GlobalKey
               scaffoldKey.currentState?.openDrawer();
             },
           ),
@@ -135,8 +141,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- 2. Carte de Bienvenue (Mise à jour pour recevoir le nom de famille) ---
   Widget _buildWelcomeCard(String nomFamille) {
+    // ... code inchangé ...
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16.0),
@@ -169,8 +175,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- 3. Grille des Statistiques (Mise à jour pour utiliser les données réelles) ---
   Widget _buildStatsGrid(FamilyDashboardResponse data) {
+    // ... code inchangé ...
     final List<Map<String, dynamic>> stats = [
       {'title': 'Membres', 'count': data.nombreMembres, 'icon': Icons.group_outlined},
       {'title': 'Contenus Publics', 'count': data.nombreContenusPublics, 'icon': Icons.public},
@@ -200,8 +206,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  /// Construction d'une carte d'élément statistique
   Widget _buildStatItemCard(String title, int count, IconData icon) {
+    // ... code inchangé ...
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -256,4 +262,3 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 }
-// Les méthodes _buildSectionTitle, _buildRecentAdditionsGrid et _buildRecentAdditionCard ont été supprimées.

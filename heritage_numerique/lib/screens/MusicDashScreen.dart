@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
 // Importez l'AppDrawer (ajustez le chemin si nécessaire)
-import 'AppDrawer.dart'; 
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
-const Color _buttonColor = Color(0xFF7B521A); 
-const Color _lightCardColor = Color(0xFFF7F2E8); 
-const Color _tagRecitColor = Color(0xFFC0A272); 
-const Color _tagArtisanatColor = Color(0xFF6B8E23); 
-const Color _tagProverbeColor = Color(0xFF8B4513); 
-const Color _tagMusicColor = Color(0xFF90703B); 
+const Color _searchBackground = Color(0xFFF7F2E8);
+const Color _buttonColor = Color(0xFF7B521A);
+const Color _lightCardColor = Color(0xFFF7F2E8);
+const Color _tagRecitColor = Color(0xFFC0A272);
+const Color _tagArtisanatColor = Color(0xFF6B8E23);
+const Color _tagProverbeColor = Color(0xFF8B4513);
+const Color _tagMusicColor = Color(0xFF90703B);
 
 
-class MusicDashScreen extends StatelessWidget { 
-  const MusicDashScreen({super.key});
+class MusicDashScreen extends StatelessWidget {
+  // 💡 AJOUT : familyId est requis pour être passé au Drawer
+  final int familyId;
+
+  // 💡 MISE À JOUR : Le constructeur requiert familyId
+  const MusicDashScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(),
+      // 💡 CORRECTION : familyId est passé à AppDrawer et 'const' est retiré.
+      drawer: AppDrawer(familyId: familyId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
         child: Column(
@@ -30,10 +35,10 @@ class MusicDashScreen extends StatelessWidget {
           children: [
             // 1. En-tête (Menu Burger, Titre)
             Builder(
-              builder: (BuildContext innerContext) {
-                return _buildCustomHeader(innerContext);
-              }
-            ), 
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
+            ),
             const SizedBox(height: 20),
 
             // 2. Corps de la page (Titre, Recherche, Actions)
@@ -60,7 +65,7 @@ class MusicDashScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Barre de recherche
                   _buildSearchBar(),
                   const SizedBox(height: 15),
@@ -71,7 +76,7 @@ class MusicDashScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // 3. Zone de Lecture Principale (Card)
             _buildMainMusicCard(context),
             const SizedBox(height: 20),
@@ -109,7 +114,7 @@ class MusicDashScreen extends StatelessWidget {
   void _showContentTypeSelectionBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       builder: (BuildContext sheetContext) {
         return Container(
           decoration: const BoxDecoration(
@@ -138,7 +143,7 @@ class MusicDashScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Text('Choisissez un type de contenu', style: TextStyle(color: _buttonColor, fontSize: 14)),
               const SizedBox(height: 15),
-              
+
               // Grille des options de contenu
               SizedBox(
                 width: double.infinity,
@@ -153,8 +158,8 @@ class MusicDashScreen extends StatelessWidget {
                     _buildContentOptionButton(
                       context, 'Récit/ Conte', Icons.book_outlined,
                       onTap: () {
-                        Navigator.of(sheetContext).pop(); 
-                        _showContentCreationModal(context, 'Récit/ Conte'); 
+                        Navigator.of(sheetContext).pop();
+                        _showContentCreationModal(context, 'Récit/ Conte');
                       },
                     ),
                     _buildContentOptionButton(
@@ -215,7 +220,7 @@ class MusicDashScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(dialogContext).pop(),
                     ),
                   ),
-                  
+
                   // Champs du formulaire
                   const Text(
                     'Type de contenu',
@@ -286,7 +291,7 @@ class MusicDashScreen extends StatelessWidget {
       },
     );
   }
-  
+
   // ------------------------------------
   // --- LOGIQUE DES MODALES (END) ---
   // ------------------------------------
@@ -296,7 +301,7 @@ class MusicDashScreen extends StatelessWidget {
   // --- Widgets de Construction de l'Écran ---
   // ------------------------------------
 
-  Widget _buildCustomHeader(BuildContext context) { 
+  Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -316,7 +321,7 @@ class MusicDashScreen extends StatelessWidget {
               fontSize: 20,
             ),
           ),
-          const SizedBox(width: 48), 
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -415,7 +420,7 @@ class MusicDashScreen extends StatelessWidget {
                     color: Colors.grey,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                     image: const DecorationImage(
-                      image: AssetImage('assets/images/music_placeholder.jpg'), 
+                      image: AssetImage('assets/images/music_placeholder.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -448,7 +453,7 @@ class MusicDashScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             // Détails du Chant
             Padding(
               padding: const EdgeInsets.all(15.0),
@@ -539,7 +544,7 @@ class MusicDashScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5),
                 color: _searchBackground,
                 image: const DecorationImage(
-                  image: AssetImage('assets/images/music_thumb.jpg'), 
+                  image: AssetImage('assets/images/music_thumb.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -602,6 +607,7 @@ class MusicDashScreen extends StatelessWidget {
 
   // --- Widgets de formulaire pour la Modale 2 (AlertDialog) ---
 
+  // Ligne 620 corrigée : suppression du const dans TextField
   Widget _buildTextField({required String hint}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -610,6 +616,7 @@ class MusicDashScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
         border: Border.all(color: Colors.grey.shade300),
       ),
+      // Correction ici : Retrait de 'const' devant TextField
       child: TextField(
         decoration: InputDecoration(
           hintText: hint,
@@ -622,6 +629,7 @@ class MusicDashScreen extends StatelessWidget {
     );
   }
 
+  // Ligne 641 corrigée : suppression du const dans TextField
   Widget _buildMultiLineField({required String hint}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -630,6 +638,7 @@ class MusicDashScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
         border: Border.all(color: Colors.grey.shade300),
       ),
+      // Correction ici : Retrait de 'const' devant TextField
       child: TextField(
         maxLines: 4,
         decoration: InputDecoration(

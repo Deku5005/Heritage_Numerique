@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 
 // Importez l'AppDrawer pour que le Scaffold le reconnaisse
-import 'AppDrawer.dart'; 
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _lightCardColor = Color(0xFFF7F2E8); // Couleur de fond pour les statistiques
 
 class FamilyTreeScreen extends StatelessWidget {
-  const FamilyTreeScreen({super.key});
+  // 💡 AJOUT : familyId est requis pour le Drawer
+  final int familyId;
+
+  // 💡 MISE À JOUR : Le constructeur doit prendre familyId
+  const FamilyTreeScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(), // Ajout du Drawer au Scaffold
+      // 💡 CORRECTION : familyId est passé et 'const' est retiré
+      drawer: AppDrawer(familyId: familyId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
         child: Column(
@@ -24,9 +29,9 @@ class FamilyTreeScreen extends StatelessWidget {
           children: [
             // CORRECTION: Utiliser un Builder pour obtenir un context sous le Scaffold
             Builder(
-              builder: (BuildContext innerContext) {
-                return _buildCustomHeader(innerContext);
-              }
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
             ),
             const SizedBox(height: 10),
 
@@ -44,7 +49,7 @@ class FamilyTreeScreen extends StatelessWidget {
                     role: 'Grand-père',
                     birthYear: 1945,
                     contributions: 12,
-                    imageAsset: 'assets/baini.jpg', 
+                    imageAsset: 'assets/baini.jpg',
                   ),
                   _buildConnectionLine(),
 
@@ -54,10 +59,10 @@ class FamilyTreeScreen extends StatelessWidget {
                     role: 'Fille',
                     birthYear: 1970,
                     contributions: 12,
-                    imageAsset: 'assets/niakale.jpg', 
+                    imageAsset: 'assets/niakale.jpg',
                   ),
                   _buildConnectionLine(),
-                  
+
                   // Ligne 3 : Les fils (Sekou et Boubacar)
                   _buildHorizontalLevel([
                     _buildMemberCard(
@@ -65,18 +70,18 @@ class FamilyTreeScreen extends StatelessWidget {
                       role: 'Fils',
                       birthYear: 1960,
                       contributions: 12,
-                      imageAsset: 'assets/sekou.jpg', 
+                      imageAsset: 'assets/sekou.jpg',
                     ),
                     _buildMemberCard(
                       name: 'Boubacar Diakité',
                       role: 'Fils',
                       birthYear: 1965,
                       contributions: 12,
-                      imageAsset: 'assets/boubacar.jpg', 
+                      imageAsset: 'assets/boubacar.jpg',
                     ),
                   ]),
-                  _buildConnectionLine(isVertical: true, height: 20), 
-                  
+                  _buildConnectionLine(isVertical: true, height: 20),
+
                   // Ligne 4 : Petits-enfants (Ami et Oumou)
                   _buildHorizontalLevel([
                     _buildMemberCard(
@@ -84,14 +89,14 @@ class FamilyTreeScreen extends StatelessWidget {
                       role: 'Petite Fille',
                       birthYear: 1970,
                       contributions: 12,
-                      imageAsset: 'assets/ami.jpg', 
+                      imageAsset: 'assets/ami.jpg',
                     ),
                     _buildMemberCard(
                       name: 'Oumou Diakité',
                       role: 'Petite Fille',
                       birthYear: 1970,
                       contributions: 12,
-                      imageAsset: 'assets/oumou.jpg', 
+                      imageAsset: 'assets/oumou.jpg',
                     ),
                   ]),
                 ],
@@ -248,7 +253,7 @@ class FamilyTreeScreen extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor),
               ),
               Text(
-                '$role',
+                role,
                 style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
               Text(

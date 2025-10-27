@@ -1,27 +1,33 @@
 import 'package:flutter/material.dart';
 // Importez l'AppDrawer (à ajuster selon votre chemin)
-import 'AppDrawer.dart'; 
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
-const Color _buttonColor = Color(0xFF7B521A); 
-const Color _lightCardColor = Color(0xFFF7F2E8); 
-const Color _tagRecitColor = Color(0xFFC0A272); 
-const Color _tagArtisanatColor = Color(0xFF6B8E23); 
-const Color _tagProverbeColor = Color(0xFF8B4513); 
+const Color _searchBackground = Color(0xFFF7F2E8);
+const Color _buttonColor = Color(0xFF7B521A);
+const Color _lightCardColor = Color(0xFFF7F2E8);
+const Color _tagRecitColor = Color(0xFFC0A272);
+const Color _tagArtisanatColor = Color(0xFF6B8E23);
+const Color _tagProverbeColor = Color(0xFF8B4513);
 
 
 class CulturalContentScreen extends StatelessWidget {
-  const CulturalContentScreen({super.key});
+
+  // 💡 NOUVEAU : Ajout du champ familyId
+  final int? familyId;
+
+  // 💡 CORRECTION : Le constructeur doit accepter familyId
+  const CulturalContentScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(),
+      // 💡 LIGNE CORRIGÉE : Passez familyId et retirez 'const'
+      drawer: AppDrawer(familyId: familyId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
         child: Column(
@@ -29,10 +35,10 @@ class CulturalContentScreen extends StatelessWidget {
           children: [
             // 1. En-tête (Menu Burger, Titre)
             Builder(
-              builder: (BuildContext innerContext) {
-                return _buildCustomHeader(innerContext);
-              }
-            ), 
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
+            ),
             const SizedBox(height: 20),
 
             // 2. Corps de la page (Titre, Recherche, Actions, Grille)
@@ -59,7 +65,7 @@ class CulturalContentScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Barre de recherche
                   _buildSearchBar(),
                   const SizedBox(height: 15),
@@ -87,7 +93,7 @@ class CulturalContentScreen extends StatelessWidget {
   void _showContentTypeSelectionBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       builder: (BuildContext sheetContext) {
         return Container(
           decoration: const BoxDecoration(
@@ -116,7 +122,7 @@ class CulturalContentScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Text('Choisissez un type de contenu', style: TextStyle(color: _buttonColor, fontSize: 14)),
               const SizedBox(height: 15),
-              
+
               // Grille des options de contenu
               SizedBox(
                 width: double.infinity,
@@ -131,8 +137,8 @@ class CulturalContentScreen extends StatelessWidget {
                     _buildContentOptionButton(
                       context, 'Récit/ Conte', Icons.book_outlined,
                       onTap: () {
-                        Navigator.of(sheetContext).pop(); 
-                        _showContentCreationModal(context, 'Récit/ Conte'); 
+                        Navigator.of(sheetContext).pop();
+                        _showContentCreationModal(context, 'Récit/ Conte');
                       },
                     ),
                     _buildContentOptionButton(
@@ -193,7 +199,7 @@ class CulturalContentScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(dialogContext).pop(),
                     ),
                   ),
-                  
+
                   // Champs du formulaire
                   const Text(
                     'Type de contenu',
@@ -264,14 +270,14 @@ class CulturalContentScreen extends StatelessWidget {
       },
     );
   }
-  
+
   // ----------------------------------
   // --- FONCTIONS DES MODALES (END) ---
   // ----------------------------------
 
   // --- Widgets de l'Écran Principal ---
 
-  Widget _buildCustomHeader(BuildContext context) { 
+  Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -291,7 +297,7 @@ class CulturalContentScreen extends StatelessWidget {
               fontSize: 20,
             ),
           ),
-          const SizedBox(width: 48), 
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -323,7 +329,7 @@ class CulturalContentScreen extends StatelessWidget {
         // Bouton Ajouter un contenu (appelle la Bottom Sheet)
         ElevatedButton.icon(
           onPressed: () {
-            _showContentTypeSelectionBottomSheet(context); 
+            _showContentTypeSelectionBottomSheet(context);
           },
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: const Text('Ajouter un contenu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -388,7 +394,7 @@ class CulturalContentScreen extends StatelessWidget {
         'author': 'Niakalé Diakité',
         'time': 'il y a 2 heures',
         'typeColor': _tagRecitColor,
-        'hasImage': false, 
+        'hasImage': false,
       },
       {
         'title': 'La sagesse des anciens',
@@ -418,7 +424,7 @@ class CulturalContentScreen extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 15.0,
         mainAxisSpacing: 15.0,
-        childAspectRatio: 0.75, 
+        childAspectRatio: 0.75,
       ),
       itemBuilder: (context, index) {
         return _buildContentCard(contents[index]);
@@ -453,16 +459,16 @@ class CulturalContentScreen extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                   image: item['hasImage']
                       ? const DecorationImage(
-                          image: AssetImage('assets/images/placeholder.jpg'),
-                          fit: BoxFit.cover,
-                        )
+                    image: AssetImage('assets/images/placeholder.jpg'),
+                    fit: BoxFit.cover,
+                  )
                       : null,
                 ),
                 child: item['hasImage']
                     ? null
                     : Center(
-                        child: Icon(Icons.music_note, color: Colors.grey.shade500, size: 40),
-                      ),
+                  child: Icon(Icons.music_note, color: Colors.grey.shade500, size: 40),
+                ),
               ),
               // Tag Type (Récit/Conte)
               Positioned(

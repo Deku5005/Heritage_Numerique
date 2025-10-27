@@ -24,7 +24,11 @@ final List<QuizTileData> quizList = [
 ];
 
 class QuizScreen extends StatelessWidget {
-  const QuizScreen({super.key});
+  // 💡 AJOUT : familyId est requis pour être passé au Drawer
+  final int familyId;
+
+  // 💡 MISE À JOUR : Le constructeur requiert familyId
+  const QuizScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +36,8 @@ class QuizScreen extends StatelessWidget {
       backgroundColor: Colors.white,
 
       // AJOUT DU DRAWER
-      drawer: const AppDrawer(),
+      // 💡 CORRECTION : familyId est passé à AppDrawer et 'const' est retiré.
+      drawer: AppDrawer(familyId: familyId),
 
       // --- 1. En-tête (AppBar) ---
       appBar: AppBar(
@@ -58,8 +63,6 @@ class QuizScreen extends StatelessWidget {
           padding: const EdgeInsets.only(right: 16.0),
           child: Row(
             children: [
-              // L'IconButton a été déplacé dans 'leading'
-
               // Titre
               Expanded(
                 child: Text(

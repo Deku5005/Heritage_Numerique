@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
-// Assurez-vous d'importer l'AppDrawer si vous l'utilisez
-import 'AppDrawer.dart'; 
+// Assurez-vous d'importer l'AppDrawer
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales (utilisées dans les autres écrans) ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
+const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _roleAdminColor = Color(0xFFE5B0B0); // Rouge pâle pour Administrateur
 const Color _roleContributorColor = Color(0xFFF7E8D8); // Beige/Jaune pâle pour Contributeur
 const Color _roleTextColor = Color(0xFF7B521A); // Couleur marron foncé pour le texte des rôles
 
 class ContributionsScreen extends StatelessWidget {
-  const ContributionsScreen({super.key});
+  // 💡 NOUVEAU : Ajout du champ familyId
+  final int? familyId;
+
+  // 💡 CORRECTION : Le constructeur doit accepter familyId
+  const ContributionsScreen({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(), // Assurez-vous d'avoir cet AppDrawer
+      // 💡 CORRECTION : familyId est transmis à AppDrawer
+      drawer: AppDrawer(familyId: familyId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
         child: Column(
@@ -26,10 +31,10 @@ class ContributionsScreen extends StatelessWidget {
           children: [
             // 1. En-tête (Menu Burger, Titre, Bouton Fermer)
             Builder(
-              builder: (BuildContext innerContext) {
-                return _buildCustomHeader(innerContext);
-              }
-            ), 
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
+            ),
             const SizedBox(height: 20),
 
             // 2. Corps de la page (Titre, Barre de recherche et Liste)
@@ -55,7 +60,7 @@ class ContributionsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Barre de recherche
                   _buildSearchBar(),
                   const SizedBox(height: 20),
@@ -71,9 +76,9 @@ class ContributionsScreen extends StatelessWidget {
     );
   }
 
-  // --- Widgets de Construction de l'Écran ---
+  // --- Widgets de Construction de l'Écran (Le reste du code est inchangé) ---
 
-  Widget _buildCustomHeader(BuildContext context) { 
+  Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -227,7 +232,7 @@ class ContributionsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Séparateur
             const Divider(height: 1, thickness: 1, color: Color(0xFFF7F2E8)),
 

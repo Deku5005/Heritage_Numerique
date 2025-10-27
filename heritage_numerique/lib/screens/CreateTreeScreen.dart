@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 // Import pour la sélection de fichier
-import 'package:file_picker/file_picker.dart'; 
+import 'package:file_picker/file_picker.dart';
 // Importez l'AppDrawer
-import 'AppDrawer.dart'; 
+import 'AppDrawer.dart';
 
 // --- Constantes de Couleurs Globales ---
-const Color _mainAccentColor = Color(0xFFAA7311); 
+const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
-const Color _searchBackground = Color(0xFFF7F2E8); 
-const Color _buttonColor = Color(0xFF7B521A); 
-const Color _lightCardColor = Color(0xFFF7F2E8); 
+const Color _searchBackground = Color(0xFFF7F2E8);
+const Color _buttonColor = Color(0xFF7B521A);
+const Color _lightCardColor = Color(0xFFF7F2E8);
 
 
 class CreateTreeScreen extends StatefulWidget {
-  const CreateTreeScreen({super.key});
+  // 💡 NOUVEAU : Ajout du champ familyId
+  final int? familyId;
+
+  // 💡 CORRECTION : Le constructeur doit accepter familyId
+  const CreateTreeScreen({super.key, required this.familyId});
+
 
   @override
   State<CreateTreeScreen> createState() => _CreateTreeScreenState();
@@ -22,11 +27,11 @@ class CreateTreeScreen extends StatefulWidget {
 
 class _CreateTreeScreenState extends State<CreateTreeScreen> {
   // --- Gestionnaires d'état pour les champs ---
-  // Contrôleur pour afficher la date sélectionnée
   final TextEditingController _dateController = TextEditingController();
-  
-  // Variable pour stocker le nom du fichier sélectionné
-  String _selectedFileName = 'Télécharger la photo'; 
+  String _selectedFileName = 'Télécharger la photo';
+
+  // Le familyId est maintenant accessible via widget.familyId
+  // final int? currentFamilyId = widget.familyId;
 
   @override
   void dispose() {
@@ -93,7 +98,8 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      drawer: const AppDrawer(),
+      // 💡 CORRECTION : familyId est transmis à AppDrawer
+      drawer: AppDrawer(familyId: widget.familyId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
         child: Column(
@@ -101,10 +107,10 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           children: [
             // 1. En-tête (Menu Burger, Titre, Bouton Fermer)
             Builder(
-              builder: (BuildContext innerContext) {
-                return _buildCustomHeader(innerContext);
-              }
-            ), 
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                }
+            ),
             const SizedBox(height: 20),
 
             // 2. Section du formulaire
@@ -116,9 +122,9 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // --- Widgets de Construction ---
+  // --- Widgets de Construction (Reste du code inchangé) ---
 
-  Widget _buildCustomHeader(BuildContext context) { 
+  Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
@@ -178,7 +184,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           Row(
             children: [
               // Champ Date de naissance (fonctionnel)
-              Expanded(child: _buildDateInputField(context, label: 'Date de naissance', hint: 'jj/mm/aaaa')), 
+              Expanded(child: _buildDateInputField(context, label: 'Date de naissance', hint: 'jj/mm/aaaa')),
               const SizedBox(width: 15),
               Expanded(child: _buildInputField('Lieu de naissance', hint: 'Ex: Bamako')),
             ],
@@ -189,7 +195,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
 
           // Télécharger la photo (fonctionnel)
           const SizedBox(height: 10),
-          _buildPhotoUploadButton(context), 
+          _buildPhotoUploadButton(context),
           const SizedBox(height: 20),
 
           // Ligne 4: Téléphone & Email
@@ -209,6 +215,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           Center(
             child: ElevatedButton(
               onPressed: () {
+                // Vous pouvez utiliser widget.familyId ici pour lier le membre
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Membre enregistré (logique de sauvegarde à implémenter)')),
                 );
@@ -277,9 +284,9 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
               color: _searchBackground,
               borderRadius: BorderRadius.circular(5),
             ),
-            child: TextFormField( 
+            child: TextFormField(
               controller: _dateController, // Utilisez le contrôleur d'état
-              readOnly: true, 
+              readOnly: true,
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
@@ -369,7 +376,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
   // MODIFIÉ: Bouton de téléchargement de photo (Utilise le sélecteur réel)
   Widget _buildPhotoUploadButton(BuildContext context) {
     return Center(
-      child: InkWell( 
+      child: InkWell(
         onTap: _selectFile, // Appel de la fonction réelle de sélection de fichier
         borderRadius: BorderRadius.circular(5),
         child: Container(
@@ -385,7 +392,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
               const Icon(Icons.file_upload_outlined, color: _mainAccentColor),
               const SizedBox(width: 8),
               // Affiche le nom du fichier sélectionné
-              Text(_selectedFileName, style: const TextStyle(color: _mainAccentColor, fontWeight: FontWeight.bold)), 
+              Text(_selectedFileName, style: const TextStyle(color: _mainAccentColor, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -398,7 +405,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _lightCardColor, 
+        color: _lightCardColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey.shade300),
       ),
