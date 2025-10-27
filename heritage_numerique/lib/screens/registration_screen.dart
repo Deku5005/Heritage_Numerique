@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
+import 'package:heritage_numerique/models/auth_models.dart';
+import 'package:heritage_numerique/repositories/auth_repository.dart';
 
 /// Écran d'inscription pour créer un nouveau compte
 class RegistrationScreen extends StatefulWidget {
@@ -17,11 +19,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _ethnieController = TextEditingController();
+  final _codeInvitationController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
+  bool _isLoading = false;
+  
+  // Repository pour l'authentification
+  final AuthRepository _authRepository = AuthRepository();
 
   // Couleurs
   static const Color _accentColor = Color(0xFFA56C00);
@@ -33,37 +42,81 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _ethnieController.dispose();
+    _codeInvitationController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
   /// Fonction de soumission de l'inscription
-  void _registerAccount() {
+  Future<void> _registerAccount() async {
     if (_formKey.currentState!.validate() && _acceptTerms) {
-      // Afficher un indicateur de chargement
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
-          ),
-        ),
-      );
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Simuler l'inscription
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pop(context); // Fermer le dialog de chargement
-        // Afficher un message de succès
+      try {
+        // Créer la requête d'inscription
+        final registerRequest = RegisterRequest(
+          nom: _lastNameController.text.trim(),
+          prenom: _firstNameController.text.trim(),
+          email: _emailController.text.trim(),
+          numeroTelephone: _phoneController.text.trim(),
+          ethnie: _ethnieController.text.trim(),
+          motDePasse: _passwordController.text,
+          codeInvitation: _codeInvitationController.text.trim().isNotEmpty 
+              ? _codeInvitationController.text.trim() 
+              : null,
+        );
+
+        // Appeler l'API d'inscription
+        final response = await _authRepository.register(registerRequest);
+
+        if (response.success && response.data != null) {
+          // Sauvegarder les données d'authentification
+          await _authRepository.saveAuthData(response.data!);
+          
+          // Afficher un message de succès
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Inscription réussie ! Bienvenue ${response.data!.fullName}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+
+          // Naviguer vers la page d'accueil (Dashboard)
+          // TODO: Remplacer par votre écran de dashboard
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const SplashScreen()),
+          );
+        } else {
+          // Afficher l'erreur
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Erreur lors de l\'inscription'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } catch (e) {
+        // Gérer les erreurs de connexion
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Inscription réussie !'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: Text('Erreur de connexion: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
-        // TODO: Naviguer vers la page d'accueil (Dashboard)
-      });
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } else if (!_acceptTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -223,6 +276,50 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           ),
                           const SizedBox(height: 20),
                           
+                          // Champ Numéro de téléphone
+                          _buildStyledTextField(
+                            controller: _phoneController,
+                            icon: Icons.phone_outlined,
+                            hintText: 'Numéro de téléphone',
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer votre numéro de téléphone';
+                              }
+                              if (value.length < 8) {
+                                return 'Le numéro de téléphone doit contenir au moins 8 chiffres';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Champ Ethnie
+                          _buildStyledTextField(
+                            controller: _ethnieController,
+                            icon: Icons.people_outline,
+                            hintText: 'Ethnie',
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Veuillez entrer votre ethnie';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Champ Code d'invitation (optionnel)
+                          _buildStyledTextField(
+                            controller: _codeInvitationController,
+                            icon: Icons.card_giftcard_outlined,
+                            hintText: 'Code d\'invitation (optionnel)',
+                            validator: (value) {
+                              // Pas de validation requise car optionnel
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          
                           // Champ Mot de passe
                           _buildStyledTextField(
                             controller: _passwordController,
@@ -315,7 +412,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             height: 55,
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _registerAccount,
+                              onPressed: _isLoading ? null : _registerAccount,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: _accentColor,
                                 foregroundColor: Colors.white,
@@ -324,13 +421,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 ),
                                 elevation: 5,
                               ),
-                              child: const Text(
-                                'S\'inscrire',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'S\'inscrire',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 20),

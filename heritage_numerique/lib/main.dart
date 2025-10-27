@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:heritage_numerique/screens/artisanat.dart';
-import 'package:heritage_numerique/screens/musicDash.dart';
-import 'package:heritage_numerique/screens/profil.dart';
-import 'package:heritage_numerique/screens/proverbe.dart';
-import 'package:heritage_numerique/screens/quiz.dart';
-import 'package:heritage_numerique/screens/quizQuestion.dart';
-import 'package:heritage_numerique/screens/quizResultat.dart';
+import 'package:heritage_numerique/services/api_service.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
+  // Initialiser l'API avant de démarrer l'application
+  ApiService().initialize();
   runApp(const HeritageNumeriqueApp());
 }
 
