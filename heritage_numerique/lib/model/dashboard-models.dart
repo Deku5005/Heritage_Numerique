@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+// ------------------------------------------------------------------
+// --- CLASSE INVITATION ---
+// ------------------------------------------------------------------
+
 class Invitation {
   final int id;
   final int idFamille;
@@ -72,8 +76,47 @@ class Invitation {
           : null,
     );
   }
+
+  // ⭐️ CORRECTION: Ajout de la méthode copyWith pour l'immutabilité ⭐️
+  Invitation copyWith({
+    int? id,
+    int? idFamille,
+    String? nomFamille,
+    int? idEmetteur,
+    String? nomEmetteur,
+    String? nomAdmin,
+    String? nomInvite,
+    String? emailInvite,
+    String? telephoneInvite,
+    String? lienParente,
+    String? codeInvitation,
+    String? statut,
+    DateTime? dateCreation,
+    DateTime? dateExpiration,
+    DateTime? dateUtilisation,
+  }) {
+    return Invitation(
+      id: id ?? this.id,
+      idFamille: idFamille ?? this.idFamille,
+      nomFamille: nomFamille ?? this.nomFamille,
+      idEmetteur: idEmetteur ?? this.idEmetteur,
+      nomEmetteur: nomEmetteur ?? this.nomEmetteur,
+      nomAdmin: nomAdmin ?? this.nomAdmin,
+      nomInvite: nomInvite ?? this.nomInvite,
+      emailInvite: emailInvite ?? this.emailInvite,
+      telephoneInvite: telephoneInvite ?? this.telephoneInvite,
+      lienParente: lienParente ?? this.lienParente,
+      codeInvitation: codeInvitation ?? this.codeInvitation,
+      statut: statut ?? this.statut, // <--- C'est le champ le plus important pour votre correction
+      dateCreation: dateCreation ?? this.dateCreation,
+      dateExpiration: dateExpiration ?? this.dateExpiration,
+      dateUtilisation: dateUtilisation ?? this.dateUtilisation,
+    );
+  }
 }
 
+// ------------------------------------------------------------------
+// --- CLASSE FAMILLE ---
 // ------------------------------------------------------------------
 
 class Famille {
@@ -130,8 +173,37 @@ class Famille {
       nombreMembres: (json['nombreMembres'] as int?) ?? 0,
     );
   }
+
+  // ⭐️ Ajout de la méthode copyWith (si jamais vous devez modifier une famille) ⭐️
+  Famille copyWith({
+    int? id,
+    String? nom,
+    String? description,
+    String? ethnie,
+    String? region,
+    int? idCreateur,
+    String? nomCreateur,
+    String? nomAdmin,
+    DateTime? dateCreation,
+    int? nombreMembres,
+  }) {
+    return Famille(
+      id: id ?? this.id,
+      nom: nom ?? this.nom,
+      description: description ?? this.description,
+      ethnie: ethnie ?? this.ethnie,
+      region: region ?? this.region,
+      idCreateur: idCreateur ?? this.idCreateur,
+      nomCreateur: nomCreateur ?? this.nomCreateur,
+      nomAdmin: nomAdmin ?? this.nomAdmin,
+      dateCreation: dateCreation ?? this.dateCreation,
+      nombreMembres: nombreMembres ?? this.nombreMembres,
+    );
+  }
 }
 
+// ------------------------------------------------------------------
+// --- CLASSE DASHBOARDPERSONNELRESPONSE ---
 // ------------------------------------------------------------------
 
 class DashboardPersonnelResponse {
@@ -205,6 +277,42 @@ class DashboardPersonnelResponse {
       invitationsRecues: invitationsRecuesJson
           .map((i) => Invitation.fromJson(i as Map<String, dynamic>))
           .toList(),
+    );
+  }
+
+  // ⭐️ CORRECTION: Ajout de la méthode copyWith pour l'immutabilité ⭐️
+  DashboardPersonnelResponse copyWith({
+    int? userId,
+    String? nom,
+    String? prenom,
+    String? email,
+    String? role,
+    int? nombreFamillesAppartenance,
+    int? nombreInvitationsEnAttente,
+    int? nombreInvitationsRecues,
+    int? nombreContenusCrees,
+    int? nombreQuizCrees,
+    int? nombreNotificationsNonLues,
+    List<Invitation>? invitationsEnAttente,
+    List<Famille>? familles,
+    List<Invitation>? invitationsRecues,
+  }) {
+    return DashboardPersonnelResponse(
+      userId: userId ?? this.userId,
+      nom: nom ?? this.nom,
+      prenom: prenom ?? this.prenom,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      nombreFamillesAppartenance: nombreFamillesAppartenance ?? this.nombreFamillesAppartenance,
+      nombreInvitationsEnAttente: nombreInvitationsEnAttente ?? this.nombreInvitationsEnAttente,
+      nombreInvitationsRecues: nombreInvitationsRecues ?? this.nombreInvitationsRecues,
+      nombreContenusCrees: nombreContenusCrees ?? this.nombreContenusCrees,
+      nombreQuizCrees: nombreQuizCrees ?? this.nombreQuizCrees,
+      nombreNotificationsNonLues: nombreNotificationsNonLues ?? this.nombreNotificationsNonLues,
+      // Note: Pour les listes, on utilise le nouveau paramètre s'il est fourni, sinon la liste actuelle.
+      invitationsEnAttente: invitationsEnAttente ?? this.invitationsEnAttente,
+      familles: familles ?? this.familles,
+      invitationsRecues: invitationsRecues ?? this.invitationsRecues,
     );
   }
 }

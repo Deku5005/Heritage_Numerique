@@ -39,6 +39,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _currentUserId;
   String? _authToken;
 
+  // NOUVEAU: Stocke les données du tableau de bord après le premier fetch pour les mises à jour locales.
+  DashboardPersonnelResponse? _currentDashboardData;
+
   // NOUVEAU FLAG: Indique que le token et l'ID sont prêts, et que le service est initialisé.
   bool _isSessionReady = false;
   String? _sessionError;
@@ -102,6 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         // 2. Initialisation des variables de session
         _authToken = token;
+        _currentDashboardData = null; // Réinitialiser les données locales au chargement de session
 
         // 4. Initialisation dynamique des services API avec le jeton récupéré
         if (_authToken != null && _authToken!.isNotEmpty) {
@@ -148,27 +152,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 
   // ----------------------------------------------------------------------
-  // --- GESTION DES INVITATIONS (Reste inchangé) ---
+  // --- GESTION DES INVITATIONS (Modifiée pour mise à jour locale) ---
   // ----------------------------------------------------------------------
   void _acceptInvitation(String invitationId) async {
-    // Vérification de sécurité avant l'appel API
-    if (_authToken == null || !_isSessionReady) {
-      _showSnackbar("Session non valide. Veuillez vous reconnecter.", color: Colors.red);
+    // Vérification de sécurité avant l'appel API et des données locales
+    if (_authToken == null || !_isSessionReady || _currentDashboardData == null) {
+      _showSnackbar("Session non valide ou données manquantes. Veuillez vous reconnecter.", color: Colors.red);
       return;
     }
 
     _showSnackbar('Acceptation de l\'invitation en cours...', color: Colors.blue.shade400);
 
     try {
-      // L'appel utilise _invitationService, qui envoie le jeton dans l'en-tête.
       await _invitationService.acceptInvitation(invitationId: invitationId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         _showSnackbar('Invitation acceptée avec succès ! Vous êtes maintenant membre.', color: Colors.green);
-        // Recharger le dashboard
+
+        // MISE À JOUR LOCALE
         setState(() {
-          _dashboardData = _authService.fetchPersonnelDashboard();
+          final invitationIndex = _currentDashboardData!.invitationsEnAttente.indexWhere(
+                (inv) => inv.id.toString() == invitationId,
+          );
+
+          if (invitationIndex != -1) {
+            // Si le modèle 'Invitation' a un copyWith, l'utiliser pour mettre à jour
+            final updatedInvitation = _currentDashboardData!.invitationsEnAttente[invitationIndex].copyWith(
+              statut: 'ACCEPTEE',
+            );
+
+            // Mise à jour de l'objet dans la liste existante
+            _currentDashboardData!.invitationsEnAttente[invitationIndex] = updatedInvitation;
+
+            // Mise à jour du compteur pour les statistiques (si l'API ne le gère pas après la réponse)
+            _currentDashboardData = _currentDashboardData!.copyWith(
+              nombreInvitationsEnAttente: _currentDashboardData!.nombreInvitationsEnAttente - 1,
+              nombreFamillesAppartenance: _currentDashboardData!.nombreFamillesAppartenance + 1,
+            );
+          }
+          // L'UI se mettra à jour grâce au setState et utilisera le nouveau statut de l'invitation
         });
       }
     } catch (e) {
@@ -180,24 +203,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _refuseInvitation(String invitationId) async {
-    // Vérification de sécurité avant l'appel API
-    if (_authToken == null || !_isSessionReady) {
-      _showSnackbar("Session non valide. Veuillez vous reconnecter.", color: Colors.red);
+    // Vérification de sécurité avant l'appel API et des données locales
+    if (_authToken == null || !_isSessionReady || _currentDashboardData == null) {
+      _showSnackbar("Session non valide ou données manquantes. Veuillez vous reconnecter.", color: Colors.red);
       return;
     }
 
     _showSnackbar('Refus de l\'invitation en cours...', color: Colors.blueGrey);
 
     try {
-      // ✅ UTILISATION DE LA VRAIE MÉTHODE REFUSE DÉFINIE DANS INVITATIONSERVICE
       await _invitationService.refuseInvitation(invitationId: invitationId);
 
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         _showSnackbar('Invitation refusée.', color: Colors.orange);
-        // Recharger le dashboard pour enlever l'invitation
+
+        // MISE À JOUR LOCALE
         setState(() {
-          _dashboardData = _authService.fetchPersonnelDashboard();
+          final invitationIndex = _currentDashboardData!.invitationsEnAttente.indexWhere(
+                (inv) => inv.id.toString() == invitationId,
+          );
+
+          if (invitationIndex != -1) {
+            // Si le modèle 'Invitation' a un copyWith, l'utiliser pour mettre à jour
+            final updatedInvitation = _currentDashboardData!.invitationsEnAttente[invitationIndex].copyWith(
+              statut: 'REFUSEE',
+            );
+
+            // Mise à jour de l'objet dans la liste existante
+            _currentDashboardData!.invitationsEnAttente[invitationIndex] = updatedInvitation;
+
+            // Mise à jour du compteur pour les statistiques
+            _currentDashboardData = _currentDashboardData!.copyWith(
+              nombreInvitationsEnAttente: _currentDashboardData!.nombreInvitationsEnAttente - 1,
+            );
+          }
+          // L'UI se mettra à jour
         });
       }
     } catch (e) {
@@ -322,6 +363,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onPressed: () {
                         setState(() {
                           // On réutilise _authService qui a été initialisé avec le jeton
+                          // IMPORTANT: On réinitialise _currentDashboardData pour forcer l'utilisation de la nouvelle donnée
+                          _currentDashboardData = null;
                           _dashboardData = _authService.fetchPersonnelDashboard();
                         });
                       },
@@ -337,7 +380,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // État de Succès (Données disponibles)
         if (snapshot.hasData) {
-          final data = snapshot.data!;
+          // Utiliser les données du snapshot pour la première fois, puis utiliser la variable d'état locale
+          if (_currentDashboardData == null) {
+            _currentDashboardData = snapshot.data!;
+          }
+
+          final data = _currentDashboardData!; // Utiliser la variable d'état pour le rendu
 
           return Scaffold(
             backgroundColor: _backgroundColor,
@@ -345,7 +393,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: _mainAccentColor,
               onRefresh: () async {
                 setState(() {
+                  // Déclencher un nouvel appel API et réinitialiser les données locales
                   _dashboardData = _authService.fetchPersonnelDashboard();
+                  _currentDashboardData = null; // Assure que le snapshot est utilisé à nouveau
                 });
                 await _dashboardData;
               },
@@ -361,14 +411,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         context,
                         data.nombreFamillesAppartenance,
                         data.nombreQuizCrees,
-                        data.nombreInvitationsEnAttente
+                        data.invitationsEnAttente.length // Utiliser la longueur de la liste mise à jour
                     ),
                     const SizedBox(height: 30),
                     _buildSectionTitle('Famille (${data.nombreFamillesAppartenance})'),
                     const SizedBox(height: 15),
                     _buildFamilyGrid(context, data.familles),
                     const SizedBox(height: 30),
-                    _buildSectionTitle('Invitation (${data.nombreInvitationsEnAttente + data.nombreInvitationsRecues})'),
+                    _buildSectionTitle('Invitation (${data.invitationsEnAttente.length})'), // Utiliser la longueur de la liste mise à jour
                     const SizedBox(height: 15),
                     _buildInvitationGrid(context, data.invitationsEnAttente),
                     const SizedBox(height: 30),
@@ -659,15 +709,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildInvitationCard(BuildContext context, Invitation invitation) {
+    // Si l'invitation n'est plus en attente, les boutons sont remplacés par un statut visuel
     final bool isPending = invitation.statut == 'EN_ATTENTE';
     IconData statusIcon = Icons.access_time;
     Color statusColor = Colors.orange;
 
     if (invitation.statut == 'ACCEPTEE') {
-      statusIcon = Icons.check;
-      statusColor = Colors.green;
+      statusIcon = Icons.check_circle_outline;
+      statusColor = Colors.green.shade700;
     } else if (invitation.statut == 'REFUSEE') {
-      statusIcon = Icons.close;
+      statusIcon = Icons.cancel_outlined;
       statusColor = Colors.red;
     }
 
@@ -686,7 +737,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          const Icon(Icons.send, color: _mainAccentColor, size: 30),
+          Icon(isPending ? Icons.send : statusIcon, color: _mainAccentColor, size: 30),
           Text(
               invitation.nomFamille,
               textAlign: TextAlign.center,
@@ -696,10 +747,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           _buildFamilyDetailRow('De:', invitation.nomEmetteur, isLast: false),
           _buildFamilyDetailRow('Lien:', invitation.lienParente, isLast: false),
+          _buildFamilyDetailRow('Statut:', invitation.statut, isLast: false),
           _buildFamilyDetailRow('Expire le:', _formatDate(invitation.dateExpiration), isLast: true),
+          const SizedBox(height: 5), // Espace ajouté pour l'alignement
           isPending
               ? _buildPendingInvitationButtons(invitation.id.toString())
-              : _buildActionCircle(statusIcon, statusColor),
+              : _buildActionCircle(statusIcon, statusColor), // Afficher le statut accepté/refusé
+          const SizedBox(height: 5), // Espace ajouté pour l'alignement
         ],
       ),
     );
@@ -803,7 +857,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 30,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _buttonOpacityColor,
+        color: iconColor.withOpacity(0.1), // Rendre le cercle un peu transparent
       ),
       child: Icon(icon, color: iconColor, size: 20),
     );
