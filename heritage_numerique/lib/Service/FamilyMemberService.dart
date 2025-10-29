@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../model/family_member_model.dart';
+import '../model/family_model.dart'; // ✅ Import du modèle FamilyModel pour la réponse
 import 'Auth-service.dart';
 
 class FamilyMemberService {
@@ -134,8 +135,7 @@ class FamilyMemberService {
     }
   }
 
-  // --- 💡 NOUVELLE MÉTHODE : Inviter un membre (POST) ---
-  // Reste inchangée selon votre instruction
+  // --- 💡 MÉTHODE EXISTANTE : Inviter un membre (POST) ---
 
   /// Envoie une invitation à un membre via l'API: api/invitations
   Future<void> inviteFamilyMember({
@@ -150,12 +150,12 @@ class FamilyMemberService {
 
     // 💡 CORRECTION DES NOMS DE CLÉS pour correspondre au DTO InvitationRequest du backend
     final Map<String, dynamic> body = {
-      'idFamille': familleId,       // 💡 CORRECTION DU NOM DE CLÉ (était 'familleId')
-      'nomInvite': nomComplet,      // 💡 CORRECTION DU NOM DE CLÉ (était 'nomComplet')
-      'emailInvite': email,         // 💡 CORRECTION DU NOM DE CLÉ (était 'email')
+      'idFamille': familleId,
+      'nomInvite': nomComplet,
+      'emailInvite': email,
       'telephone': telephone,
-      'lienParente': lienParent,    // 💡 CORRECTION DU NOM DE CLÉ (était 'lienParent')
-      'roleSuggeré': 'LECTEUR',
+      'lienParente': lienParent,
+      'roleSuggeré': 'LECTEUR', // Rôle par défaut pour les invitations
     };
 
     final http.Response response = await http.post(
@@ -169,6 +169,52 @@ class FamilyMemberService {
 
     if (response.statusCode != 201) {
       String errorMessage = "Échec de l'envoi de l'invitation (Statut: ${response.statusCode}).";
+      try {
+        final Map<String, dynamic> errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? errorMessage;
+      } catch (_) {}
+      throw Exception(errorMessage);
+    }
+  }
+
+  // --- ✅ NOUVELLE MÉTHODE : Changer le rôle d'un membre (PUT) ---
+
+  /// Change le rôle d'un membre via l'API: api/familles/{familleId}/membres/{membreId}/role
+  /// Autorise uniquement les rôles "EDITEUR" et "LECTEUR".
+  /// Retourne le modèle FamilyModel mis à jour.
+  Future<FamilyModel> updateMemberRole({
+    required int familleId,
+    required int membreId,
+    required String nouveauRole,
+  }) async {
+    // 1. Validation de rôle (contrainte utilisateur)
+    const allowedRoles = ['EDITEUR', 'LECTEUR'];
+    if (!allowedRoles.contains(nouveauRole.toUpperCase())) {
+      throw Exception("Le rôle '$nouveauRole' n'est pas autorisé pour cette action. Seuls 'EDITEUR' et 'LECTEUR' sont permis.");
+    }
+
+    final String? token = await _getAuthToken();
+    final Uri uri = Uri.parse('$_baseUrl/api/familles/$familleId/membres/$membreId/role');
+
+    final Map<String, dynamic> body = {
+      'nouveauRole': nouveauRole,
+    };
+
+    final http.Response response = await http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      // L'API retourne le modèle FamilyModel mis à jour
+      final Map<String, dynamic> jsonMap = json.decode(response.body) as Map<String, dynamic>;
+      return FamilyModel.fromJson(jsonMap);
+    } else {
+      String errorMessage = "Échec de la mise à jour du rôle (Statut: ${response.statusCode}).";
       try {
         final Map<String, dynamic> errorBody = json.decode(response.body);
         errorMessage = errorBody['message'] ?? errorMessage;

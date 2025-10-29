@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 // NOTE: Assurez-vous que les chemins d'importation sont corrects pour votre structure de fichiers.
-import 'HomeDashboardScreen.dart';
-import 'AppDrawer.dart';
+import 'HomeDashboardScreen.dart'; // Assurez-vous que ce chemin est correct
+import 'AppDrawer.dart'; // Assurez-vous que ce chemin est correct
 
-// NOTE: Assurez-vous que les chemins d'importation sont corrects pour votre structure de fichiers.
 import 'package:heritage_numerique/Service/FamilyMemberService.dart';
 import 'package:heritage_numerique/model/family_member_model.dart';
+import 'package:heritage_numerique/model/family_model.dart'; // Importé pour la réponse updateRole
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -60,8 +60,8 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _backgroundColor,
-      // NOTE: L'importation de AppDrawer n'est pas fournie, assume qu'elle est correcte.
-      // drawer: AppDrawer(familyId: widget.familleId),
+      // FIX 1: L'AppDrawer est activé.
+      drawer: AppDrawer(familyId: widget.familleId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
         child: Column(
@@ -90,7 +90,8 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
           IconButton(
             icon: const Icon(Icons.menu, color: _cardTextColor, size: 30),
             onPressed: () {
-              // _scaffoldKey.currentState?.openDrawer(); // Décommenter si AppDrawer est importé
+              // FIX 2: La logique d'ouverture du tiroir est activée.
+              _scaffoldKey.currentState?.openDrawer();
             },
           ),
           const SizedBox(width: 8),
@@ -244,6 +245,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
               ),
               child: Column(
                 children: [
+                  // Ligne d'en-tête (pas de modèle de membre passé)
                   _buildTableRow(
                     isHeader: true,
                     data: {'membre': 'Membre', 'role': 'Rôle', 'lien': 'Lien', 'date': 'Date ajout', 'statut': 'Statut', 'action': 'Action'},
@@ -268,33 +270,37 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
   }
 
   Widget _buildMemberRow(FamilyMemberModel member) {
-    // 💡 NOTE: Assurez-vous que le champ `dateAjout` est correctement géré dans FamilyMemberModel.
-    // Utilisation d'une valeur par défaut si `dateAjout` n'est pas disponible ou est DateTime(0)
+    // 💡 NOTE: L'InkWell de la ligne entière ouvre les détails du membre.
+    // L'IconButton dans la cellule "Action" ouvrira le changement de rôle.
     final DateTime date = member.dateAjout.year > 1 ? member.dateAjout : DateTime.now();
     final String formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
-    // Le lien de parenté n'est pas directement dans le modèle FamilyMemberModel actuel, nous utilisons N/A
-    final String lienParent = 'N/A';
+    final String lienParent = member.lienParente ?? 'N/A';
 
     return InkWell(
+      // Tap sur la ligne pour afficher les détails
       onTap: () => _showMemberDetailDialog(context, member.id),
       child: _buildTableRow(
         isHeader: false,
         data: {
           'membre': '${member.prenom} ${member.nom}',
-          'role': member.roleFamille,
+          // FIX: Utiliser l'opérateur ?? pour gérer le cas où roleFamille est null
+          'role': member.roleFamille ?? 'Rôle inconnu',
           'lien': lienParent,
           'date': formattedDate,
-          'statut': member.statut,
-          'action': '...',
+          // FIX: Gérer le statut qui peut être null
+          'statut': member.statut ?? 'Statut inconnu',
+          'action': '...', // Texte générique pour l'action
         },
+        member: member, // ✅ Passage du membre pour l'action
       ),
     );
   }
 
-  Widget _buildTableRow({required bool isHeader, required Map<String, String> data}) {
+  // Signature de la méthode mise à jour pour accepter un membre optionnel
+  Widget _buildTableRow({required bool isHeader, required Map<String, String> data, FamilyMemberModel? member}) {
     Color getColorForRole(String role) {
       if (role.toUpperCase().contains('ADMIN')) return Colors.lightGreen.shade100;
-      if (role.toUpperCase().contains('CONTRIBUTEUR')) return Colors.green.shade100;
+      if (role.toUpperCase().contains('EDITEUR')) return Colors.green.shade100;
       if (role.toUpperCase().contains('LECTEUR')) return Colors.orange.shade100;
       return Colors.transparent;
     }
@@ -314,20 +320,33 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
       child: Row(
         children: [
           Expanded(flex: 3, child: _buildTableCell(data['membre']!, isHeader: isHeader)),
+          // data['role']! est maintenant garanti d'être une String grâce au fix dans _buildMemberRow
           Expanded(flex: 2, child: Center(child: _buildRoleChip(data['role']!, isHeader, getColorForRole(data['role']!)))),
           Expanded(flex: 1, child: _buildTableCell(data['lien']!, isHeader: isHeader)),
           Expanded(flex: 2, child: _buildTableCell(data['date']!, isHeader: isHeader)),
+          // data['statut']! est maintenant garanti d'être une String
           Expanded(flex: 2, child: Center(child: _buildStatusChip(data['statut']!, isHeader, getColorForStatus(data['statut']!)))),
-          Expanded(flex: 1, child: Center(child: _buildTableCell(data['action']!, isHeader: isHeader, isAction: true))),
+          // ✅ Passage du membre à la cellule d'action
+          Expanded(flex: 1, child: Center(child: _buildTableCell(data['action']!, isHeader: isHeader, isAction: true, member: member))),
         ],
       ),
     );
   }
 
-  Widget _buildTableCell(String text, {required bool isHeader, bool isAction = false}) {
-    if (isAction && !isHeader) {
-      return const Icon(Icons.more_vert, size: 18, color: Colors.grey);
+  // Signature de la méthode mise à jour pour accepter un membre optionnel
+  Widget _buildTableCell(String text, {required bool isHeader, bool isAction = false, FamilyMemberModel? member}) {
+    // ✅ Logique pour le bouton d'action (rôle change)
+    if (isAction && !isHeader && member != null) {
+      return IconButton(
+        icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey),
+        onPressed: () => _showChangeRoleDialog(context, member), // Appel au nouveau dialogue
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        tooltip: 'Changer le rôle',
+      );
     }
+
+    // Logique pour les cellules d'en-tête et de données standard
     return Text(
       text,
       maxLines: 1,
@@ -340,6 +359,9 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     );
   }
 
+  // === DÉFINITION DES WIDGETS MANQUANTS ===
+
+  // Définition de _buildRoleChip
   Widget _buildRoleChip(String text, bool isHeader, Color color) {
     if (isHeader) return _buildTableCell(text, isHeader: true);
     return Container(
@@ -355,6 +377,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     );
   }
 
+  // Définition de _buildStatusChip
   Widget _buildStatusChip(String text, bool isHeader, Color color) {
     if (isHeader) return _buildTableCell(text, isHeader: true);
     return Container(
@@ -369,6 +392,151 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
       ),
     );
   }
+
+  // =======================================================
+  // ---  LOGIQUE : Changer le rôle d'un membre ---
+  // =======================================================
+
+  void _showChangeRoleDialog(BuildContext context, FamilyMemberModel member) {
+
+    // FIX SÉCURITÉ : S'assurer que le rôle est non-null pour l'initialisation et la comparaison.
+    final String initialRole = member.roleFamille?.toUpperCase() ?? 'LECTEUR';
+
+    const List<String> allowedRoles = ['LECTEUR', 'EDITEUR', 'ADMIN'];
+
+    // Assigner le rôle actuel s'il est dans la liste autorisée, sinon 'LECTEUR' par défaut
+    String? selectedRole = allowedRoles.contains(initialRole)
+        ? initialRole
+        : 'LECTEUR';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateLocal) {
+            bool isLoading = false;
+            FamilyMemberModel currentMember = member;
+
+            // Assurer une valeur par défaut sûre pour la comparaison et l'affichage.
+            final String currentMemberRoleUpper = currentMember.roleFamille?.toUpperCase() ?? 'LECTEUR';
+            final String currentMemberRoleDisplay = currentMember.roleFamille ?? 'Rôle inconnu';
+
+            // Fonction de soumission (Appel API PUT)
+            Future<void> submitRoleChange() async {
+              if (selectedRole == null || selectedRole == currentMemberRoleUpper) {
+                _showSnackbar("Veuillez sélectionner un nouveau rôle différent.", isError: true);
+                return;
+              }
+
+              if (currentMemberRoleUpper == 'ADMIN') {
+                _showSnackbar("Impossible de modifier le rôle de l'administrateur de cette famille directement via cette interface.", isError: true);
+                return;
+              }
+
+              setStateLocal(() => isLoading = true);
+
+              try {
+                // Le service retourne FamilyModel, nous vérifions juste le succès
+                await _memberService.updateMemberRole(
+                  familleId: widget.familleId,
+                  membreId: currentMember.id,
+                  nouveauRole: selectedRole!,
+                );
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  _showSnackbar("Rôle de ${currentMember.prenom} mis à jour en '$selectedRole' avec succès.");
+                  _loadFamilyMembers(); // Recharger la liste pour afficher le nouveau rôle
+                }
+
+              } catch (e) {
+                _showSnackbar("Erreur lors du changement de rôle: ${e.toString().replaceAll('Exception: ', '')}", isError: true);
+                setStateLocal(() => isLoading = false);
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              title: const Text(
+                'Changer le rôle du membre',
+                style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor, fontSize: 18),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Membre : ${currentMember.prenom} ${currentMember.nom}',
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Rôle actuel : $currentMemberRoleDisplay', // Utiliser la version non-null
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Dropdown pour le Nouveau Rôle
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: _searchBackground,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      decoration: const InputDecoration(
+                        labelText: 'Nouveau Rôle',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      isExpanded: true,
+                      style: const TextStyle(fontSize: 14, color: Colors.black),
+                      icon: const Icon(Icons.arrow_drop_down, color: _mainAccentColor),
+                      onChanged: (newValue) {
+                        setStateLocal(() {
+                          selectedRole = newValue;
+                        });
+                      },
+                      items: allowedRoles.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Annuler', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading ? null : submitRoleChange,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _mainAccentColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 15, height: 15,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Text('Confirmer', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ... _showMemberDetailDialog, _buildMemberDetailContent, _buildDetailRow ...
 
   void _showMemberDetailDialog(BuildContext context, int membreId) {
     showDialog(
@@ -438,14 +606,17 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     final String lienParente = member.lienParente ?? 'N/A';
     final String ethnie = member.ethnie ?? 'N/A';
 
+    // FIX SÉCURITÉ : Gérer le rôle null ici aussi pour l'affichage détaillé
+    final String roleFamille = member.roleFamille ?? 'Rôle inconnu';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildDetailRow('Nom complet', '${member.prenom} ${member.nom}'),
         _buildDetailRow('Lien de parenté', lienParente),
         _buildDetailRow('Ethnie', ethnie),
-        _buildDetailRow('Rôle familial', member.roleFamille),
-        _buildDetailRow('Statut', member.statut),
+        _buildDetailRow('Rôle familial', roleFamille),
+        _buildDetailRow('Statut', member.statut ?? 'Statut inconnu'),
         const SizedBox(height: 10),
         _buildDetailRow('Téléphone', telephone),
         _buildDetailRow('Email', member.email ?? 'Non spécifié'),
@@ -480,7 +651,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
 
 
   // =======================================================
-  // --- ✅ LOGIQUE MISE À JOUR : Ajout Membre Manuel ---
+  // ---  LOGIQUE MISE À JOUR : Ajout Membre Manuel ---
   // =======================================================
 
   void _showAddManualDialog(BuildContext context) {
@@ -494,7 +665,8 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
 
     // 💡 2. État pour le Rôle Familial (Dropdown)
     String? selectedRole = 'LECTEUR'; // Valeur par défaut
-    const List<String> roleOptions = ['LECTEUR', 'CONTRIBUTEUR', 'ADMIN'];
+    // Note: Utilisation des rôles 'EDITEUR' et 'CONTRIBUTEUR' pour la saisie manuelle
+    const List<String> roleOptions = ['LECTEUR', 'EDITEUR', 'ADMIN'];
 
     showDialog(
       context: context,
@@ -626,7 +798,64 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     );
   }
 
-  // --- NOUVEAU WIDGET : Dropdown pour le Rôle ---
+  // =======================================================
+  // --- LOGIQUE : Inviter un membre (à compléter) ---
+  // =======================================================
+
+  void _showInviteMemberDialog(BuildContext context) {
+    // Dans une application réelle, ceci contiendrait la logique d'envoi d'invitations par e-mail ou lien.
+    // Pour l'instant, c'est un simple message d'information.
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Inviter un membre'),
+          content: const Text(
+            "La fonctionnalité d'invitation par lien ou email sera bientôt disponible. Veuillez utiliser l'ajout manuel pour l'instant.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fermer'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  // --- WIDGET MANQUANT : Champ de saisie réutilisable ---
+  Widget _buildInputField(String label, TextEditingController controller, {String? hint, TextInputType keyboardType = TextInputType.text}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          const SizedBox(height: 5),
+          TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+              fillColor: _searchBackground,
+              filled: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(5),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            ),
+            style: const TextStyle(fontSize: 14, color: Colors.black),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGET MANQUANT : Dropdown pour le Rôle ---
   Widget _buildRoleDropdown({
     required String? selectedRole,
     required List<String> options,
@@ -662,166 +891,6 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
                   child: Text(value, style: const TextStyle(fontSize: 14)),
                 );
               }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- Reste de la logique (Inviter un membre) ---
-
-  void _showInviteMemberDialog(BuildContext context) {
-    // 💡 1. Contrôleurs pour les champs du formulaire
-    final nomController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
-    final lienController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // 💡 2. Utilisation de StatefulBuilder pour gérer l'état de chargement local du bouton
-        return StatefulBuilder(
-          builder: (context, setStateLocal) {
-            bool isLoading = false;
-
-            // 💡 3. Fonction de soumission (Appel API)
-            Future<void> submit() async {
-              if (nomController.text.isEmpty || emailController.text.isEmpty) {
-                _showSnackbar("Veuillez saisir le Nom et l'Email pour l'invitation.", isError: true);
-                return;
-              }
-
-              setStateLocal(() => isLoading = true);
-
-              try {
-                await _memberService.inviteFamilyMember(
-                  familleId: widget.familleId,
-                  // 🛑 CORRECTION: Revenir aux noms de paramètres originaux pour compiler
-                  nomComplet: nomController.text, // était nomInvite
-                  email: emailController.text,     // était emailInvite
-                  telephone: phoneController.text,
-                  lienParent: lienController.text, // était lienParente
-                );
-
-                // IMPORTANT: Vérifiez 'mounted' avant de manipuler l'interface utilisateur
-                if (mounted) {
-                  Navigator.of(context).pop(); // Fermer le dialogue
-                  _showSnackbar("Invitation envoyée avec succès.");
-                  _loadFamilyMembers(); // Recharger la liste (l'invitation pourrait apparaitre en statut 'En Attente')
-                }
-
-              } catch (e) {
-                _showSnackbar("Erreur lors de l'envoi de l'invitation: ${e.toString().replaceAll('Exception: ', '')}", isError: true);
-                // On met à jour l'état de chargement localement si l'erreur survient (et que le dialogue est toujours là)
-                setStateLocal(() => isLoading = false);
-              }
-            }
-
-
-            return Dialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Inviter un membre de la famille',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
-                          ),
-                          Text(
-                            'Envoyer une invitation par email pour rejoindre votre espace familial',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      // 💡 Les champs utilisent maintenant les contrôleurs
-                      _buildInputField('Nom Complet', nomController, hint: 'Ex: Niakale Diakité'),
-                      _buildInputField('Email', emailController, hint: 'Ex: diakitetenin99@gmail.com', keyboardType: TextInputType.emailAddress),
-                      _buildInputField('Téléphone', phoneController, hint: 'Ex: 78787878', keyboardType: TextInputType.phone),
-                      _buildInputField('Lien de parenté', lienController, hint: 'Ex: sœur, frère'),
-
-                      const SizedBox(height: 30),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: isLoading ? null : () => Navigator.of(context).pop(),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.grey),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                              ),
-                              child: const Text('Annuler', style: TextStyle(color: _cardTextColor, fontSize: 14)),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: isLoading ? null : submit, // 💡 Appel à la fonction submit
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _mainAccentColor,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                width: 15, height: 15,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                                  : const Text('Envoyer l\'invitation', style: TextStyle(color: Colors.white, fontSize: 14)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // --- Widgets de formulaire mis à jour pour prendre un TextEditingController ---
-
-  Widget _buildInputField(String label, TextEditingController controller, {required String hint, TextInputType keyboardType = TextInputType.text}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
-          const SizedBox(height: 5),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: _searchBackground,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: TextField(
-              controller: controller, // 💡 Contrôleur ajouté ici
-              keyboardType: keyboardType, // 💡 Ajouté pour une meilleure UX (ex: email, phone)
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              style: const TextStyle(fontSize: 14),
             ),
           ),
         ],

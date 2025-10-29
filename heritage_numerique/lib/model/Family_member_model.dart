@@ -7,14 +7,12 @@ class FamilyMemberModel {
   final String telephone;
   final String ethnie;
   final String roleFamille;
-  final String? lienParente; // Rendu optionnel pour refléter la réponse JSON
+  final String? lienParente;
   final DateTime dateAjout;
   final String statut;
   final int idFamille;
   final String nomFamille;
-
-  // Le champ 'bio' n'est pas dans la réponse de l'API d'ajout, on le retire ou on le laisse optionnel.
-  // Je le retire pour coller à la structure de la réponse fournie.
+  // NOTE: 'bio' a été retiré pour coller aux champs vus dans les APIs précédentes.
 
   FamilyMemberModel({
     required this.id,
@@ -25,7 +23,7 @@ class FamilyMemberModel {
     required this.telephone,
     required this.ethnie,
     required this.roleFamille,
-    this.lienParente, // Maintenant optionnel
+    this.lienParente,
     required this.dateAjout,
     required this.statut,
     required this.idFamille,
@@ -43,29 +41,25 @@ class FamilyMemberModel {
       telephone: json['telephone'] as String,
       ethnie: json['ethnie'] as String,
       roleFamille: json['roleFamille'] as String,
-      lienParente: json['lienParente'] as String?, // Nom de la clé harmonisé
-      dateAjout: DateTime.parse(json['dateAjout'] as String),
+      lienParente: json['lienParente'] as String?,
+      // Utilisation d'une date par défaut ou de 'DateTime.tryParse' pour la robustesse
+      dateAjout: DateTime.tryParse(json['dateAjout'] as String? ?? '') ?? DateTime(0),
       statut: json['statut'] as String,
       idFamille: json['idFamille'] as int,
       nomFamille: json['nomFamille'] as String,
     );
   }
 
-  // --- Méthode pour le Request Body (Ajout d'un membre) ---
-
-  // Cette méthode est utilisée pour transformer l'objet en JSON lors de l'appel POST.
+  /// Méthode pour le Request Body (Ajout d'un membre - non utilisé ici, mais maintenu).
   Map<String, dynamic> toJsonForCreation() {
-    // Les champs "idUtilisateur", "dateAjout", "statut", "nomFamille", "id"
-    // ne sont PAS nécessaires pour la création et sont gérés par le serveur.
-
     return {
-      "idFamille": idFamille, // Requis dans le Request Body
+      "idFamille": idFamille,
       "nom": nom,
       "prenom": prenom,
       "email": email,
       "telephone": telephone,
       "ethnie": ethnie,
-      "lienParente": lienParente ?? '', // Assurer que c'est une chaîne pour l'API
+      "lienParente": lienParente ?? '',
       "roleFamille": roleFamille,
     };
   }
