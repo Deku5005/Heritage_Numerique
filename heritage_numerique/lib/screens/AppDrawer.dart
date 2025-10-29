@@ -131,9 +131,11 @@ class AppDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
-                // 1. Accueil (HomeDashboard) - Pas besoin d'ID ici, HomeDashboard le gère lui-même
+                // 1. Accueil (HomeDashboard)
                 _buildDrawerItem(Icons.home_outlined, 'Accueil', onTap: () {
-                  _navigateToReplace(context, const HomeDashboardScreen());
+                  // 💡 CORRECTION : HomeDashboardScreen REQUIERT maintenant familyId
+                  // Retrait de 'const' et ajout du paramètre familyId.
+                  _navigateToReplace(context, HomeDashboardScreen(familyId: safeFamilyId));
                 }),
 
                 // 2. Membre Famille (FamilyMembersScreen)

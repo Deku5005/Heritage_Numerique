@@ -7,14 +7,14 @@ class FamilyMemberModel {
   final String telephone;
   final String ethnie;
   final String roleFamille;
+  final String? lienParente; // Rendu optionnel pour refléter la réponse JSON
   final DateTime dateAjout;
   final String statut;
   final int idFamille;
   final String nomFamille;
 
-  // Note: 'lienDeParenté' et 'bio' sont ajoutés ici pour la vue détaillée
-  final String? lienDeParente;
-  final String? bio;
+  // Le champ 'bio' n'est pas dans la réponse de l'API d'ajout, on le retire ou on le laisse optionnel.
+  // Je le retire pour coller à la structure de la réponse fournie.
 
   FamilyMemberModel({
     required this.id,
@@ -25,14 +25,14 @@ class FamilyMemberModel {
     required this.telephone,
     required this.ethnie,
     required this.roleFamille,
+    this.lienParente, // Maintenant optionnel
     required this.dateAjout,
     required this.statut,
     required this.idFamille,
     required this.nomFamille,
-    this.lienDeParente,
-    this.bio,
   });
 
+  /// Constructeur de fabrique pour créer une instance à partir d'un Map JSON (Réponse API).
   factory FamilyMemberModel.fromJson(Map<String, dynamic> json) {
     return FamilyMemberModel(
       id: json['id'] as int,
@@ -43,14 +43,30 @@ class FamilyMemberModel {
       telephone: json['telephone'] as String,
       ethnie: json['ethnie'] as String,
       roleFamille: json['roleFamille'] as String,
-      // Conversion de la chaîne de date en objet DateTime
+      lienParente: json['lienParente'] as String?, // Nom de la clé harmonisé
       dateAjout: DateTime.parse(json['dateAjout'] as String),
       statut: json['statut'] as String,
       idFamille: json['idFamille'] as int,
       nomFamille: json['nomFamille'] as String,
-      // Ces champs sont optionnels dans la liste, mais disponibles dans le détail
-      lienDeParente: json['lienDeParente'] as String?,
-      bio: json['bio'] as String?,
     );
+  }
+
+  // --- Méthode pour le Request Body (Ajout d'un membre) ---
+
+  // Cette méthode est utilisée pour transformer l'objet en JSON lors de l'appel POST.
+  Map<String, dynamic> toJsonForCreation() {
+    // Les champs "idUtilisateur", "dateAjout", "statut", "nomFamille", "id"
+    // ne sont PAS nécessaires pour la création et sont gérés par le serveur.
+
+    return {
+      "idFamille": idFamille, // Requis dans le Request Body
+      "nom": nom,
+      "prenom": prenom,
+      "email": email,
+      "telephone": telephone,
+      "ethnie": ethnie,
+      "lienParente": lienParente ?? '', // Assurer que c'est une chaîne pour l'API
+      "roleFamille": roleFamille,
+    };
   }
 }

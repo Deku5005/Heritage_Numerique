@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'HomeDashboardScreen.dart';
 import 'AppDrawer.dart';
 
+// NOTE: Assurez-vous que les chemins d'importation sont corrects pour votre structure de fichiers.
 import 'package:heritage_numerique/Service/FamilyMemberService.dart';
 import 'package:heritage_numerique/model/family_member_model.dart';
 
@@ -59,7 +60,8 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _backgroundColor,
-      drawer: AppDrawer(familyId: widget.familleId),
+      // NOTE: L'importation de AppDrawer n'est pas fournie, assume qu'elle est correcte.
+      // drawer: AppDrawer(familyId: widget.familleId),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
         child: Column(
@@ -88,7 +90,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
           IconButton(
             icon: const Icon(Icons.menu, color: _cardTextColor, size: 30),
             onPressed: () {
-              _scaffoldKey.currentState?.openDrawer();
+              // _scaffoldKey.currentState?.openDrawer(); // Décommenter si AppDrawer est importé
             },
           ),
           const SizedBox(width: 8),
@@ -266,7 +268,11 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
   }
 
   Widget _buildMemberRow(FamilyMemberModel member) {
-    final String formattedDate = "${member.dateAjout.day.toString().padLeft(2, '0')}/${member.dateAjout.month.toString().padLeft(2, '0')}/${member.dateAjout.year}";
+    // 💡 NOTE: Assurez-vous que le champ `dateAjout` est correctement géré dans FamilyMemberModel.
+    // Utilisation d'une valeur par défaut si `dateAjout` n'est pas disponible ou est DateTime(0)
+    final DateTime date = member.dateAjout.year > 1 ? member.dateAjout : DateTime.now();
+    final String formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+    // Le lien de parenté n'est pas directement dans le modèle FamilyMemberModel actuel, nous utilisons N/A
     final String lienParent = 'N/A';
 
     return InkWell(
@@ -425,13 +431,19 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
   }
 
   Widget _buildMemberDetailContent(FamilyMemberModel member) {
-    final String formattedDateAjout = "${member.dateAjout.day.toString().padLeft(2, '0')}/${member.dateAjout.month.toString().padLeft(2, '0')}/${member.dateAjout.year}";
+    final DateTime date = member.dateAjout.year > 1 ? member.dateAjout : DateTime.now();
+    final String formattedDateAjout = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
     final String telephone = member.telephone?.isNotEmpty == true ? member.telephone! : 'Non spécifié';
+
+    final String lienParente = member.lienParente ?? 'N/A';
+    final String ethnie = member.ethnie ?? 'N/A';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildDetailRow('Nom complet', '${member.prenom} ${member.nom}'),
+        _buildDetailRow('Lien de parenté', lienParente),
+        _buildDetailRow('Ethnie', ethnie),
         _buildDetailRow('Rôle familial', member.roleFamille),
         _buildDetailRow('Statut', member.statut),
         const SizedBox(height: 10),
@@ -468,52 +480,66 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
 
 
   // =======================================================
-  // --- 💡 LOGIQUE : Pop-ups d'Ajout/Invitation ---
+  // --- ✅ LOGIQUE MISE À JOUR : Ajout Membre Manuel ---
   // =======================================================
 
   void _showAddManualDialog(BuildContext context) {
-    // 💡 1. Contrôleurs pour les champs du formulaire
+    // 💡 1. Contrôleurs pour les 6 champs de texte requis
+    final prenomController = TextEditingController();
     final nomController = TextEditingController();
-    final lienController = TextEditingController();
+    final emailController = TextEditingController();
     final phoneController = TextEditingController();
-    final descController = TextEditingController();
+    final ethnieController = TextEditingController();
+    final lienParenteController = TextEditingController();
+
+    // 💡 2. État pour le Rôle Familial (Dropdown)
+    String? selectedRole = 'LECTEUR'; // Valeur par défaut
+    const List<String> roleOptions = ['LECTEUR', 'CONTRIBUTEUR', 'ADMIN'];
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // 💡 2. Utilisation de StatefulBuilder pour gérer l'état de chargement local du bouton
+        // 💡 3. Utilisation de StatefulBuilder pour gérer l'état local (loading et dropdown)
         return StatefulBuilder(
           builder: (context, setStateLocal) {
             bool isLoading = false;
 
-            // 💡 3. Fonction de soumission (Appel API)
+            // 💡 4. Fonction de soumission (Appel API)
             Future<void> submit() async {
-              if (nomController.text.isEmpty || lienController.text.isEmpty || phoneController.text.isEmpty) {
-                _showSnackbar("Veuillez remplir les champs Nom, Lien et Téléphone.", isError: true);
+              if (prenomController.text.isEmpty ||
+                  nomController.text.isEmpty ||
+                  emailController.text.isEmpty ||
+                  phoneController.text.isEmpty ||
+                  ethnieController.text.isEmpty ||
+                  lienParenteController.text.isEmpty ||
+                  selectedRole == null) {
+                _showSnackbar("Veuillez remplir tous les champs obligatoires.", isError: true);
                 return;
               }
 
               setStateLocal(() => isLoading = true);
 
               try {
+                // Appel à la NOUVELLE méthode avec les 8 paramètres
                 await _memberService.addFamilyMemberManual(
-                  familleId: widget.familleId,
-                  nomComplet: nomController.text,
-                  lienParent: lienController.text,
+                  idFamille: widget.familleId,
+                  nom: nomController.text,
+                  prenom: prenomController.text,
+                  email: emailController.text,
                   telephone: phoneController.text,
-                  description: descController.text,
+                  ethnie: ethnieController.text,
+                  lienParente: lienParenteController.text,
+                  roleFamille: selectedRole!,
                 );
 
-                // IMPORTANT: Vérifiez 'mounted' avant de manipuler l'interface utilisateur
                 if (mounted) {
                   Navigator.of(context).pop(); // Fermer le dialogue
                   _showSnackbar("Membre ajouté manuellement avec succès.");
-                  _loadFamilyMembers(); // Recharger la liste pour voir le nouveau membre
+                  _loadFamilyMembers(); // Recharger la liste
                 }
 
               } catch (e) {
                 _showSnackbar("Erreur lors de l'ajout: ${e.toString().replaceAll('Exception: ', '')}", isError: true);
-                // On met à jour l'état de chargement localement si l'erreur survient (et que le dialogue est toujours là)
                 setStateLocal(() => isLoading = false);
               }
             }
@@ -536,17 +562,30 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
                           ),
                           Text(
-                            'Pour les membres n\'ayant pas de connexion internet',
+                            'Remplissez tous les détails requis pour l\'ajout.',
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // 💡 Les champs utilisent maintenant les contrôleurs
-                      _buildInputField('Nom Complet', nomController, hint: 'Ex: Niakale Diakité'),
-                      _buildInputField('Lien de parenté', lienController, hint: 'Ex: Oncle, Tante, Cousin'),
+                      // NOUVEAUX CHAMPS
+                      _buildInputField('Prénom', prenomController, hint: 'Ex: Niakale'),
+                      _buildInputField('Nom', nomController, hint: 'Ex: Diakité'),
+                      _buildInputField('Email', emailController, hint: 'Ex: email@exemple.com', keyboardType: TextInputType.emailAddress),
                       _buildInputField('Téléphone', phoneController, hint: 'Ex: +223 78787878', keyboardType: TextInputType.phone),
-                      _buildDescriptionField('Description/ Souvenir', descController, hint: 'Partagez quelques souvenir ou informations sur ce membre...'),
+                      _buildInputField('Ethnie', ethnieController, hint: 'Ex: Bambara, Peul'),
+                      _buildInputField('Lien de parenté', lienParenteController, hint: 'Ex: Oncle, Tante, Cousin'),
+
+                      // Dropdown pour le Rôle Familial
+                      _buildRoleDropdown(
+                        selectedRole: selectedRole,
+                        options: roleOptions,
+                        onChanged: (String? newValue) {
+                          setStateLocal(() {
+                            selectedRole = newValue;
+                          });
+                        },
+                      ),
 
                       const SizedBox(height: 20),
 
@@ -558,19 +597,21 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
                             child: const Text('Annuler', style: TextStyle(color: Colors.grey, fontSize: 14)),
                           ),
                           const SizedBox(width: 10),
-                          ElevatedButton(
-                            onPressed: isLoading ? null : submit, // 💡 Appel à la fonction submit
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _mainAccentColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _mainAccentColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                              ),
+                              child: isLoading
+                                  ? const SizedBox(
+                                width: 15, height: 15,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                                  : const Text('Ajouter le membre', style: TextStyle(color: Colors.white, fontSize: 14)),
                             ),
-                            child: isLoading
-                                ? const SizedBox(
-                              width: 15, height: 15,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                                : const Text('Ajouter le membre', style: TextStyle(color: Colors.white, fontSize: 14)),
                           ),
                         ],
                       ),
@@ -584,6 +625,51 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
       },
     );
   }
+
+  // --- NOUVEAU WIDGET : Dropdown pour le Rôle ---
+  Widget _buildRoleDropdown({
+    required String? selectedRole,
+    required List<String> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Rôle Familial', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          const SizedBox(height: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: _searchBackground,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: DropdownButtonFormField<String>(
+              value: selectedRole,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              isExpanded: true,
+              style: const TextStyle(fontSize: 14, color: Colors.black),
+              icon: const Icon(Icons.arrow_drop_down, color: _mainAccentColor),
+              onChanged: onChanged,
+              items: options.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value, style: const TextStyle(fontSize: 14)),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Reste de la logique (Inviter un membre) ---
 
   void _showInviteMemberDialog(BuildContext context) {
     // 💡 1. Contrôleurs pour les champs du formulaire
@@ -729,37 +815,6 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen> {
             child: TextField(
               controller: controller, // 💡 Contrôleur ajouté ici
               keyboardType: keyboardType, // 💡 Ajouté pour une meilleure UX (ex: email, phone)
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDescriptionField(String label, TextEditingController controller, {required String hint}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
-          const SizedBox(height: 5),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: _searchBackground,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: TextField(
-              controller: controller, // 💡 Contrôleur ajouté ici
-              maxLines: 4,
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),

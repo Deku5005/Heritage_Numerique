@@ -13,10 +13,12 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _welcomeCardBackground = Color(0xFFF7F2E8);
 
 class HomeDashboardScreen extends StatefulWidget {
-  final int? familyId;
+  // 💡 CORRECTION : L'ID de la famille est maintenant obligatoire (non-nullable)
+  final int familyId;
   final String? familyName;
 
-  const HomeDashboardScreen({super.key, this.familyId, this.familyName});
+  // 💡 familyId est marqué comme 'required'
+  const HomeDashboardScreen({super.key, required this.familyId, this.familyName});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -29,7 +31,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   // État des données
   Future<FamilyDashboardResponse>? _dashboardData;
-  final int _mockFamilyId = 9; // Fallback ou Mock ID
+  // ❌ _mockFamilyId est supprimé car familyId est maintenant obligatoire.
 
   @override
   void initState() {
@@ -39,7 +41,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   // Fonction de chargement des données
   void _loadDashboardData() {
-    final int id = widget.familyId ?? _mockFamilyId;
+    // 🚀 UTILISE DIRECTEMENT l'ID requis, sans vérifier le mock
+    final int id = widget.familyId;
     setState(() {
       _dashboardData = _dashboardService.fetchFamilyDashboard(familleId: id);
     });
@@ -114,7 +117,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // ... (Reste des méthodes _buildCustomHeader, _buildWelcomeCard, _buildStatsGrid, _buildStatItemCard inchangées) ...
+  // --- Le reste des méthodes de construction de l'UI est inchangé ---
 
   Widget _buildCustomHeader(GlobalKey<ScaffoldState> scaffoldKey) {
     return Padding(
@@ -142,7 +145,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Widget _buildWelcomeCard(String nomFamille) {
-    // ... code inchangé ...
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16.0),
@@ -176,7 +178,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Widget _buildStatsGrid(FamilyDashboardResponse data) {
-    // ... code inchangé ...
     final List<Map<String, dynamic>> stats = [
       {'title': 'Membres', 'count': data.nombreMembres, 'icon': Icons.group_outlined},
       {'title': 'Contenus Publics', 'count': data.nombreContenusPublics, 'icon': Icons.public},
@@ -207,7 +208,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Widget _buildStatItemCard(String title, int count, IconData icon) {
-    // ... code inchangé ...
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(

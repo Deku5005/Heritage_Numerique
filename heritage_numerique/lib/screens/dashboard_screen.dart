@@ -440,7 +440,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ----------------------------------------------------------------------
-  // --- MÉTHODES DE CONSTRUCTION DE L'UI (inchangées) ---
+  // --- MÉTHODES DE CONSTRUCTION DE L'UI ---
   // ----------------------------------------------------------------------
 
   Widget _buildFamilyGrid(BuildContext context, List<Famille> familles) {
@@ -471,10 +471,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return GestureDetector(
       onTap: () {
-        // CORRECTION LOGIQUE: Passer l'ID de la famille (famille.id) à HomeDashboardScreen
+        // CORRECTION APPLIQUÉE : Passage obligatoire de familyId
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const HomeDashboardScreen()),
+          MaterialPageRoute(
+            builder: (context) => HomeDashboardScreen(familyId: famille.id),
+          ),
         );
       },
       child: Container(
@@ -879,68 +881,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildBottomButton(context, 'Découvrir la culture Malienne', onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Découvrir la culture Malienne')),
-                      );
-                    }),
+            // Ajouter d'autres actions ici
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Déconnexion',
+                  style: TextStyle(
+                    color: _cardTextColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildBottomButton(context, 'Créer un compte familial', onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const CreateFamilyAccountScreen()),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _buttonOpacityColor,
-              ),
-              child: const Center(
-                child: Icon(Icons.park, color: _mainAccentColor),
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.redAccent),
+                  onPressed: () {
+                    _storageService.deleteAuthToken();
+                    _showSnackbar('Déconnexion réussie. Veuillez vous reconnecter.', color: Colors.redAccent);
+                    // Redirection vers l'écran de connexion (à implémenter dans votre navigation principale)
+                  },
+                ),
+              ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButton(BuildContext context, String text, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: _mainAccentColor,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
         ),
       ),
     );

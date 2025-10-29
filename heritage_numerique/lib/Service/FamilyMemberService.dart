@@ -80,27 +80,34 @@ class FamilyMemberService {
     }
   }
 
-  // --- 💡 NOUVELLE MÉTHODE : Ajouter un membre manuellement (POST) ---
+  // --- ✅ MÉTHODE CORRIGÉE : Ajouter un membre manuellement (POST) ---
 
-  /// Ajoute un nouveau membre manuellement à la famille via l'API: api/membres
-  Future<void> addFamilyMemberManual({
-    required int familleId,
-    required String nomComplet,
-    required String lienParent,
+  /// Ajoute un nouveau membre manuellement à la famille via l'API: api/membres/ajouter.
+  /// L'API renvoie le membre créé au complet.
+  Future<FamilyMemberModel> addFamilyMemberManual({
+    required int idFamille,
+    required String nom,
+    required String prenom,
+    required String email,
     required String telephone,
-    String? description,
+    required String ethnie,
+    required String lienParente,
+    required String roleFamille,
   }) async {
     final String? token = await _getAuthToken();
-    final Uri uri = Uri.parse('$_baseUrl/api/membres');
+    // 💡 URL API corrigée : api/membres/ajouter
+    final Uri uri = Uri.parse('$_baseUrl/api/membres/ajouter');
 
+    // 💡 Corps de la requête adapté exactement au Request Body spécifié
     final Map<String, dynamic> body = {
-      'idFamille': familleId,       // 💡 CORRECTION DU NOM DE CLÉ pour correspondre au style du backend
-      'nomComplet': nomComplet,
-      'lienParent': lienParent,
+      'idFamille': idFamille,
+      'nom': nom,
+      'prenom': prenom,
+      'email': email,
       'telephone': telephone,
-      'description': description,
-      'statut': 'ACCEPTE',
-      'roleFamille': 'LECTEUR',
+      'ethnie': ethnie,
+      'lienParente': lienParente,
+      'roleFamille': roleFamille,
     };
 
     final http.Response response = await http.post(
@@ -112,7 +119,12 @@ class FamilyMemberService {
       body: json.encode(body),
     );
 
-    if (response.statusCode != 201) {
+    // L'API est censée renvoyer le FamilyMemberModel complet après la création (statut 200 ou 201)
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final Map<String, dynamic> jsonMap = json.decode(response.body) as Map<String, dynamic>;
+      // Retourne l'objet complet créé
+      return FamilyMemberModel.fromJson(jsonMap);
+    } else {
       String errorMessage = "Échec de l'ajout manuel du membre (Statut: ${response.statusCode}).";
       try {
         final Map<String, dynamic> errorBody = json.decode(response.body);
@@ -123,6 +135,7 @@ class FamilyMemberService {
   }
 
   // --- 💡 NOUVELLE MÉTHODE : Inviter un membre (POST) ---
+  // Reste inchangée selon votre instruction
 
   /// Envoie une invitation à un membre via l'API: api/invitations
   Future<void> inviteFamilyMember({
