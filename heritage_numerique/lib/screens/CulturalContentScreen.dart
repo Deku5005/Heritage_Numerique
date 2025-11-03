@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-
-// ⚠️ VÉRIFIEZ ET AJUSTEZ CES CHEMINS SI NÉCESSAIRE
 import 'package:heritage_numerique/model/Recits_model.dart';
 import '../service/RecitService.dart';
 import 'AppDrawer.dart';
@@ -16,12 +14,10 @@ const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
 const Color _tagRecitColor = Color(0xFFC0A272);
-// ... Les autres couleurs (Artisanat, Proverbe) si elles sont utilisées
 
 // --- CulturalContentScreen : Widget d'État ---
 class CulturalContentScreen extends StatefulWidget {
   final int? familyId;
-
   const CulturalContentScreen({super.key, required this.familyId});
 
   @override
@@ -46,7 +42,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
   }
 
   Future<void> _refreshRecits() async {
-    if(mounted) {
+    if (mounted) {
       setState(() {
         _recitsFuture = _fetchRecits();
       });
@@ -63,17 +59,19 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
         color: _mainAccentColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            bottom: 20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Builder(
-                  builder: (BuildContext innerContext) {
-                    return _buildCustomHeader(innerContext);
-                  }
+                builder: (BuildContext innerContext) {
+                  return _buildCustomHeader(innerContext);
+                },
               ),
               const SizedBox(height: 20),
-
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -90,19 +88,13 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
                     const SizedBox(height: 5),
                     const Text(
                       'Récits, musiques, artisanat et proverbes de votre famille',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     const SizedBox(height: 20),
-
                     _buildSearchBar(),
                     const SizedBox(height: 15),
-
                     _buildActionButtons(context),
                     const SizedBox(height: 20),
-
                     _buildRecitsFutureBuilder(),
                   ],
                 ),
@@ -114,17 +106,18 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
     );
   }
 
-  // --- Méthodes de Construction (inchangées) ---
-
+  // --- Méthodes de Construction ---
   Widget _buildRecitsFutureBuilder() {
     return FutureBuilder<List<Recit>>(
       future: _recitsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: Padding(
-            padding: EdgeInsets.only(top: 50.0),
-            child: CircularProgressIndicator(color: _mainAccentColor),
-          ));
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 50.0),
+              child: CircularProgressIndicator(color: _mainAccentColor),
+            ),
+          );
         } else if (snapshot.hasError) {
           return Center(
             child: Padding(
@@ -182,9 +175,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
     const String typeLabel = "Récit / Conte";
 
     return InkWell(
-      onTap: () {
-        _showRecitDetailsBottomSheet(context, recit);
-      },
+      onTap: () => _showRecitDetailsBottomSheet(context, recit),
       borderRadius: BorderRadius.circular(8),
       child: Container(
         decoration: BoxDecoration(
@@ -217,9 +208,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
                         : null,
                   ),
                   child: recit.urlPhoto.isEmpty
-                      ? Center(
-                    child: Icon(Icons.book, color: Colors.grey.shade500, size: 40),
-                  )
+                      ? Center(child: Icon(Icons.book, color: Colors.grey.shade500, size: 40))
                       : null,
                 ),
                 Positioned(
@@ -235,7 +224,9 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
                       typeLabel,
                       style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
-                  ),om),
+                  ),
+                ),
+                // Langue (à remplir dynamiquement plus tard)
                 const Positioned(
                   top: 8,
                   right: 8,
@@ -258,7 +249,11 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
                   children: [
                     Text(
                       recit.titre,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: _cardTextColor,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -302,7 +297,6 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
     );
   }
 
-
   Widget _buildCustomHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -311,17 +305,11 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.menu, color: _cardTextColor, size: 30),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
           const Text(
             'Héritage Numérique',
-            style: TextStyle(
-              color: _cardTextColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
+            style: TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold, fontSize: 20),
           ),
           const SizedBox(width: 48),
         ],
@@ -344,7 +332,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
           prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
           contentPadding: EdgeInsets.symmetric(vertical: 12),
         ),
-        style: const TextStyle(fontSize: 14),
+        style: TextStyle(fontSize: 14),
       ),
     );
   }
@@ -352,12 +340,8 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
   Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [
-        // Bouton Ajouter un contenu
         ElevatedButton.icon(
-          onPressed: () {
-            // Utilisation d'un type par défaut dans la modale, car le sélecteur a été retiré
-            _showContentCreationModal(context);
-          },
+          onPressed: () => _showContentCreationModal(context),
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: const Text('Ajouter un contenu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
@@ -368,7 +352,6 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
           ),
         ),
         const Spacer(),
-        // Bouton Tous types (Dropdown)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -402,45 +385,35 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
     );
   }
 
-
-  // --- Logique des Modales ---
-
   void _showRecitDetailsBottomSheet(BuildContext context, Recit recit) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext sheetContext) {
-        return RecitDetailScreen(recit: recit);
-      },
+      builder: (BuildContext sheetContext) => RecitDetailScreen(recit: recit),
     );
   }
 
-  // MODALE 2 : Formulaire de création de contenu
   void _showContentCreationModal(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          backgroundColor: _lightCardColor,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          titlePadding: EdgeInsets.zero,
-          contentPadding: EdgeInsets.zero,
-          content: _ContentCreationForm(
-            familyId: widget.familyId!,
-            onContentCreated: _refreshRecits,
-          ),
-        );
-      },
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: _lightCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        titlePadding: EdgeInsets.zero,
+        contentPadding: EdgeInsets.zero,
+        content: _ContentCreationForm(
+          familyId: widget.familyId!,
+          onContentCreated: _refreshRecits,
+        ),
+      ),
     );
   }
+}
 
-} // Fin de _CulturalContentScreenState
-
-// --------------------------------------------------------------------
-// --- WIDGET : _ContentCreationForm (Le formulaire d'ajout) ---
-// --------------------------------------------------------------------
-
+// =====================================================================
+// --- FORMULAIRE DE CRÉATION (100% synchronisé avec RecitService) ---
+// =====================================================================
 class _ContentCreationForm extends StatefulWidget {
   final int familyId;
   final VoidCallback onContentCreated;
@@ -455,28 +428,22 @@ class _ContentCreationForm extends StatefulWidget {
 }
 
 class _ContentCreationFormState extends State<_ContentCreationForm> {
-  // ⚠️ CATEGORIE FIXE : Utilisée par défaut pour la création de Conte/Récit.
   static const int DEFAULT_CATEGORY_ID = 1;
+  static const int MAX_PHOTO_SIZE_MB = 5;
+  static const int MAX_FILE_SIZE_MB = 50;
 
-  File? _selectedPhotoFile; // photoPath (pour 'photoConte')
-  File? _selectedContentFile; // fichierContePath (pour 'fichierConte')
-
+  File? _selectedPhotoFile;
+  File? _selectedContentFile;
   bool _isLoading = false;
   String? _errorMessage;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController(); // Correspond à texteConte
+  final TextEditingController _contentController = TextEditingController();
   final TextEditingController _lieuController = TextEditingController();
   final TextEditingController _regionController = TextEditingController();
 
   final RecitService _recitService = RecitService();
-
-  final List<String> _availableLangs = ['Français', 'Bambara', 'Anglais'];
-  String _selectedLanguageName = 'Français';
-
-  static const int MAX_PHOTO_SIZE_MB = 5;
-  static const int MAX_FILE_SIZE_MB = 50;
 
   @override
   void dispose() {
@@ -488,46 +455,31 @@ class _ContentCreationFormState extends State<_ContentCreationForm> {
     super.dispose();
   }
 
-  // --- Logique de sélection de fichiers ---
-
+  // --- Sélection de fichier ---
   Future<void> _pickFile({
     required String type,
     required List<String> allowedExtensions,
     required int maxSizeMB,
   }) async {
-    FilePickerResult? result;
     try {
-      result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: allowedExtensions,
         allowMultiple: false,
       );
-    } catch (e) {
-      setState(() { _errorMessage = 'Erreur lors de la sélection du fichier: $e'; });
-      return;
-    }
 
-    if (result != null) {
-      final PlatformFile platformFile = result.files.first;
-      final String? filePath = platformFile.path;
-
-      if (filePath != null) {
-        final File file = File(filePath);
-        final int fileSizeMB = file.lengthSync() ~/ (1024 * 1024);
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final fileSizeMB = file.lengthSync() ~/ (1024 * 1024);
 
         if (fileSizeMB > maxSizeMB) {
           setState(() {
-            _errorMessage = 'Le fichier dépasse la taille maximale de $maxSizeMB Mo. Taille actuelle : ${fileSizeMB} Mo.';
-            if (type == 'photo') {
-              _selectedPhotoFile = null;
-            } else {
-              _selectedContentFile = null;
-            }
+            _errorMessage = 'Fichier trop volumineux: ${fileSizeMB} Mo > $maxSizeMB Mo';
+            if (type == 'photo') _selectedPhotoFile = null;
+            else _selectedContentFile = null;
           });
           return;
         }
-
-        print("Fichier choisi ($type): $filePath");
 
         setState(() {
           _errorMessage = null;
@@ -538,30 +490,26 @@ class _ContentCreationFormState extends State<_ContentCreationForm> {
           }
         });
       }
+    } catch (e) {
+      setState(() => _errorMessage = 'Erreur de sélection: $e');
     }
   }
 
-
-  // --- Logique de soumission ---
-
+  // --- Soumission ---
   Future<void> _submitConte() async {
-    // 1. Validation minimale
-    if (_titleController.text.isEmpty) {
-      setState(() { _errorMessage = 'Veuillez remplir le **Titre** du contenu.'; });
+    if (_titleController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Le titre est obligatoire.');
       return;
     }
 
-    // 2. Validation du contenu: doit avoir du texte OU un fichier.
-    if (_contentController.text.isEmpty && _selectedContentFile == null) {
-      setState(() { _errorMessage = 'Veuillez soit écrire le texte du conte, soit joindre un fichier de conte (texte, pdf, audio).'; });
+    if (_contentController.text.trim().isEmpty && _selectedContentFile == null) {
+      setState(() => _errorMessage = 'Veuillez écrire le texte OU joindre un fichier.');
       return;
     }
 
-    // N'envoie texteConte QUE s'il est rempli ET si aucun fichier de contenu n'est joint (pour éviter les conflits)
-    String? texteConteValue = _contentController.text.trim().isNotEmpty && _selectedContentFile == null
+    final texteConte = _contentController.text.trim().isNotEmpty && _selectedContentFile == null
         ? _contentController.text.trim()
         : null;
-
 
     setState(() {
       _isLoading = true;
@@ -569,312 +517,149 @@ class _ContentCreationFormState extends State<_ContentCreationForm> {
     });
 
     try {
-      // 3. Appel du service (avec les deux chemins de fichiers potentiels)
       await _recitService.createConte(
         idFamille: widget.familyId,
         idCategorie: DEFAULT_CATEGORY_ID,
         titre: _titleController.text.trim(),
         description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
-        texteConte: texteConteValue,
-        photoPath: _selectedPhotoFile?.path, // Chemin pour photoConte
-        fichierContePath: _selectedContentFile?.path, // Chemin pour fichierConte
+        texteConte: texteConte,
+        photoPath: _selectedPhotoFile?.path,
+        fichierContePath: _selectedContentFile?.path,
         lieu: _lieuController.text.trim().isNotEmpty ? _lieuController.text.trim() : null,
         region: _regionController.text.trim().isNotEmpty ? _regionController.text.trim() : null,
       );
 
-      // 4. Succès
-      if(mounted) {
+      if (mounted) {
         Navigator.of(context).pop();
         widget.onContentCreated();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Contenu créé avec succès !'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Conte créé avec succès !'), backgroundColor: Colors.green),
         );
       }
-
     } catch (e) {
-      // 5. Échec: Afficher l'erreur
-      print('Erreur de soumission du conte: $e');
-      if(mounted) {
-        setState(() {
-          // Affiche le message d'erreur brut du serveur (très utile pour l'upload !)
-          _errorMessage = e.toString().replaceFirst('Exception: ', 'Erreur du Serveur: ');
-        });
-      }
+      setState(() => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      // 6. Arrêter le chargement
-      if(mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-
-
-  // --- Construction du Widget ---
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Titre de la modale
-            const Text(
-              'Ajouter un Récit/Conte',
-              style: TextStyle(
-                color: _cardTextColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const Divider(height: 20),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Ajouter un Récit/Conte',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
+            textAlign: TextAlign.center,
+          ),
+          const Divider(height: 30),
 
-            // Champ Titre
-            _buildTextField(
-              controller: _titleController,
-              label: 'Titre du Conte *',
-              hint: 'Ex: Le mythe du baobab',
-            ),
+          _buildTextField(_titleController, 'Titre *', 'Ex: Le lièvre et la tortue'),
+          _buildTextField(_descriptionController, 'Description (optionnel)', 'Résumé court...', maxLines: 2),
+          _buildTextField(_lieuController, 'Lieu (optionnel)', 'Ex: Village de Siby'),
+          _buildTextField(_regionController, 'Région (optionnel)', 'Ex: Koulikoro'),
 
-            // Champ Description
-            _buildTextField(
-              controller: _descriptionController,
-              label: 'Courte Description (Optionnel)',
-              hint: 'Une phrase résumant le conte...',
-              maxLines: 2,
-            ),
+          const SizedBox(height: 15),
+          const Text('Photo (max 5 Mo)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          _buildFilePicker(
+            'photo',
+            ['jpg', 'jpeg', 'png'],
+            MAX_PHOTO_SIZE_MB,
+            _selectedPhotoFile,
+            Icons.image,
+          ),
 
-            // Champ Lieu
-            _buildTextField(
-              controller: _lieuController,
-              label: 'Lieu de Provenance (Optionnel)',
-              hint: 'Ex: Village de Fana',
-            ),
+          const SizedBox(height: 15),
+          const Text('Texte du conte (ou fichier)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          _buildTextField(_contentController, 'Écrivez ici (si pas de fichier)', '', maxLines: 6),
 
-            // Champ Région
-            _buildTextField(
-              controller: _regionController,
-              label: 'Région (Optionnel)',
-              hint: 'Ex: Koulikoro',
-            ),
+          const SizedBox(height: 10),
+          const Text('OU joindre un fichier (PDF, audio, max 50 Mo)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          _buildFilePicker(
+            'fichier',
+            ['txt', 'pdf', 'mp3', 'm4a', 'wav'],
+            MAX_FILE_SIZE_MB,
+            _selectedContentFile,
+            Icons.attach_file,
+          ),
 
-            // Sélecteur de Langue (Mocké)
-            _buildDropdownField(
-              label: 'Langue Principale * (Mocké)',
-              value: _selectedLanguageName,
-              items: _availableLangs,
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() { _selectedLanguageName = newValue; });
-                }
-              },
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(_errorMessage!, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
             ),
 
-            // --- Section Fichier Photo (photoConte) ---
-            const SizedBox(height: 15),
-            const Text('Photo d\'Illustration (Champ: photoConte)', style: TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold)),
-            _buildFilePickerButton(
-              label: 'Choisir Photo (Max ${MAX_PHOTO_SIZE_MB} Mo)',
-              icon: Icons.image,
-              file: _selectedPhotoFile,
-              onPressed: () => _pickFile(
-                type: 'photo',
-                allowedExtensions: ['jpg', 'jpeg', 'png'],
-                maxSizeMB: MAX_PHOTO_SIZE_MB,
-              ),
-              onClear: () => setState(() { _selectedPhotoFile = null; }),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _submitConte,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _buttonColor,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
+            child: _isLoading
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Créer le Conte', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
 
-            // --- Section Texte du Contenu (texteConte) ---
-            _buildTextField(
-              controller: _contentController,
-              label: 'Texte du Conte (si pas de fichier joint)',
-              hint: 'Écrivez votre récit...',
-              maxLines: 5,
-            ),
-
-            // --- Section Fichier de Contenu (fichierConte) ---
-            const SizedBox(height: 15),
-            const Text(
-              'Fichier du Conte (Audio/Texte, Champ: fichierConte)',
-              style: TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold),
-            ),
-            _buildFilePickerButton(
-              label: 'Choisir Fichier Audio/Texte (Max ${MAX_FILE_SIZE_MB} Mo)',
-              icon: Icons.attach_file,
-              file: _selectedContentFile,
-              onPressed: () => _pickFile(
-                type: 'contenu',
-                allowedExtensions: ['txt', 'pdf', 'mp3', 'm4a', 'wav'],
-                maxSizeMB: MAX_FILE_SIZE_MB,
-              ),
-              onClear: () => setState(() { _selectedContentFile = null; }),
-            ),
-
-            // Message d'erreur
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Color(0xFFC70039), fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-            const SizedBox(height: 20),
-
-            // Bouton de Soumission
-            ElevatedButton(
-              onPressed: _isLoading ? null : _submitConte,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _buttonColor,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-              )
-                  : const Text(
-                'Créer le Contenu',
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Bouton Annuler
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler', style: TextStyle(color: _cardTextColor)),
-            ),
-          ],
-        ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler', style: TextStyle(color: _cardTextColor))),
+        ],
       ),
     );
   }
 
-  // --- Widgets de formulaire réutilisables ---
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    int maxLines = 1,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 15.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
           const SizedBox(height: 5),
           TextField(
             controller: controller,
             maxLines: maxLines,
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-              fillColor: Colors.white,
               filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.all(12),
             ),
-            style: const TextStyle(fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
+  Widget _buildFilePicker(String type, List<String> exts, int maxMB, File? file, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(top: 15.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: value,
-                icon: const Icon(Icons.keyboard_arrow_down, color: _mainAccentColor),
-                style: const TextStyle(color: _cardTextColor, fontSize: 14),
-                dropdownColor: Colors.white,
-                items: items.map<DropdownMenuItem<String>>((String item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
-                    child: Text(item),
-                  );
-                }).toList(),
-                onChanged: onChanged,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilePickerButton({
-    required String label,
-    required IconData icon,
-    required File? file,
-    required VoidCallback onPressed,
-    required VoidCallback onClear,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5.0),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: onPressed,
+              onPressed: () => _pickFile(type: type, allowedExtensions: exts, maxSizeMB: maxMB),
               icon: Icon(icon, color: Colors.white),
               label: Text(
-                file != null ? file.path.split('/').last : label,
+                file?.path.split('/').last ?? 'Choisir fichier',
                 style: const TextStyle(color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: file != null ? Colors.green.shade600 : _mainAccentColor,
-                elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
           ),
           if (file != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: onClear,
-              ),
+            IconButton(
+              icon: const Icon(Icons.clear, color: Colors.red),
+              onPressed: () => setState(() => type == 'photo' ? _selectedPhotoFile = null : _selectedContentFile = null),
             ),
         ],
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/ArtisanatLabApp.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
 import 'HomeDashboardScreen.dart';
@@ -152,6 +153,7 @@ class AppDrawer extends StatelessWidget {
                 // 4. Artisanat/ Photos
                 _buildDrawerItem(Icons.construction_outlined, 'Artisanat/ Photos', onTap: () {
                   // Action non définie
+                  _navigateToReplace(context, ArtisanatLabApp(familyId: safeFamilyId));
                 }),
 
                 // 5. Arbre Généalogique (FamilyTreeScreen)
