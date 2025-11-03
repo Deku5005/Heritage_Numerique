@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:heritage_numerique/screens/AppDrawer.dart';
 
+// Importations de vos fichiers locaux :
+import 'package:heritage_numerique/screens/AppDrawer.dart';
+import 'package:heritage_numerique/service/ArtisanatService.dart';
+import 'package:heritage_numerique/model/ArtisanatModel.dart';
+
+// 💡 Importation de la nouvelle page de détails
+import 'package:heritage_numerique/screens/ArtisanatDetailsPage.dart';
 
 
 // --- Constantes de Couleurs Globales (tirées de CulturalContentScreen) ---
@@ -18,20 +24,15 @@ const Color _tagArtisanatColor = Color(0xFFC0A272); // Couleur pour les tags
 // CLASSE WRAPPER : ArtisanatLabApp (Point d'entrée de navigation)
 // ----------------------------------------------
 class ArtisanatLabApp extends StatelessWidget {
-  // L'ID est OBLIGATOIRE et transmis depuis le Drawer
   final int familyId;
 
   const ArtisanatLabApp({super.key, required this.familyId});
 
   @override
   Widget build(BuildContext context) {
-    // Dans une application complète, ceci devrait probablement être dans le main.dart
-    // ou géré par un widget parent, mais nous le gardons ici pour que la navigation
-    // depuis AppDrawer fonctionne si ArtisanatLabApp est un écran complet.
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Artisanat Lab',
-      // ... Thème ...
       home: ArtisanatLabPage(familyId: familyId),
     );
   }
@@ -50,13 +51,38 @@ class ArtisanatLabPage extends StatefulWidget {
 }
 
 class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
-  // Simuler la fonction de rafraîchissement
+  // 1. Initialisation du service et du Future
+  final ArtisanatService _artisanatService = ArtisanatService();
+  late Future<List<Artisanat>> _artisanatFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Charger les données au démarrage
+    _artisanatFuture = _fetchArtisanat();
+  }
+
+  // 3. Méthode de récupération des données
+  Future<List<Artisanat>> _fetchArtisanat() async {
+    try {
+      // NOTE: Le token d'auth est géré à l'intérieur du service via AuthService
+      return await _artisanatService.fetchArtisanatByFamilleId(
+        familleId: widget.familyId,
+      );
+    } catch (e) {
+      // Gérer l'erreur de chargement ici (ex: afficher un message)
+      print("Erreur de chargement des contenus Artisanat: $e");
+      // Renvoie une liste vide pour éviter le crash
+      return [];
+    }
+  }
+
+  // 4. Fonction de rafraîchissement
   Future<void> _refreshContent() async {
     if (mounted) {
-      // 💡 Logique réelle : Recharger la liste des contenus Artisanat
-      await Future.delayed(const Duration(milliseconds: 500));
-      // setState(() { _artisanatFuture = _fetchArtisanat(); });
-      print("Contenus rafraîchis pour la famille ID: ${widget.familyId}");
+      setState(() {
+        _artisanatFuture = _fetchArtisanat();
+      });
     }
   }
 
@@ -80,7 +106,6 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
   // --- Méthodes de construction de l'UI ---
 
   Widget _buildCustomHeader(BuildContext context) {
-    // Builder nécessaire pour accéder au Scaffold.of(context) pour openDrawer()
     return Builder(
         builder: (BuildContext innerContext) {
           return Padding(
@@ -127,13 +152,12 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
   Widget _buildActionButtons(BuildContext context) {
     return Row(
       children: [
-        // 💡 Bouton "Créer contenu"
         ElevatedButton.icon(
           onPressed: () => _showContentCreationModal(context),
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: const Text('Créer contenu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _buttonColor, // Utilisation de la couleur définie
+            backgroundColor: _buttonColor,
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             elevation: 0,
@@ -168,12 +192,31 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
     );
   }
 
+  Widget _buildArtisanatGrid(List<Artisanat> artisanats) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10.0,
+        mainAxisSpacing: 10.0,
+        // Ajustement du ratio pour laisser plus de place en hauteur (réduit le dépassement)
+        childAspectRatio: 0.75,
+      ),
+      itemCount: artisanats.length,
+      itemBuilder: (context, index) {
+        return ContentContainer(
+          artisanat: artisanats[index],
+        );
+      },
+    );
+  }
+
   // --- Méthode Build Principale ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      // 💡 Transmission de l'ID dynamique au Drawer
       drawer: AppDrawer(familyId: widget.familyId),
       body: RefreshIndicator(
         onRefresh: _refreshContent,
@@ -196,24 +239,30 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
                   children: [
                     _buildSearchBar(),
                     const SizedBox(height: 15),
-                    _buildActionButtons(context), // 💡 Le nouveau bouton est ici
+                    _buildActionButtons(context),
                     const SizedBox(height: 20),
 
-                    // Grille des Contenus (Simulée)
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 10.0,
-                        mainAxisSpacing: 10.0,
-                        childAspectRatio: 0.7,
-                      ),
-                      itemCount: 4,
-                      itemBuilder: (context, index) {
-                        return ContentContainer(
-                          tag: (index % 2 == 0) ? 'Bogolan' : 'Poterie',
-                        );
+                    // Utilisation de FutureBuilder pour gérer l'état de chargement
+                    FutureBuilder<List<Artisanat>>(
+                      future: _artisanatFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
+                        } else if (snapshot.hasError) {
+                          return Center(
+                            child: Text('Erreur de chargement: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                          );
+                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(30.0),
+                              child: Text('Aucun contenu Artisanat trouvé pour cette famille.', style: TextStyle(color: _cardTextColor)),
+                            ),
+                          );
+                        } else {
+                          // Afficher la grille avec les données
+                          return _buildArtisanatGrid(snapshot.data!);
+                        }
                       },
                     ),
                   ],
@@ -227,9 +276,9 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
   }
 }
 
-// ----------------------------------------------
+// ---
 // FORMULAIRE DE CRÉATION DE CONTENU D'ARTISANAT
-// ----------------------------------------------
+// ---
 class _ArtisanatCreationForm extends StatefulWidget {
   final int familyId;
   final VoidCallback onContentCreated;
@@ -251,6 +300,11 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
   File? _selectedContentFile;
   bool _isLoading = false;
   String? _errorMessage;
+
+  final ArtisanatService _artisanatService = ArtisanatService();
+
+  // Catégorie 2 par défaut comme demandé
+  final int _defaultIdCategorie = 2;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -308,10 +362,10 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
     }
   }
 
-  // --- Logique de Soumission (Simulée) ---
+  // --- Logique de Soumission (Intégration du service) ---
   Future<void> _submitArtisanat() async {
-    if (_titleController.text.trim().isEmpty) {
-      setState(() => _errorMessage = 'Le titre est obligatoire.');
+    if (_titleController.text.trim().isEmpty || _descriptionController.text.trim().isEmpty) {
+      setState(() => _errorMessage = 'Le titre et la description sont obligatoires.');
       return;
     }
 
@@ -321,9 +375,16 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
     });
 
     try {
-      // 💡 LOGIQUE D'APPEL DE VOTRE SERVICE ARTISANAT ICI
-      print("Soumission de contenu pour famille ID: ${widget.familyId}");
-      await Future.delayed(const Duration(seconds: 2)); // Simulation de l'appel API
+      await _artisanatService.createArtisanat(
+        idFamille: widget.familyId,
+        idCategorie: _defaultIdCategorie,
+        titre: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        photoPath: _selectedPhotoFile?.path,
+        videoPath: _selectedContentFile?.path,
+        lieu: _lieuController.text.trim().isNotEmpty ? _lieuController.text.trim() : null,
+        region: _regionController.text.trim().isNotEmpty ? _regionController.text.trim() : null,
+      );
 
       if (mounted) {
         Navigator.of(context).pop();
@@ -333,20 +394,21 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
         );
       }
     } catch (e) {
-      setState(() => _errorMessage = e.toString().replaceFirst('Exception: ', ''));
+      // Afficher l'erreur du service API
+      setState(() => _errorMessage = 'Échec de la création: ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   // --- Widgets Utilitaires pour le Formulaire ---
-  Widget _buildTextField(TextEditingController controller, String label, String hint, {int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {int maxLines = 1, bool isRequired = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          Text('$label ${isRequired ? '*' : ''}', style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
           const SizedBox(height: 5),
           TextField(
             controller: controller,
@@ -374,7 +436,7 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
               onPressed: () => _pickFile(type: type, allowedExtensions: exts, maxSizeMB: maxMB),
               icon: Icon(icon, color: Colors.white),
               label: Text(
-                file?.path.split('/').last ?? 'Choisir fichier',
+                file?.path.split('/').last ?? (type == 'photo' ? 'Choisir Photo' : 'Choisir Vidéo/Doc'),
                 style: const TextStyle(color: Colors.white),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -409,11 +471,11 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
           ),
           const Divider(height: 30),
 
-          _buildTextField(_titleController, 'Nom de l\'Artisanat *', 'Ex: Bogolan Traditionnel'),
-          _buildTextField(_descriptionController, 'Description courte (optionnel)', 'Résumé du produit/technique...', maxLines: 2),
+          _buildTextField(_titleController, 'Nom de l\'Artisanat', 'Ex: Bogolan Traditionnel', isRequired: true),
+          _buildTextField(_descriptionController, 'Description courte', 'Résumé du produit/technique...', maxLines: 2, isRequired: true),
           _buildTextField(_contentController, 'Étapes de Fabrication / Détails', 'Détails des étapes de conception...', maxLines: 6),
-          _buildTextField(_lieuController, 'Lieu de création (optionnel)', 'Ex: Village de Ségou'),
-          _buildTextField(_regionController, 'Région (optionnel)', 'Ex: Mopti'),
+          _buildTextField(_lieuController, 'Lieu de création', 'Ex: Village de Ségou'),
+          _buildTextField(_regionController, 'Région', 'Ex: Mopti'),
 
           const SizedBox(height: 15),
           const Text('Photo Principale (max 5 Mo)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
@@ -426,13 +488,13 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
           ),
 
           const SizedBox(height: 15),
-          const Text('Joindre Document ou Vidéo (max 50 Mo)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          const Text('Joindre Vidéo (max 50 Mo)', style: TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
           _buildFilePicker(
             'fichier',
-            ['pdf', 'mp4', 'mov', 'wav', 'mp3'],
+            ['mp4', 'mov'],
             MAX_FILE_SIZE_MB,
             _selectedContentFile,
-            Icons.attach_file,
+            Icons.videocam,
           ),
 
           if (_errorMessage != null)
@@ -461,129 +523,171 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
   }
 }
 
-// ----------------------------------------------
-// WIDGET : ContentContainer (Carte d'artisanat - Inchangé)
-// ----------------------------------------------
-// Nécessaire pour que le GridView.builder dans ArtisanatLabPage fonctionne.
+// ---
+// WIDGET : ContentContainer (Carte d'artisanat DYNAMIQUE - CLICQUABLE)
+// ---
 class ContentContainer extends StatelessWidget {
-  final String tag;
-  const ContentContainer({required this.tag, super.key});
+  final Artisanat artisanat;
+  const ContentContainer({required this.artisanat, super.key});
 
   Widget _buildInfoCard(IconData icon, String text, [Color? color]) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(4.0),
-        border: Border.all(color: Colors.grey.shade300, width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 12, color: color ?? Colors.blue),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(fontSize: 10, color: Colors.grey[800]),
-          ),
-        ],
+    return Flexible( // Utilisation de Flexible pour éviter le dépassement horizontal
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+        margin: const EdgeInsets.only(right: 4.0), // Marge entre les cards
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4.0),
+          border: Border.all(color: Colors.grey.shade300, width: 0.8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 10, color: color ?? Colors.blue), // Icône plus petite
+            const SizedBox(width: 2),
+            Flexible( // Flexible pour le texte
+              child: Text(
+                text,
+                style: TextStyle(fontSize: 9, color: Colors.grey[800]), // Texte plus petit
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 2,
-            offset: const Offset(0, 1),
+    // URL de l'image (prend la première photo ou utilise un placeholder)
+    final String imageUrl = (artisanat.urlPhotos.isNotEmpty)
+        ? artisanat.urlPhotos.first
+        : 'assets/images/Tapis.png';
+
+    final String auteurInitiales = (artisanat.prenomAuteur.isNotEmpty && artisanat.nomAuteur.isNotEmpty)
+        ? '${artisanat.prenomAuteur[0]}${artisanat.nomAuteur[0]}'
+        : '??';
+
+    final String auteurNomComplet = '${artisanat.prenomAuteur} ${artisanat.nomAuteur}';
+
+    // Pour la date
+    final dateDifference = DateTime.now().difference(artisanat.dateCreation);
+    String dateDisplay;
+    if (dateDifference.inHours < 24) {
+      dateDisplay = 'il y a ${dateDifference.inHours} h';
+    } else {
+      dateDisplay = 'il y a ${dateDifference.inDays} j';
+    }
+
+    return GestureDetector( // 💡 Rendre la carte cliquable
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ArtisanatDetailPage(artisanat: artisanat),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Photo
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.asset(
-                'assets/images/artisanat.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey.shade300,
-                  alignment: Alignment.center,
-                  child: const Text('Image manquante', style: TextStyle(fontSize: 10)),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Photo
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey.shade300,
+                    alignment: Alignment.center,
+                    child: Image.asset('assets/images/Tapis.png', fit: BoxFit.cover),
+                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(color: Colors.grey.shade200);
+                  },
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // Ligne des deux petits cards blancs
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    _buildInfoCard(Icons.book, 'Artisanat/photos', Colors.blue),
-                    _buildInfoCard(Icons.circle, tag, Colors.transparent),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Titre
-                const Text(
-                  'Artisanat Bogolan familial',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Ligne des deux petits cards blancs
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      _buildInfoCard(Icons.palette, 'Artisanat', Colors.blue),
+                      _buildInfoCard(Icons.place, artisanat.region ?? 'Inconnu', Colors.grey),
+                    ],
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // Auteur et date
-                Row(
-                  children: <Widget>[
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: Colors.blue,
-                        shape: BoxShape.circle,
+                  // Titre
+                  Text(
+                    artisanat.titre,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Auteur et date
+                  Row(
+                    children: <Widget>[
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: const BoxDecoration(
+                          color: _buttonColor,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          auteurInitiales,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'OD',
-                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          auteurNomComplet,
+                          style: const TextStyle(fontSize: 10, color: Colors.black),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Oumou Diakité',
-                      style: TextStyle(fontSize: 11, color: Colors.black),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'il y a 2 heures',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      Text(
+                        dateDisplay,
+                        style: const TextStyle(fontSize: 9, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

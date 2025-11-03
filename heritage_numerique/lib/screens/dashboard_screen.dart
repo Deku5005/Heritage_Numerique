@@ -798,7 +798,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         shape: BoxShape.circle,
         border: Border.all(color: _mainAccentColor, width: 2),
         image: const DecorationImage(
-          image: AssetImage('assets/images/logo_dabo.png'),
+          image: AssetImage('assets/images/Acceuil1.png'),
           fit: BoxFit.cover,
         ),
       ),

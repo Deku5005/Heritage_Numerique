@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/ArtisanatLabApp.dart';
+import 'package:heritage_numerique/screens/Proverbes.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
 import 'HomeDashboardScreen.dart';
@@ -9,7 +10,7 @@ import 'CreateTreeScreen.dart';
 import 'ContributionsScreen.dart'; // NÉCESSITE familyId maintenant
 import 'SettingsScreen.dart';
 import 'CulturalContentScreen.dart';
-import 'MusicDashScreen.dart';
+import 'DevinettesDashScreen.dart';
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -164,13 +165,14 @@ class AppDrawer extends StatelessWidget {
 
                 // 6. Proverbes
                 _buildDrawerItem(Icons.chat_bubble_outline, 'Proverbes', onTap: () {
+                  _navigateToReplace(context, Proverbes(familyId: safeFamilyId));
                   // Action non définie
                 }),
 
                 // 7. Musiques et Chants
-                _buildDrawerItem(Icons.music_note_outlined, 'Musiques et Chants', onTap: () {
+                _buildDrawerItem(Icons.music_note_outlined, 'Devinettes', onTap: () {
                   // 💡 CORRECTION : Ajout de familyId et retrait de 'const'
-                  _navigateToReplace(context, MusicDashScreen(familyId: safeFamilyId));
+                  _navigateToReplace(context, DevinettesDashScreen(familyId: safeFamilyId));
                 }),
 
                 // 8. Contributions (ContributionsScreen)
