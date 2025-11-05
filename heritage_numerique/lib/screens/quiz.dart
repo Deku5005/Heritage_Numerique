@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-// Assurez-vous que le chemin d'importation de votre AppDrawer est correct
+import 'package:heritage_numerique/screens/quizQuestion.dart';
+import 'package:heritage_numerique/screens/quizScreen.dart'; // NOUVEL IMPORT
 import 'AppDrawer.dart';
 
 // Définition du modèle de données pour une tuile de quiz
@@ -46,13 +46,13 @@ class QuizScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         titleSpacing: 0,
 
-        // CORRECTION MAJEURE: Utilisation de 'leading' avec un Builder pour ouvrir le Drawer
+        // CORRECTION DRAWER: Utilisation de 'leading' avec un Builder pour obtenir le bon context
         leading: Builder(
           builder: (BuildContext innerContext) {
             return IconButton(
               icon: const Icon(Icons.menu, color: Colors.black),
               onPressed: () {
-                // Utilise l'innerContext qui est enfant du Scaffold pour ouvrir le Drawer
+                // Ouvre le tiroir
                 Scaffold.of(innerContext).openDrawer();
               },
             );
@@ -64,11 +64,10 @@ class QuizScreen extends StatelessWidget {
           child: Row(
             children: [
               // Titre
-              Expanded(
+              const Expanded(
                 child: Text(
                   'Héritage Numérique',
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 24,
                     color: Colors.black,
@@ -101,7 +100,7 @@ class QuizScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // --- Carte d'information/promotion (Image de fond) ---
+            // --- Carte d'information/promotion (Image de fond) et Bouton ---
             _buildHeaderCard(context),
 
             const SizedBox(height: 20),
@@ -112,9 +111,8 @@ class QuizScreen extends StatelessWidget {
               child: Text(
                 'Quiz pour les contes',
                 style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
                   color: Colors.black,
                 ),
               ),
@@ -126,7 +124,8 @@ class QuizScreen extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: quizList.length,
               itemBuilder: (context, index) {
-                return _buildQuizTile(quizList[index]);
+                // Le context utilisé ici est le bon pour la navigation
+                return _buildQuizTile(context, quizList[index]);
               },
             ),
             const SizedBox(height: 20),
@@ -140,69 +139,115 @@ class QuizScreen extends StatelessWidget {
 // WIDGETS DE CONSTRUCTION
 // ===============================================
 
-  // Widget pour la carte orange en haut (Image Seule en fond)
+  // Widget pour (Image Seule en fond) - MODIFIÉ pour inclure le bouton
   Widget _buildHeaderCard(BuildContext context) {
     const Color cardColor = Color(0xFFE9A000);
+    const Color buttonColor = Color(0xFFFFCC33); // Couleur jaune-orange du bouton
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Container(
-        height: 140,
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            // 1. Image de fond (CORRIGÉE : Utilisation de Opacity)
-            Opacity(
-              opacity: 0.8, // Opacité appliquée via le widget Opacity
-              child: Image.asset(
-                'assets/images/mali.jpg',
-                fit: BoxFit.cover,
-              ),
+      padding: const EdgeInsets.all(16.0), // Le padding est appliqué au Stack entier
+      child: Stack(
+        alignment: Alignment.topRight, // Aligne le bouton en haut à droite
+        children: [
+          // 1. Carte de fond (maintenant directement à l'intérieur du Stack)
+          Container(
+            height: 140,
+            width: double.infinity, // S'assure qu'il prend toute la largeur disponible
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(10),
             ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                // Image de fond
+                Opacity(
+                  opacity: 0.8,
+                  child: Image.asset(
+                    'assets/images/mali.png', // Assurez-vous que ce chemin est valide
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(color: cardColor, alignment: Alignment.center, child: const Text("Image du Mali (Placeholder)", style: TextStyle(color: Colors.white70)));
+                    },
+                  ),
+                ),
 
-            // 2. Contenu du Texte
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Tester vos connaissance en culture malienne',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                // Contenu du Texte
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Développer votre culture',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Inter',
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Tester vos connaissance en culture malienne',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Développer votre culture',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Inter',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Bouton "Créer un quiz"
+          // Utilisation de Positioned pour un contrôle précis
+          Positioned(
+            top: 10.0,
+            right: 10.0,
+            child: ElevatedButton(
+              onPressed: () {
+                // Logique de navigation vers AddQuizScreen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AddQuizScreen(),
                   ),
-                ],
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor, // Couleur jaune
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 4,
+              ),
+              child: const Text(
+                'Créer un quiz',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black, // Texte noir sur fond jaune
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Widget pour une seule tuile de quiz
-  Widget _buildQuizTile(QuizTileData data) {
-    const Color primaryColor = Color(0xFFE9A000);
+  // Widget pour une seule tuile de quiz (MODIFIÉ pour la navigation)
+  Widget _buildQuizTile(BuildContext context, QuizTileData data) {
+    const Color primaryColor = Color(0xFFBB8F40);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -239,16 +284,24 @@ class QuizScreen extends StatelessWidget {
             ),
           ),
           subtitle: Text(
-            '${data.totalQuestions} Question',
+            '${data.totalQuestions} Questions',
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: Colors.grey,
             ),
           ),
           // Score / Cercle de progression
           trailing: _buildScoreCircle(data.currentScore, data.totalQuestions, primaryColor),
+
+          // ACTION : Navigation vers QuestionScreen
           onTap: () {
-            // Action
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                // Lance l'écran de question
+                builder: (context) => const QuestionScreen(),
+              ),
+            );
           },
         ),
       ),
