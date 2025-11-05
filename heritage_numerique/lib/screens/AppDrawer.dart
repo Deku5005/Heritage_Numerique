@@ -193,6 +193,11 @@ class AppDrawer extends StatelessWidget {
                   _navigateToReplace(context, QuizScreen(familyId: safeFamilyId));
                 }),
 
+                _buildDrawerItem(Icons.quiz_outlined, 'QuizCreation', onTap: () {
+                  // 💡 Retrait de 'const'
+                  _navigateToReplace(context, QuizScreen(familyId: safeFamilyId));
+                }),
+
                 // 11. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
                   // 💡 Retrait de 'const'
