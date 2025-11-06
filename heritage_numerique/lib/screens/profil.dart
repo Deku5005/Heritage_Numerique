@@ -1,22 +1,27 @@
+// Profil.dart (Mis à jour)
+
 import 'package:flutter/material.dart';
 import 'AppDrawer.dart'; // NÉCESSAIRE pour pouvoir utiliser AppDrawer
-import 'Profil.dart';
+// import 'Profil.dart'; // Supprimer cet import si vous êtes dans Profil.dart
 import 'editProfil.dart'; // NOUVEAU : Import pour la navigation
 
 // --- Constantes de Style ---
 const Color _primaryColor = Color(0xFF714D1D); // Brun foncé pour l'avatar et le bouton
 const Color _primaryTextColor = Color(0xFF000000);
 const Color _secondaryTextColor = Color(0xFF99928F); // Gris pour les emails/valeurs
-// const Color _dividerColor = Color(0xFFE0E0E0); // Non utilisé après la suppression du tiret
 
-// Constantes pour les données du profil
+// Constantes pour les données du profil (à remplacer par des données réelles)
 const String _userName = 'Niakalé Diakité';
 const String _userEmail = 'niakale@gmail.com';
 const String _userFirstName = 'Niakalé';
 const String _userPhone = '+223 77777777';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  // 💡 NOUVEAU : Ajout du champ familyId
+  final int? familyId;
+
+  const ProfilePage({super.key, required this.familyId});
+
 
   // Widget pour une ligne de détail du profil (Icône + Titre + Valeur)
   Widget _buildProfileDetail({
@@ -83,11 +88,15 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 💡 Récupération sécurisée du familyId pour le Drawer
+    final int safeFamilyId = familyId ?? 0;
+
     return Scaffold(
       backgroundColor: Colors.white,
 
       // 1. AJOUT DU DRAWER AU SCAFFOLD
-      drawer: const AppDrawer(), // Ajouté pour permettre l'ouverture du tiroir
+      // 💡 Le Drawer doit recevoir familyId
+      drawer: AppDrawer(familyId: safeFamilyId), // Ajouté pour permettre l'ouverture du tiroir
 
       // App Bar (Utilise la structure de ProverbeCollectionScreen)
       appBar: AppBar(

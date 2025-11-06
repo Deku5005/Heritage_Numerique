@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:heritage_numerique/model/auth-response.dart';
 import 'package:heritage_numerique/model/dashboard-models.dart';
-import 'token-storage-service.dart'; // Import du service de stockage
+import 'token-storage-service.dart'; // Import du service de stockage du Token
+// ✅ CORRECTION DE L'IMPORT: Utilisation du service de stockage de l'ID Membre
+import 'user-id-storage-service.dart';
 
 /// Service centralisé pour l'authentification et les appels d'API protégés.
 class AuthService {
   // Service pour gérer le stockage sécurisé du token
   final TokenStorageService _tokenStorageService = TokenStorageService();
+  // NOUVEAU: Service pour gérer le stockage sécurisé de l'ID Membre (l'ID que l'API attend)
+  final MembreIdStorageService _membreIdStorageService = MembreIdStorageService();
 
   // CONSTRUCTEUR AJOUTÉ/MODIFIÉ POUR LA COMPATIBILITÉ
-  // Il accepte l'argument nommé 'authToken', mais l'ignore car le service utilise
-  // déjà TokenStorageService pour la persistance.
   AuthService({String? authToken});
 
 
@@ -28,6 +30,12 @@ class AuthService {
   // ✅ EXPOSITION DE getAuthToken
   Future<String?> getAuthToken() async {
     return await _tokenStorageService.getAuthToken();
+  }
+
+  // ✅ NOUVEAU: EXPOSITION DE getMembreId
+  // Renommé pour plus de clarté
+  Future<String?> getMembreId() async {
+    return await _membreIdStorageService.getMembreId();
   }
 
 
@@ -145,6 +153,10 @@ class AuthService {
           // ✅ Stockage du token après succès
           await _tokenStorageService.saveAuthToken(authResponse.accessToken);
 
+          // ✅ MODIFIÉ: Stockage de l'ID Membre (qui est userId dans AuthResponse)
+          // C'est cet ID qui sera utilisé par MembreService
+          await _membreIdStorageService.saveMembreId(authResponse.userId.toString());
+
           return authResponse;
 
         } on FormatException {
@@ -219,8 +231,10 @@ class AuthService {
     }
   }
 
-  // Méthode de déconnexion pour supprimer le token
+  // Méthode de déconnexion pour supprimer le token et l'ID Membre
   Future<void> logout() async {
     await _tokenStorageService.deleteAuthToken();
+    // ✅ MODIFIÉ: Suppression de l'ID Membre lors de la déconnexion
+    await _membreIdStorageService.deleteMembreId();
   }
 }

@@ -1,26 +1,45 @@
 import 'package:flutter/material.dart';
+import '../service/QuizService.dart';
+import '../service/RecitService.dart';
+import '../model/QuizModel.dart';
+import '../model/Recits_model.dart'; // 🌟 Confirmé : Utilisation de votre nom de fichier Recits_model.dart
 
-// --- Constantes de Style (AJOUTÉES pour corriger l'erreur) ---
-// Utilisation du noir comme couleur de texte principale, comme dans le design
+
+// --- Constantes de Style ---
 const Color _primaryTextColor = Color(0xFF000000);
 const Color _primaryColor = Color(0xFF714D1D); // Brun foncé/Or
-const Color _secondaryColor = Color(0xFF158B4D); // Vert (pour le bouton "Ajouter une réponse")
-const Color _neutralLight = Color(0xFFEEE3CF); // Beige clair (pour les cercles)
-const Color _correctAnswerColor = Color(0x7AE5E5E5); // Gris clair avec opacité (pour les cercles d'option correcte)
+const Color _secondaryColor = Color(0xFF158B4D); // Vert
+const Color _neutralLight = Color(0xFFEEE3CF); // Beige clair
 const Color _iconColor = Color(0xFFB30000); // Rouge foncé pour la corbeille
 
 // --- Énumération pour le type de Quiz ---
 enum QuizType { qcm, trueFalse }
 
-// --- Structure de Données pour une Question ---
+// --- Structure de Données pour une Question (Avec Contrôleurs) ---
 class QuestionData {
-  String questionText = '';
-  QuizType type = QuizType.qcm; // Type par défaut
-  List<String> answers = ['Reponse 1', 'Reponse 2', 'Reponse 3', 'Reponse 4']; // Options de réponse
-  int correctAnswerIndex = 0; // Index de la bonne réponse
-  int questionNumber = 1;
+  final TextEditingController questionTextController;
+  QuizType type;
+  List<TextEditingController> answerControllers;
+  int correctAnswerIndex;
+  // Correction : Rendu non-final pour permettre la mise à jour
+  int questionNumber;
 
-  QuestionData(this.questionNumber);
+  QuestionData(this.questionNumber)
+      : questionTextController = TextEditingController(),
+        type = QuizType.qcm,
+        answerControllers = [
+          TextEditingController(text: 'Option A'),
+          TextEditingController(text: 'Option B'),
+        ],
+        correctAnswerIndex = 0;
+
+  // Pour libérer les ressources
+  void dispose() {
+    questionTextController.dispose();
+    for (var c in answerControllers) {
+      c.dispose();
+    }
+  }
 }
 
 // ====================================================================
@@ -28,35 +47,85 @@ class QuestionData {
 // ====================================================================
 
 class AddQuizScreen extends StatefulWidget {
-  const AddQuizScreen({super.key});
+  // familyId est requis pour la création et la récupération des récits
+  final int familyId;
+
+  const AddQuizScreen({super.key, required this.familyId});
 
   @override
   State<AddQuizScreen> createState() => _AddQuizScreenState();
 }
 
 class _AddQuizScreenState extends State<AddQuizScreen> {
-  // Liste qui contient toutes les données de la question
-  List<QuestionData> questions = [QuestionData(1)];
+  final QuizService _quizService = QuizService();
+  final RecitService _recitService = RecitService();
 
-  // Index de la question actuellement sélectionnée ou modifiée
+  // Contrôleurs du Quiz
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  // État des Questions
+  List<QuestionData> questions = [QuestionData(1)];
   int activeQuestionIndex = 0;
 
-  // Contenu simulé pour le Dropdown (Contes)
-  final List<String> availableContes = [
-    'Le lion roi des animaux',
-    'L\'histoire du lion et du chasseur',
-    'Le Baobab magique'
-  ];
-  String? selectedConte;
+  // État du Dropdown (Récits dynamiques)
+  List<Recit> _availableRecits = [];
+  bool _isLoadingRecits = true;
+  String? _recitError;
+  String? selectedConteTitle;
+  int? selectedConteId;
 
-  // --- Logique d'état ---
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecits();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    for (var q in questions) {
+      q.dispose(); // Utilise la méthode dispose définie dans QuestionData
+    }
+    super.dispose();
+  }
+
+  // --- LOGIQUE API : Récupérer les Récits (Contenus) ---
+  Future<void> _fetchRecits() async {
+    setState(() {
+      _isLoadingRecits = true;
+      _recitError = null;
+    });
+
+    try {
+      final List<Recit> fetchedRecits =
+      await _recitService.fetchRecitsByFamilleId(familleId: widget.familyId);
+
+      setState(() {
+        _availableRecits = fetchedRecits;
+        _isLoadingRecits = false;
+      });
+
+      if (_availableRecits.isEmpty) {
+        _recitError = "Aucun contenu (conte) disponible pour cette famille.";
+      }
+
+    } catch (e) {
+      print("Erreur de récupération des récits: $e");
+      setState(() {
+        _recitError = "Impossible de charger la liste des contenus.";
+        _isLoadingRecits = false;
+      });
+    }
+  }
 
   // 1. Ajouter une nouvelle question
   void _addQuestion() {
     setState(() {
       final newQuestionNumber = questions.length + 1;
       questions.add(QuestionData(newQuestionNumber));
-      activeQuestionIndex = questions.length - 1; // Sélectionner la nouvelle question
+      activeQuestionIndex = questions.length - 1;
     });
   }
 
@@ -64,13 +133,18 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   void _addAnswerOption() {
     setState(() {
       final activeQuestion = questions[activeQuestionIndex];
-      // Pour les questions Vrai/Faux, on ne peut pas ajouter d'options
       if (activeQuestion.type == QuizType.trueFalse) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Impossible d\'ajouter des options à un Vrai/Faux.')),
         );
+      } else if (activeQuestion.answerControllers.length < 5) {
+        activeQuestion.answerControllers.add(
+            TextEditingController(text: 'Option ${activeQuestion.answerControllers.length + 1}')
+        );
       } else {
-        activeQuestion.answers.add('Nouvelle réponse ${activeQuestion.answers.length + 1}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Limite de 5 options atteinte.')),
+        );
       }
     });
   }
@@ -79,18 +153,18 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   void _removeAnswerOption(int answerIndex) {
     setState(() {
       final activeQuestion = questions[activeQuestionIndex];
-      if (activeQuestion.answers.length > 2 && activeQuestion.type == QuizType.qcm) {
-        activeQuestion.answers.removeAt(answerIndex);
-        // Ajuster l'index de la bonne réponse si elle est supprimée
+      if (activeQuestion.answerControllers.length > 2 && activeQuestion.type == QuizType.qcm) {
+        activeQuestion.answerControllers[answerIndex].dispose();
+        activeQuestion.answerControllers.removeAt(answerIndex);
+
         if (activeQuestion.correctAnswerIndex == answerIndex) {
           activeQuestion.correctAnswerIndex = 0;
         } else if (activeQuestion.correctAnswerIndex > answerIndex) {
           activeQuestion.correctAnswerIndex--;
         }
       } else {
-        // Optionnel : Afficher un message d'erreur si moins de 2 réponses
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Un quiz QCM doit avoir au moins deux options de réponse.')),
+          const SnackBar(content: Text('Un QCM doit avoir au moins deux options.')),
         );
       }
     });
@@ -100,11 +174,16 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   void _changeQuizType(QuizType? newType) {
     if (newType != null) {
       setState(() {
-        questions[activeQuestionIndex].type = newType;
-        // Si on passe en Vrai/Faux, on fixe les options et la bonne réponse
+        final activeQuestion = questions[activeQuestionIndex];
+        activeQuestion.type = newType;
+
         if (newType == QuizType.trueFalse) {
-          questions[activeQuestionIndex].answers = ['Vrai', 'Faux'];
-          questions[activeQuestionIndex].correctAnswerIndex = 0; // Vrai par défaut
+          for (var c in activeQuestion.answerControllers) { c.dispose(); }
+          activeQuestion.answerControllers = [
+            TextEditingController(text: 'Vrai'),
+            TextEditingController(text: 'Faux'),
+          ];
+          activeQuestion.correctAnswerIndex = 0;
         }
       });
     }
@@ -117,9 +196,102 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
     });
   }
 
+  // 6. Supprimer une question
+  void _removeQuestion(int indexToRemove) {
+    if (questions.length > 1) {
+      setState(() {
+        final questionToRemove = questions.removeAt(indexToRemove);
+        questionToRemove.dispose(); // Libérer les ressources
+
+        if (activeQuestionIndex >= questions.length) {
+          activeQuestionIndex = questions.length - 1;
+        }
+
+        // Correction : questionNumber est mis à jour
+        for (int i = 0; i < questions.length; i++) {
+          questions[i].questionNumber = i + 1;
+        }
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Le quiz doit contenir au moins une question.')),
+      );
+    }
+  }
+
+  // --- LOGIQUE DE SOUMISSION API ---
+  Future<void> _submitQuiz() async {
+    if (selectedConteId == null || _titleController.text.trim().isEmpty || _descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir le titre, la description et sélectionner un contenu.')),
+      );
+      return;
+    }
+
+    try {
+      final List<QuestionCreation> apiQuestions = [];
+
+      for (var qData in questions) {
+        if (qData.questionTextController.text.trim().isEmpty) {
+          throw Exception("Veuillez saisir le texte de la question ${qData.questionNumber}.");
+        }
+
+        final List<Proposition> apiPropositions = [];
+        bool? vraiFauxReponse;
+
+        if (qData.type == QuizType.qcm) {
+          for (int i = 0; i < qData.answerControllers.length; i++) {
+            if (qData.answerControllers[i].text.trim().isEmpty) continue;
+
+            apiPropositions.add(Proposition(
+              texte: qData.answerControllers[i].text,
+              estCorrecte: i == qData.correctAnswerIndex,
+              ordre: i + 1,
+            ));
+          }
+          if (apiPropositions.length < 2) {
+            throw Exception("La question ${qData.questionNumber} doit avoir au moins deux options valides.");
+          }
+        } else { // VRAI_FAUX
+          vraiFauxReponse = qData.correctAnswerIndex == 0 ? true : false;
+        }
+
+        apiQuestions.add(QuestionCreation(
+          question: qData.questionTextController.text,
+          typeReponse: qData.type == QuizType.qcm ? 'QCM' : 'VRAI_FAUX',
+          propositions: qData.type == QuizType.qcm ? apiPropositions : [],
+          reponseVraiFaux: qData.type == QuizType.trueFalse ? vraiFauxReponse : null,
+        ));
+      }
+
+      final request = QuizCreationRequest(
+        idContenu: selectedConteId!,
+        titre: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        questions: apiQuestions,
+      );
+
+      await _quizService.createQuiz(quizData: request);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quiz créé avec succès !')),
+      );
+
+      // Le Navigator.pop(context) ici ramènera à l'écran précédent
+      Navigator.pop(context);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec de la création du quiz: ${e.toString()}')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    final QuestionData activeQuestion = questions[activeQuestionIndex];
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -127,10 +299,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _primaryTextColor, size: 24),
-          onPressed: () {
-            // Logique de navigation retour
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Ajouter un nouveau quiz',
@@ -147,55 +316,14 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // --- 1. SÉLECTION DU CONTE (Dropdown) ---
-            const Text('Contes',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: _primaryTextColor,
-                )
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(4.0),
-                border: Border.all(color: Colors.grey.shade300),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 0)
-                  ),
-                ],
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedConte,
-                  isExpanded: true,
-                  hint: const Text('Sélectionner un conte'),
-                  icon: const Icon(Icons.keyboard_arrow_down, color: _primaryTextColor),
-                  style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      color: _primaryTextColor
-                  ),
-                  items: availableContes.map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedConte = newValue;
-                    });
-                  },
-                ),
-              ),
-            ),
+            // --- Titre et Description du Quiz ---
+            _buildTextField(controller: _titleController, label: 'Titre du Quiz'),
+            const SizedBox(height: 15),
+            _buildTextField(controller: _descriptionController, label: 'Description'),
+            const SizedBox(height: 15),
+
+            // --- 1. SÉLECTION DU CONTE (Dropdown DYNAMIQUE) ---
+            _buildDropdown(),
 
             const SizedBox(height: 30),
 
@@ -204,14 +332,17 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
               int index = entry.key;
               QuestionData qData = entry.value;
               return Column(
-                key: ValueKey(qData.questionNumber), // Clé unique pour le widget
+                key: ValueKey(qData.questionNumber),
                 children: [
                   QuestionForm(
                     question: qData,
                     onQuizTypeChanged: _changeQuizType,
                     onCorrectAnswerSelected: _setCorrectAnswer,
                     onRemoveAnswer: _removeAnswerOption,
-                    // Indique à quelle question les boutons d'ajout/suppression s'appliquent
+                    onActivate: () {
+                      setState(() { activeQuestionIndex = index; });
+                    },
+                    onRemoveQuestion: () => _removeQuestion(index),
                     isActive: index == activeQuestionIndex,
                   ),
                   const SizedBox(height: 20),
@@ -226,18 +357,15 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Bouton "Ajouter une question"
                 _buildActionButton(
                   text: 'Ajouter une question',
                   color: _primaryColor,
                   onPressed: _addQuestion,
                 ),
-
-                // Bouton "Ajouter une réponse"
                 _buildActionButton(
                   text: 'Ajouter une réponse',
-                  color: _secondaryColor,
-                  onPressed: _addAnswerOption,
+                  color: activeQuestion.type == QuizType.qcm ? _secondaryColor : Colors.grey,
+                  onPressed: activeQuestion.type == QuizType.qcm ? _addAnswerOption : () {},
                 ),
               ],
             ),
@@ -248,12 +376,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
-                onPressed: () {
-                  // Logique de validation et d'enregistrement du quiz
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Quiz en cours de validation...')),
-                  );
-                },
+                onPressed: _submitQuiz,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryColor,
                   padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
@@ -275,6 +398,127 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // --- Fonction utilitaire pour le Dropdown (Dynamique) ---
+  Widget _buildDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Contenu associé',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: _primaryTextColor,
+            )),
+        const SizedBox(height: 8),
+
+        if (_isLoadingRecits)
+          const Center(child: LinearProgressIndicator(color: _primaryColor)),
+
+        if (_recitError != null)
+          Text(_recitError!, style: const TextStyle(color: _iconColor)),
+
+        if (!_isLoadingRecits && _recitError == null && _availableRecits.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4.0),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: const [
+                BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 0)),
+              ],
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: selectedConteTitle,
+                isExpanded: true,
+                hint: const Text('Sélectionner un conte/contenu'),
+                icon: const Icon(Icons.keyboard_arrow_down, color: _primaryTextColor),
+                style: const TextStyle(fontFamily: 'Inter', fontSize: 14, color: _primaryTextColor),
+
+                items: _availableRecits.map((Recit recit) {
+                  return DropdownMenuItem<String>(
+                    value: recit.titre,
+                    child: Text(recit.titre),
+                  );
+                }).toList(),
+
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedConteTitle = newValue;
+                    // ✅ CORRECTION APPLIQUÉE : Fournir tous les champs requis pour le Recit de secours
+                    selectedConteId = _availableRecits.firstWhere(
+                          (recit) => recit.titre == newValue,
+                      orElse: () => Recit(
+                        id: 0,
+                        titre: '',
+                        description: '',
+                        nomAuteur: '',
+                        prenomAuteur: '',
+                        emailAuteur: '',
+                        roleAuteur: '',
+                        lienParenteAuteur: '',
+                        dateCreation: DateTime.now(),
+                        statut: '',
+                        urlFichier: '',
+                        urlPhoto: '',
+                        lieu: '',
+                        region: '',
+                        idFamille: 0,
+                        nomFamille: '',
+                        quiz: null,
+                      ),
+                    ).id;
+                  });
+                },
+              ),
+            ),
+          ),
+        // Afficher un message si la liste est vide après le chargement
+        if (!_isLoadingRecits && _availableRecits.isEmpty)
+          const Text("Aucun contenu disponible.", style: TextStyle(color: Colors.grey)),
+      ],
+    );
+  }
+
+  // --- Fonction utilitaire pour les champs de texte Titre/Description ---
+  Widget _buildTextField({required TextEditingController controller, required String label}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: _primaryTextColor,
+            )),
+        const SizedBox(height: 8),
+        Container(
+          height: label == 'Description' ? 80 : 40,
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4.0),
+            boxShadow: const [
+              BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 0)),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            maxLines: label == 'Description' ? null : 1,
+            decoration: InputDecoration(
+              hintText: 'Entrez le $label...',
+              border: InputBorder.none,
+            ),
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 
@@ -306,7 +550,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
 }
 
 // ====================================================================
-// WIDGET QUESTION FORM : Représente un bloc de question (Question N + ses réponses)
+// WIDGET QUESTION FORM : Représente un bloc de question (INCHANGÉ)
 // ====================================================================
 
 class QuestionForm extends StatelessWidget {
@@ -314,6 +558,8 @@ class QuestionForm extends StatelessWidget {
   final Function(QuizType?) onQuizTypeChanged;
   final Function(int) onCorrectAnswerSelected;
   final Function(int) onRemoveAnswer;
+  final VoidCallback onActivate;
+  final VoidCallback onRemoveQuestion;
   final bool isActive;
 
   const QuestionForm({
@@ -322,92 +568,136 @@ class QuestionForm extends StatelessWidget {
     required this.onQuizTypeChanged,
     required this.onCorrectAnswerSelected,
     required this.onRemoveAnswer,
+    required this.onActivate,
+    required this.onRemoveQuestion,
     required this.isActive,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // --- Titre de la Question ---
-        Text(
-          'Questions ${question.questionNumber}',
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            color: _primaryTextColor,
+    // Si ce n'est pas la question active, on affiche un résumé cliquable
+    if (!isActive) {
+      return GestureDetector(
+        onTap: onActivate,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Question ${question.questionNumber}: ${question.questionTextController.text.isEmpty ? 'Non définie' : question.questionTextController.text}',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Icon(Icons.edit, size: 20, color: _primaryColor),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
+      );
+    }
 
-        // --- Champ de Saisie de la Question ---
-        Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4.0),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color(0x40000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 0)
+    // Affichage détaillé de la question active
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: _neutralLight.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _primaryColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // --- Titre de la Question et Bouton Supprimer ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Questions ${question.questionNumber}',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: _primaryTextColor,
+                ),
+              ),
+              GestureDetector(
+                onTap: onRemoveQuestion,
+                child: const Icon(Icons.delete_forever, color: _iconColor, size: 20),
               ),
             ],
           ),
-          child: const TextField(
-            decoration: InputDecoration(
-              hintText: 'Ex: L\'histoire du lion et du chasseur?',
-              border: InputBorder.none,
-            ),
-            style: TextStyle(fontSize: 14),
+          const SizedBox(height: 8),
+
+          // --- Champ de Saisie de la Question ---
+          _buildQuestionTextField(question.questionTextController),
+          const SizedBox(height: 20),
+
+          // --- Sélecteur de Type (QCM / Vrai/Faux) ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _buildQuizTypeSelector(
+                label: 'QCM',
+                type: QuizType.qcm,
+                currentType: question.type,
+                onChanged: onQuizTypeChanged,
+              ),
+              const SizedBox(width: 30),
+              _buildQuizTypeSelector(
+                label: 'Vrai/Faux',
+                type: QuizType.trueFalse,
+                currentType: question.type,
+                onChanged: onQuizTypeChanged,
+              ),
+            ],
           ),
+          const SizedBox(height: 25),
+
+          // --- Liste des Options de Réponse ---
+          ...question.answerControllers.asMap().entries.map((entry) {
+            int index = entry.key;
+            TextEditingController controller = entry.value;
+
+            bool isCorrect = question.correctAnswerIndex == index;
+
+            return _buildAnswerOption(
+              controller: controller,
+              isCorrect: isCorrect,
+              onToggleCorrect: () => onCorrectAnswerSelected(index),
+              onRemove: () => onRemoveAnswer(index),
+              canRemove: question.type == QuizType.qcm && question.answerControllers.length > 2,
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  // Widget utilitaire pour le champ de texte de la question
+  Widget _buildQuestionTextField(TextEditingController controller) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4.0),
+        boxShadow: const [
+          BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 0)),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: const InputDecoration(
+          hintText: 'Ex: L\'histoire du lion et du chasseur?',
+          border: InputBorder.none,
         ),
-        const SizedBox(height: 20),
-
-        // --- Sélecteur de Type (QCM / Vrai/Faux) ---
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            // QCM
-            _buildQuizTypeSelector(
-              label: 'QCM',
-              type: QuizType.qcm,
-              currentType: question.type,
-              onChanged: onQuizTypeChanged,
-            ),
-            const SizedBox(width: 30),
-            // Vrai/Faux
-            _buildQuizTypeSelector(
-              label: 'Vrai/Faux',
-              type: QuizType.trueFalse,
-              currentType: question.type,
-              onChanged: onQuizTypeChanged,
-            ),
-          ],
-        ),
-        const SizedBox(height: 25),
-
-        // --- Liste des Options de Réponse ---
-        ...question.answers.asMap().entries.map((entry) {
-          int index = entry.key;
-          String answerText = entry.value;
-
-          // Vérifier si c'est la bonne réponse
-          bool isCorrect = question.correctAnswerIndex == index;
-
-          return _buildAnswerOption(
-            answerText: answerText,
-            isCorrect: isCorrect,
-            onToggleCorrect: () => onCorrectAnswerSelected(index),
-            onRemove: () => onRemoveAnswer(index),
-            // On désactive la suppression pour Vrai/Faux
-            canRemove: question.type == QuizType.qcm,
-          );
-        }).toList(),
-      ],
+        style: const TextStyle(fontSize: 14),
+      ),
     );
   }
 
@@ -424,7 +714,6 @@ class QuestionForm extends StatelessWidget {
       onTap: () => onChanged(type),
       child: Row(
         children: [
-          // Cercle extérieur (grand)
           Container(
             width: 25,
             height: 25,
@@ -435,7 +724,6 @@ class QuestionForm extends StatelessWidget {
             ),
             child: isSelected
                 ? Center(
-              // Cercle intérieur (petit - simulation de couleur)
               child: Container(
                 width: 10,
                 height: 10,
@@ -464,7 +752,7 @@ class QuestionForm extends StatelessWidget {
 
   // Widget utilitaire pour une seule option de réponse
   Widget _buildAnswerOption({
-    required String answerText,
+    required TextEditingController controller,
     required bool isCorrect,
     required VoidCallback onToggleCorrect,
     required VoidCallback onRemove,
@@ -483,21 +771,16 @@ class QuestionForm extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(4.0),
                 boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x40000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 0)
-                  ),
+                  BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 0)),
                 ],
               ),
               child: TextField(
-                controller: TextEditingController(text: answerText), // Pour démonstration
+                controller: controller,
                 decoration: const InputDecoration(
                   hintText: 'Entrer une réponse...',
                   border: InputBorder.none,
                 ),
                 style: const TextStyle(fontSize: 14),
-                // Le texte doit être mis à jour dans l'état parent ici en temps réel
               ),
             ),
           ),
@@ -515,7 +798,6 @@ class QuestionForm extends StatelessWidget {
               ),
               child: isCorrect
                   ? Center(
-                // Indication de Bonne Réponse (Petit Cercle)
                 child: Container(
                   width: 10,
                   height: 10,
@@ -533,13 +815,13 @@ class QuestionForm extends StatelessWidget {
 
           // Bouton de Suppression (Corbeille)
           GestureDetector(
-            onTap: canRemove ? onRemove : null, // Ne fonctionne que si canRemove est vrai
+            onTap: canRemove ? onRemove : null,
             child: Container(
               width: 30,
               height: 30,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: canRemove ? Colors.transparent : Colors.grey.shade200, // Grisé si non supprimable
+                color: canRemove ? Colors.transparent : Colors.grey.shade200,
               ),
               child: Icon(
                 Icons.delete_outline,

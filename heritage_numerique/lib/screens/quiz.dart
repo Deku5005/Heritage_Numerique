@@ -1,34 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/screens/quizQuestion.dart';
-import 'package:heritage_numerique/screens/quizScreen.dart'; // NOUVEL IMPORT
+import 'package:heritage_numerique/screens/quizScreen.dart';
+// NOTE: Assurez-vous d'importer le QuizService et les modèles ici
+import '../service/QuizService.dart';
+import '../model/QuizModel.dart';
 import 'AppDrawer.dart';
+ // Import pour la création de quiz
 
-// Définition du modèle de données pour une tuile de quiz
-class QuizTileData {
-  final String title;
-  final int totalQuestions;
-  final int currentScore;
+// Constantes de couleurs (assumées)
+const Color _primaryColor = Color(0xFFBB8F40); // Couleur de progression
+const Color _mainGreen = Color(0xFF008236); // Couleur principale pour les boutons
 
-  QuizTileData({
-    required this.title,
-    required this.totalQuestions,
-    required this.currentScore,
-  });
-}
-
-// Données de démonstration pour la liste
-final List<QuizTileData> quizList = [
-  QuizTileData(title: 'Chant de mariage traditionnel', totalQuestions: 7, currentScore: 5),
-  QuizTileData(title: 'Chant de mariage traditionnel', totalQuestions: 7, currentScore: 5),
-  QuizTileData(title: 'Chant de mariage traditionnel', totalQuestions: 36, currentScore: 5),
-];
-
-class QuizScreen extends StatelessWidget {
-  // 💡 AJOUT : familyId est requis pour être passé au Drawer
+class QuizScreen extends StatefulWidget {
   final int familyId;
 
-  // 💡 MISE À JOUR : Le constructeur requiert familyId
   const QuizScreen({super.key, required this.familyId});
+
+  @override
+  State<QuizScreen> createState() => _QuizScreenState();
+}
+
+class _QuizScreenState extends State<QuizScreen> {
+  // Instance du service API
+  final QuizService _quizService = QuizService();
+
+  // État de la liste de quiz
+  List<QuizOverview> _quizzes = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchQuizzes();
+  }
+
+  // --- Fonction de récupération des données API ---
+  Future<void> _fetchQuizzes() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final List<QuizOverview> fetchedQuizzes =
+      await _quizService.fetchQuizzesByFamilleId(familleId: widget.familyId);
+
+      setState(() {
+        _quizzes = fetchedQuizzes;
+        _isLoading = false;
+      });
+
+    } catch (e) {
+      print("Erreur de récupération des quiz: $e");
+      setState(() {
+        _errorMessage = "Impossible de charger les quiz. Veuillez réessayer.";
+        _isLoading = false;
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +67,7 @@ class QuizScreen extends StatelessWidget {
       backgroundColor: Colors.white,
 
       // AJOUT DU DRAWER
-      // 💡 CORRECTION : familyId est passé à AppDrawer et 'const' est retiré.
-      drawer: AppDrawer(familyId: familyId),
+      drawer: AppDrawer(familyId: widget.familyId),
 
       // --- 1. En-tête (AppBar) ---
       appBar: AppBar(
@@ -52,19 +82,18 @@ class QuizScreen extends StatelessWidget {
             return IconButton(
               icon: const Icon(Icons.menu, color: Colors.black),
               onPressed: () {
-                // Ouvre le tiroir
                 Scaffold.of(innerContext).openDrawer();
               },
             );
           },
         ),
 
-        title: Padding(
-          padding: const EdgeInsets.only(right: 16.0),
+        title: const Padding(
+          padding: EdgeInsets.only(right: 16.0),
           child: Row(
             children: [
               // Titre
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Héritage Numérique',
                   style: TextStyle(
@@ -100,7 +129,7 @@ class QuizScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // --- Carte d'information/promotion (Image de fond) et Bouton ---
+            // --- Carte d'information/promotion (avec bouton 'Créer un quiz') ---
             _buildHeaderCard(context),
 
             const SizedBox(height: 20),
@@ -109,7 +138,7 @@ class QuizScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.only(left: 16.0, bottom: 10.0),
               child: Text(
-                'Quiz pour les contes',
+                'Quiz disponibles',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
@@ -118,16 +147,9 @@ class QuizScreen extends StatelessWidget {
               ),
             ),
 
-            // --- Liste des Tuiles de Quiz ---
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: quizList.length,
-              itemBuilder: (context, index) {
-                // Le context utilisé ici est le bon pour la navigation
-                return _buildQuizTile(context, quizList[index]);
-              },
-            ),
+            // --- Affichage Conditionnel de la Liste ---
+            _buildQuizListContent(),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -136,23 +158,84 @@ class QuizScreen extends StatelessWidget {
   }
 
 // ===============================================
-// WIDGETS DE CONSTRUCTION
+// NOUVEAU WIDGETS D'ÉTAT
 // ===============================================
 
-  // Widget pour (Image Seule en fond) - MODIFIÉ pour inclure le bouton
+  Widget _buildQuizListContent() {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(30.0),
+          child: CircularProgressIndicator(color: _primaryColor),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 10),
+              // Bouton pour réessayer la récupération
+              TextButton(
+                onPressed: _fetchQuizzes,
+                child: const Text('Recharger les quiz'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Si la liste est vide
+    if (_quizzes.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(30.0),
+          child: Text("Aucun quiz trouvé pour cette famille."),
+        ),
+      );
+    }
+
+    // Affichage de la liste réelle
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _quizzes.length,
+      itemBuilder: (context, index) {
+        // Passer l'objet QuizOverview au widget de tuile
+        return _buildQuizTile(context, _quizzes[index]);
+      },
+    );
+  }
+
+
+// ===============================================
+// WIDGETS DE CONSTRUCTION (Légèrement modifiés)
+// ===============================================
+
+  // Widget pour la carte d'en-tête (inchangé)
   Widget _buildHeaderCard(BuildContext context) {
     const Color cardColor = Color(0xFFE9A000);
-    const Color buttonColor = Color(0xFFFFCC33); // Couleur jaune-orange du bouton
+    const Color buttonColor = Color(0xFFFFCC33);
 
     return Padding(
-      padding: const EdgeInsets.all(16.0), // Le padding est appliqué au Stack entier
+      padding: const EdgeInsets.all(16.0),
       child: Stack(
-        alignment: Alignment.topRight, // Aligne le bouton en haut à droite
+        alignment: Alignment.topRight,
         children: [
-          // 1. Carte de fond (maintenant directement à l'intérieur du Stack)
+          // 1. Carte de fond
           Container(
             height: 140,
-            width: double.infinity, // S'assure qu'il prend toute la largeur disponible
+            width: double.infinity,
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(10),
@@ -165,7 +248,7 @@ class QuizScreen extends StatelessWidget {
                 Opacity(
                   opacity: 0.8,
                   child: Image.asset(
-                    'assets/images/mali.png', // Assurez-vous que ce chemin est valide
+                    'assets/images/mali.png',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(color: cardColor, alignment: Alignment.center, child: const Text("Image du Mali (Placeholder)", style: TextStyle(color: Colors.white70)));
@@ -207,22 +290,22 @@ class QuizScreen extends StatelessWidget {
           ),
 
           // 2. Bouton "Créer un quiz"
-          // Utilisation de Positioned pour un contrôle précis
           Positioned(
             top: 10.0,
             right: 10.0,
             child: ElevatedButton(
               onPressed: () {
-                // Logique de navigation vers AddQuizScreen
+                // Passage de familyId à l'écran de création
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const AddQuizScreen(),
+                    // 💡 NOTE: Assurez-vous que AddQuizScreen accepte familyId
+                    builder: (context) => AddQuizScreen(familyId: widget.familyId),
                   ),
-                );
+                ).then((_) => _fetchQuizzes()); // Recharger après le retour
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: buttonColor, // Couleur jaune
+                backgroundColor: buttonColor,
                 padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -235,7 +318,7 @@ class QuizScreen extends StatelessWidget {
                   fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black, // Texte noir sur fond jaune
+                  color: Colors.black,
                 ),
               ),
             ),
@@ -245,9 +328,13 @@ class QuizScreen extends StatelessWidget {
     );
   }
 
-  // Widget pour une seule tuile de quiz (MODIFIÉ pour la navigation)
-  Widget _buildQuizTile(BuildContext context, QuizTileData data) {
-    const Color primaryColor = Color(0xFFBB8F40);
+  // Widget pour une seule tuile de quiz (MIS À JOUR pour utiliser QuizOverview)
+  Widget _buildQuizTile(BuildContext context, QuizOverview data) {
+    const Color primaryColor = _primaryColor;
+    // NOTE: On simule le score actuel (ici, on pourrait utiliser 0/nombreQuestions
+    // ou ajouter un champ 'currentScore' au modèle si l'API le fournissait)
+    const int currentScorePlaceholder = 0;
+    final int totalQuestions = data.nombreQuestions;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -265,7 +352,6 @@ class QuizScreen extends StatelessWidget {
         ),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          // Icône du livre
           leading: Container(
             width: 40,
             height: 40,
@@ -275,42 +361,47 @@ class QuizScreen extends StatelessWidget {
             ),
             child: const Icon(Icons.menu_book, color: primaryColor),
           ),
-          // Titre et Sous-titre
+          // Titre : Utilise le titre du QuizOverview
           title: Text(
-            data.title,
+            data.titre,
             style: const TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: 16,
             ),
           ),
+          // Sous-titre : Utilise le nombre de questions
           subtitle: Text(
-            '${data.totalQuestions} Questions',
+            '${data.nombreQuestions} Questions',
             style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
             ),
           ),
-          // Score / Cercle de progression
-          trailing: _buildScoreCircle(data.currentScore, data.totalQuestions, primaryColor),
+          // Cercle de progression (simulé)
+          trailing: _buildScoreCircle(currentScorePlaceholder, totalQuestions, primaryColor),
 
-          // ACTION : Navigation vers QuestionScreen
+          // ACTION : Navigation vers QuestionScreen (à adapter pour le quiz spécifique)
           onTap: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                // Lance l'écran de question
-                builder: (context) => const QuestionScreen(),
+                // 🌟 CORRECTION: Passer familyId à QuestionScreen
+                builder: (context) => QuestionScreen(
+                  quizId: data.id,
+                  familyId: widget.familyId, // ⬅️ AJOUT CRITIQUE
+                ),
               ),
-            );
+            ).then((_) => _fetchQuizzes()); // Recharger la liste après un éventuel retour (ex: après soumission)
           },
         ),
       ),
     );
   }
 
-  // Widget pour le cercle de score
+  // Widget pour le cercle de score (inchangé)
   Widget _buildScoreCircle(int score, int total, Color color) {
-    double progress = score / total;
+    // Évite la division par zéro
+    double progress = total > 0 ? score / total : 0;
 
     return SizedBox(
       width: 45,
@@ -329,7 +420,7 @@ class QuizScreen extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
-          // Texte du score (5/7)
+          // Texte du score (0/X)
           Text(
             '$score/$total',
             style: const TextStyle(

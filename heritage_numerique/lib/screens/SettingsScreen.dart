@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 // Importez l'AppDrawer
 import 'AppDrawer.dart';
+// Importations nécessaires pour l'intégration du service
+import 'package:heritage_numerique/model/MemberResponseModel.dart';
+import 'package:heritage_numerique/Service/MemberService.dart';
+import 'package:heritage_numerique/Service/auth-service.dart';
+// ✅ NOUVELLES IMPORTATIONS pour la gestion des invitations
+import 'package:heritage_numerique/model/InvitationResponse.dart';
+import 'package:heritage_numerique/Service/InvitationService2.dart';
+
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -13,12 +21,46 @@ const Color _acceptedColor = Color(0xFFE6F3E6); // Vert pâle pour "Accepté"
 const Color _pendingColor = Color(0xFFF7E8D8); // Beige pâle pour "En attente"
 
 
-class SettingsScreen extends StatelessWidget {
-  // 💡 AJOUT : familyId est requis pour être passé au Drawer
+// 1. Conversion en StatefulWidget
+class SettingsScreen extends StatefulWidget {
   final int familyId;
 
-  // 💡 MISE À JOUR : Le constructeur requiert familyId
   const SettingsScreen({super.key, required this.familyId});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  // 2. Déclaration et initialisation du MembreService et de l'AuthService
+  late final AuthService _authService;
+  late final MembreService _membreService;
+  // ✅ NOUVEAU: Service et Future pour les invitations
+  late final InvitationService _invitationService;
+  late Future<MembreResponse> _membreDetailsFuture;
+  late Future<List<InvitationResponse>> _sentInvitationsFuture;
+
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialisation des services
+    _authService = AuthService();
+    _membreService = MembreService(_authService);
+    // ✅ NOUVEAU: Initialisation du service d'invitation
+    _invitationService = InvitationService(_authService);
+
+    // Lancement de la récupération des données
+    _membreDetailsFuture = _membreService.fetchMembreDetails();
+
+    // ✅ NOUVEAU: Lancement de la récupération des invitations envoyées
+    // Utilise l'ID de famille passé en paramètre
+    _sentInvitationsFuture = _invitationService.fetchFamilyInvitations(widget.familyId);
+  }
+
+  // --- Widgets de Construction de l'Écran ---
+
+  // ... (build et _buildCustomHeader restent inchangés)
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +69,8 @@ class SettingsScreen extends StatelessWidget {
       length: 2, // Nombre d'onglets (Envoyées et Reçues)
       child: Scaffold(
         backgroundColor: _backgroundColor,
-        // 💡 CORRECTION : familyId est passé à AppDrawer et 'const' est retiré.
-        drawer: AppDrawer(familyId: familyId),
+        // 💡 familyId est passé à AppDrawer
+        drawer: AppDrawer(familyId: widget.familyId),
         body: SingleChildScrollView(
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
           child: Column(
@@ -50,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     // Titre et Sous-titre
                     const Text(
-                      'Paramètre',
+                      'Paramètres',
                       style: TextStyle(
                         color: _cardTextColor,
                         fontSize: 22,
@@ -67,11 +109,11 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // Section Profil
+                    // Section Profil (Dynamique - utilise le FutureBuilder)
                     _buildProfileSection(),
                     const SizedBox(height: 20),
 
-                    // Section Invitations
+                    // Section Invitations (Statique)
                     _buildInvitationsSection(),
                   ],
                 ),
@@ -82,8 +124,6 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-
-  // --- Widgets de Construction de l'Écran ---
 
   Widget _buildCustomHeader(BuildContext innerContext, BuildContext pageContext) {
     return Padding(
@@ -114,6 +154,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  // 3. Mise à jour de la Section Profil pour être dynamique
   Widget _buildProfileSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,87 +168,223 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            color: _searchBackground,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Information sur votre compte',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  // Placeholder pour la photo/initiales
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: _mainAccentColor,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'N',
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Niakalé Diakité',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _cardTextColor),
-                      ),
-                      Text(
-                        'niakal@gmail.com',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Text(
-                    'Rôle actuel:',
-                    style: TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(width: 8),
-                  // Étiquette de Rôle
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _roleAdminColor,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: const Text(
-                      'Administrateur',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _roleTextColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+        // Utilisation de FutureBuilder pour gérer le chargement des données
+        FutureBuilder<MembreResponse>(
+          future: _membreDetailsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildLoadingCard(); // Afficher le chargement
+            } else if (snapshot.hasError) {
+              // Afficher l'erreur (peut être le message d'exception)
+              return _buildErrorCard(snapshot.error.toString().replaceFirst('Exception: ', ''));
+            } else if (snapshot.hasData) {
+              // Données reçues : construire la carte de profil
+              final membre = snapshot.data!;
+              return _buildProfileCard(membre);
+            }
+            // Cas par défaut (ne devrait pas arriver souvent)
+            return const Text('Aucune donnée de membre disponible.');
+          },
         ),
       ],
     );
   }
 
+  // Widget pour la carte de profil dynamique (quand les données sont disponibles)
+  Widget _buildProfileCard(MembreResponse membre) {
+    // Calcul des initiales (Première lettre du prénom + première lettre du nom)
+    final String initiales = '${membre.prenom.isNotEmpty ? membre.prenom[0] : ''}${membre.nom.isNotEmpty ? membre.nom[0] : ''}'.toUpperCase();
+    final String nomComplet = '${membre.prenom} ${membre.nom}';
+    // Logique simple pour la couleur du rôle (peut être étendue si besoin)
+    final Color roleBackgroundColor = membre.roleFamille.toLowerCase() == 'administrateur' ? _roleAdminColor : _searchBackground;
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: _searchBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Information sur votre compte',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              // Photo/initiales
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _mainAccentColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    initiales,
+                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nomComplet,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _cardTextColor),
+                  ),
+                  Text(
+                    membre.email,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text(
+                'Rôle actuel:',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(width: 8),
+              // Étiquette de Rôle
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: roleBackgroundColor,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  membre.roleFamille,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _roleTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Affichage du numéro de téléphone et de l'ethnie
+          _buildDetailRow(
+            icon: Icons.phone,
+            label: 'Téléphone:',
+            value: membre.telephone.isNotEmpty ? membre.telephone : 'Non spécifié',
+          ),
+          _buildDetailRow(
+            icon: Icons.language,
+            label: 'Ethnie:',
+            value: membre.ethnie.isNotEmpty ? membre.ethnie : 'Non spécifiée',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget utilitaire pour afficher une ligne de détail
+  Widget _buildDetailRow({required IconData icon, required String label, required String value}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 5.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: _mainAccentColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(color: _cardTextColor, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget d'affichage de chargement
+  Widget _buildLoadingCard() {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      height: 180,
+      decoration: BoxDecoration(
+        color: _searchBackground,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: _mainAccentColor),
+            SizedBox(height: 10),
+            Text('Chargement du profil...', style: TextStyle(color: _cardTextColor)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget d'affichage d'erreur
+  Widget _buildErrorCard(String errorMessage) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      height: 180,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEEEEE), // Rouge très pâle pour l'erreur
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade300),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 30),
+            const SizedBox(height: 10),
+            const Text(
+              'Erreur de chargement du profil',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              errorMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ NOUVELLE MÉTHODE : Traduit le statut du backend en affichage utilisateur
+  String _translateStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'ACCEPTEE':
+        return 'Acceptée';
+      case 'EN_ATTENTE':
+        return 'En attente';
+      case 'REJETEE':
+        return 'Rejetée';
+      default:
+        return status;
+    }
+  }
+
+  // Section Invitations
   Widget _buildInvitationsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,8 +428,9 @@ class SettingsScreen extends StatelessWidget {
                     unselectedLabelColor: Colors.grey,
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     tabs: const [
-                      Tab(text: 'Envoyées (3)'),
-                      Tab(text: 'Reçues (1)'),
+                      // ✅ MISES À JOUR : Labels simplifiés pour le moment
+                      Tab(text: 'Envoyées'),
+                      Tab(text: 'Reçues'),
                     ],
                   ),
                 ),
@@ -263,7 +441,7 @@ class SettingsScreen extends StatelessWidget {
                 height: 350, // Hauteur fixe nécessaire pour TabBarView dans SingleChildScrollView
                 child: TabBarView(
                   children: [
-                    // Contenu de l'onglet "Envoyées"
+                    // Contenu de l'onglet "Envoyées" (Maintenant dynamique)
                     _buildSentInvitationsContent(),
                     // Contenu de l'onglet "Reçues" (Vide pour le moment)
                     _buildReceivedInvitationsContent(),
@@ -277,33 +455,59 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // Contenu de l'onglet "Envoyées"
+  // ✅ MIS À JOUR : Contenu de l'onglet "Envoyées" (Utilise FutureBuilder)
   Widget _buildSentInvitationsContent() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          // Invitation 1: Acceptée
-          _buildInvitationCard(
-            name: 'Gaoussou Diakité',
-            email: 'gaoussou@gmail.com',
-            link: 'Neveu',
-            sentDate: '08/10/2023',
-            status: 'Acceptée',
-          ),
-          const SizedBox(height: 15),
-          // Invitation 2: En attente
-          _buildInvitationCard(
-            name: 'Bio Diakité',
-            email: 'biou@gmail.com',
-            link: 'Neveu',
-            sentDate: '09/10/2025',
-            status: 'En attente',
-            showResendButton: true,
-          ),
-          // Ajoutez d'autres invitations ici si nécessaire
-        ],
-      ),
+    return FutureBuilder<List<InvitationResponse>>(
+      future: _sentInvitationsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
+        } else if (snapshot.hasError) {
+          // Affiche le message d'erreur du service
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Erreur de chargement des invitations: ${snapshot.error.toString().replaceFirst('Exception: ', '')}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Text(
+              'Aucune invitation envoyée pour le moment.',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          );
+        } else {
+          final invitations = snapshot.data!;
+          // Utilise ListView.separated pour afficher les données réelles
+          return ListView.separated(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: invitations.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 15),
+            itemBuilder: (context, index) {
+              final inv = invitations[index];
+              final String status = inv.statut.toUpperCase();
+
+              // La date de création sera formatée pour être plus lisible
+              final String formattedDate = '${inv.dateCreation.day.toString().padLeft(2, '0')}/${inv.dateCreation.month.toString().padLeft(2, '0')}/${inv.dateCreation.year}';
+
+              return _buildInvitationCard(
+                name: inv.nomInvite,
+                email: inv.emailInvite,
+                link: inv.lienParente,
+                sentDate: formattedDate,
+                status: _translateStatus(status),
+                // Le bouton Renvoyer s'affiche uniquement si le statut est 'EN_ATTENTE'
+                showResendButton: status == 'EN_ATTENTE',
+              );
+            },
+          );
+        }
+      },
     );
   }
 
@@ -317,7 +521,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  // Widget commun pour les cartes d'invitation
+  // Widget commun pour les cartes d'invitation (Mise à jour pour gérer le statut traduit)
   Widget _buildInvitationCard({
     required String name,
     required String email,
@@ -326,7 +530,24 @@ class SettingsScreen extends StatelessWidget {
     required String status,
     bool showResendButton = false,
   }) {
-    Color statusColor = status == 'Acceptée' ? _acceptedColor : _pendingColor;
+    Color statusColor;
+    Color statusTextColor;
+
+    switch (status.toUpperCase()) {
+      case 'ACCEPTÉE':
+        statusColor = _acceptedColor;
+        statusTextColor = Colors.green.shade800;
+        break;
+      case 'REJETÉE':
+        statusColor = const Color(0xFFFEEEEE); // Rouge très pâle pour l'erreur
+        statusTextColor = Colors.red.shade800;
+        break;
+      case 'EN ATTENTE':
+      default:
+        statusColor = _pendingColor;
+        statusTextColor = _roleTextColor; // Couleur marron par défaut pour Pending
+        break;
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -374,7 +595,7 @@ class SettingsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: status == 'Acceptée' ? Colors.green.shade800 : _roleTextColor,
+                    color: statusTextColor,
                   ),
                 ),
               ),

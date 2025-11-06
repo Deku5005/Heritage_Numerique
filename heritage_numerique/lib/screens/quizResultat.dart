@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:heritage_numerique/screens/quiz.dart'; // Importation de QuizScreen
+// ⚠️ Assurez-vous que le chemin d'importation vers QuizScreen est correct
+import 'package:heritage_numerique/screens/quiz.dart';
 
 class QuizResultScreen extends StatelessWidget {
-  // Vous pouvez passer le score réel ici
+  // Ces champs sont dynamiques et injectés par l'écran précédent
   final int score;
   final int totalQuestions;
 
+  //  PARAMÈTRES POUR LE RETOUR ET L'HISTORIQUE
+  final int familyId;
+  final int quizId;
+
   const QuizResultScreen({
     super.key,
-    this.score = 29, // Valeur par défaut pour l'exemple
-    this.totalQuestions = 30, // Valeur par défaut
+    required this.score, // Le score réel
+    required this.totalQuestions, // Le total réel
+    required this.familyId, // L'ID de la famille pour le retour
+    required this.quizId, // L'ID du quiz pour l'historique
   });
 
   @override
@@ -17,11 +24,27 @@ class QuizResultScreen extends StatelessWidget {
     // La couleur des éléments marron comme dans le design
     const Color brownColor = Color(0xFF714D1D);
 
+    // Déterminer le message de félicitations basé sur le score
+    final String felicitationMessage;
+    final String encouragementMessage;
+
+    if (score == totalQuestions) {
+      felicitationMessage = 'Félicitation ! Parfait !';
+      encouragementMessage = 'Un score maximal ! Vous maîtrisez parfaitement ce sujet. Passez au défi suivant !';
+    } else if (score >= totalQuestions * 0.75) {
+      felicitationMessage = 'Excellent Travail !';
+      encouragementMessage = 'Votre connaissance est solide. Réussir à ce niveau est impressionnant, continuez ainsi !';
+    } else {
+      felicitationMessage = 'Bonne Performance';
+      encouragementMessage = 'Rélevez plus de défis pour développer vos connaissances. Vous pouvez toujours vous améliorer !';
+    }
+
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center( // Centre tout le contenu de la page verticalement et horizontalement
+      body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // Centre les éléments de la colonne
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             // --- 1. Cercle de Score ---
             Container(
@@ -31,8 +54,8 @@ class QuizResultScreen extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: brownColor,
                 border: Border.all(
-                  color: Colors.black, // Bordure noire comme sur le design
-                  width: 7, // Épaisseur de la bordure
+                  color: Colors.black,
+                  width: 7,
                 ),
               ),
               child: Center(
@@ -48,11 +71,12 @@ class QuizResultScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '$score/$totalQuestions', // Affiche le score (ex: 29/30)
+                      // Affichage dynamique du score
+                      '$score/$totalQuestions',
                       style: const TextStyle(
                         fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w700, // Plus gras pour le score
-                        fontSize: 20, // Plus grand pour le score
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
                         color: Colors.white,
                       ),
                     ),
@@ -61,26 +85,26 @@ class QuizResultScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 40), // Espace entre le cercle et le texte
+            const SizedBox(height: 40),
 
-            // --- 2. Texte "Félicitation" ---
-            const Text(
-              'Félicitation',
-              style: TextStyle(
+            // --- 2. Texte "Félicitation" (Dynamique) ---
+            Text(
+              felicitationMessage,
+              style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
                 color: Colors.black,
               ),
             ),
 
-            const SizedBox(height: 10), // Espace entre les deux textes
+            const SizedBox(height: 10),
 
-            // --- 3. Message d'encouragement ---
+            // --- 3. Message d'encouragement (Dynamique) ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40.0), // Pour centrer et limiter la largeur
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
               child: Text(
-                'Rélevez plus de défi développez vos connaissances',
-                textAlign: TextAlign.center, // Centre le texte
+                encouragementMessage,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontWeight: FontWeight.w400,
                   fontSize: 14,
@@ -89,33 +113,33 @@ class QuizResultScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 50), // Espace avant le bouton
+            const SizedBox(height: 50),
 
             // --- 4. Bouton "Retour" ---
             SizedBox(
-              width: 234, // Largeur du bouton
-              height: 48, // Hauteur du bouton
+              width: 234,
+              height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigue vers QuizScreen et remplace l'écran actuel
+                  // CORRECTION NAVIGATION: Retourne à l'écran QuizScreen avec le familyId correct.
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const QuizScreen()),
+                    MaterialPageRoute(builder: (context) => QuizScreen(familyId: familyId)),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: brownColor, // Couleur de fond du bouton
+                  backgroundColor: brownColor,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(3), // Bordure arrondie
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                  elevation: 0, // Pas d'ombre
+                  elevation: 0,
                 ),
                 child: const Text(
                   'Retour',
                   style: TextStyle(
                     fontFamily: 'Roboto',
                     fontWeight: FontWeight.w400,
-                    fontSize: 16, // Taille de police du bouton
+                    fontSize: 16,
                     color: Colors.white,
                   ),
                 ),
