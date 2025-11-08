@@ -6,6 +6,7 @@ import 'dart:io';
 
 import '../model/ArtisanatModel.dart'; // Import du modèle mis à jour
 import 'Auth-service.dart'; // Import du service d'authentification
+import '../model/DemandePublication.dart';
 
 class ArtisanatService {
   // BASE URL : Adresse du serveur local
@@ -216,6 +217,60 @@ class ArtisanatService {
         errorMessage += " Réponse brute: ${response.body}";
       }
       throw Exception(errorMessage);
+    }
+  }
+
+  // -------------------------------------------------------------------
+// --- 5. NOUVELLE MÉTHODE : Demande de Publication (POST) [CORRIGÉE] ---
+// -------------------------------------------------------------------
+
+  /// Envoie une demande de publication pour un contenu spécifique et retourne le statut de la demande.
+// Signature modifiée pour retourner une Map contenant l'ID du contenu et le nouveau statut.
+  Future<Map<String, dynamic>> requestPublication({required int contenuId}) async {
+    final String? token = await _getAuthToken();
+
+    final String path = '/api/contenus/$contenuId/demander-publication';
+    final Uri uri = Uri.parse(_baseUrl).resolve(path);
+
+    print('DEBUG ARTISANAT SERVICE: Tentative de demande de publication pour Contenu ID $contenuId : $uri');
+
+    try {
+      final http.Response response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({}),
+      );
+
+      print('Réponse POST $path: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+
+        // Désérialiser la réponse
+        final demande = DemandePublication.fromJson(responseBody);
+
+        // Retourner une Map contenant l'ID du contenu et le statut de la DEMANDE
+        return {
+          'contenuId': demande.idContenu,
+          'newStatus': demande.statut, // Ex: "EN_ATTENTE"
+        };
+
+      } else {
+        // Gérer les erreurs
+        String errorMessage = "Échec de la demande de publication (Statut: ${response.statusCode}).";
+        try {
+          final Map<String, dynamic> errorBody = json.decode(response.body);
+          errorMessage = errorBody['message'] ?? errorMessage;
+        } catch (_) {
+          errorMessage += " Réponse brute: ${response.body}";
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Échec de la connexion réseau ou erreur de traitement : $e');
     }
   }
 }

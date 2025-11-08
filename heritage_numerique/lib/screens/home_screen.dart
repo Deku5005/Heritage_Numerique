@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
       'image_path': 'assets/images/contes.jpg',
     },
     {
-      'title': 'Musiques',
+      'title': 'Devinette',
       'subtitle': 'Mélodies traditionnelles et chants qui expriment notre histoire.',
       'image_path': 'assets/images/musiques.jpg',
     },

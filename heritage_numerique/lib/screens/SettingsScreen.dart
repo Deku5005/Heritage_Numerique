@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'AppDrawer.dart';
 // Importations nécessaires pour l'intégration du service
 import 'package:heritage_numerique/model/MemberResponseModel.dart';
+// Le fichier MemberService.dart contient la classe FamilleMembreService
 import 'package:heritage_numerique/Service/MemberService.dart';
 import 'package:heritage_numerique/Service/auth-service.dart';
-// ✅ NOUVELLES IMPORTATIONS pour la gestion des invitations
+// Importations nécessaires pour la gestion des invitations
 import 'package:heritage_numerique/model/InvitationResponse.dart';
 import 'package:heritage_numerique/Service/InvitationService2.dart';
 
@@ -32,12 +33,16 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // 2. Déclaration et initialisation du MembreService et de l'AuthService
+  // 2. Déclaration et initialisation des services
   late final AuthService _authService;
-  late final MembreService _membreService;
-  // ✅ NOUVEAU: Service et Future pour les invitations
+  // Correction du type de classe
+  late final FamilleMembreService _membreService;
   late final InvitationService _invitationService;
-  late Future<MembreResponse> _membreDetailsFuture;
+
+
+  // 3. Déclaration du Future pour les détails du membre
+  // CHANGEMENT: Le Future renvoie la liste complète de la méthode fetchMembresByFamilleId
+  late Future<List<MembreResponse>> _membreDetailsListFuture;
   late Future<List<InvitationResponse>> _sentInvitationsFuture;
 
 
@@ -46,21 +51,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     // Initialisation des services
     _authService = AuthService();
-    _membreService = MembreService(_authService);
-    // ✅ NOUVEAU: Initialisation du service d'invitation
+    _membreService = FamilleMembreService(_authService);
     _invitationService = InvitationService(_authService);
 
-    // Lancement de la récupération des données
-    _membreDetailsFuture = _membreService.fetchMembreDetails();
 
-    // ✅ NOUVEAU: Lancement de la récupération des invitations envoyées
-    // Utilise l'ID de famille passé en paramètre
+    // CHANGEMENT MAJEUR: Appel de la méthode existante du service
+    // Celle-ci retourne une liste (qui contient 1 élément : le profil du membre)
+    _membreDetailsListFuture = _membreService.fetchMembresByFamilleId(familleId: widget.familyId);
     _sentInvitationsFuture = _invitationService.fetchFamilyInvitations(widget.familyId);
   }
 
   // --- Widgets de Construction de l'Écran ---
-
-  // ... (build et _buildCustomHeader restent inchangés)
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       length: 2, // Nombre d'onglets (Envoyées et Reçues)
       child: Scaffold(
         backgroundColor: _backgroundColor,
-        // 💡 familyId est passé à AppDrawer
+        // familyId est passé à AppDrawer
         drawer: AppDrawer(familyId: widget.familyId),
         body: SingleChildScrollView(
           padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
@@ -154,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 3. Mise à jour de la Section Profil pour être dynamique
+  // Section Profil pour être dynamique
   Widget _buildProfileSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,18 +169,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        // Utilisation de FutureBuilder pour gérer le chargement des données
-        FutureBuilder<MembreResponse>(
-          future: _membreDetailsFuture,
+        // CHANGEMENT: FutureBuilder attend une LISTE de MembreResponse
+        FutureBuilder<List<MembreResponse>>(
+          future: _membreDetailsListFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return _buildLoadingCard(); // Afficher le chargement
             } else if (snapshot.hasError) {
-              // Afficher l'erreur (peut être le message d'exception)
+              // Afficher l'erreur
               return _buildErrorCard(snapshot.error.toString().replaceFirst('Exception: ', ''));
             } else if (snapshot.hasData) {
-              // Données reçues : construire la carte de profil
-              final membre = snapshot.data!;
+              final List<MembreResponse> membres = snapshot.data!;
+
+              // VÉRIFICATION: On s'assure que la liste n'est pas vide et on prend le premier (le profil)
+              if (membres.isEmpty) {
+                return _buildErrorCard('Profil non trouvé. La famille est vide.');
+              }
+
+              final membre = membres.first;
               return _buildProfileCard(membre);
             }
             // Cas par défaut (ne devrait pas arriver souvent)
@@ -195,7 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Calcul des initiales (Première lettre du prénom + première lettre du nom)
     final String initiales = '${membre.prenom.isNotEmpty ? membre.prenom[0] : ''}${membre.nom.isNotEmpty ? membre.nom[0] : ''}'.toUpperCase();
     final String nomComplet = '${membre.prenom} ${membre.nom}';
-    // Logique simple pour la couleur du rôle (peut être étendue si besoin)
+    // Logique simple pour la couleur du rôle
     final Color roleBackgroundColor = membre.roleFamille.toLowerCase() == 'administrateur' ? _roleAdminColor : _searchBackground;
 
     return Container(
@@ -277,7 +284,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildDetailRow(
             icon: Icons.phone,
             label: 'Téléphone:',
-            value: membre.telephone.isNotEmpty ? membre.telephone : 'Non spécifié',
+            // ✅ Utilise numeroTelephone du modèle
+            value: membre.numeroTelephone.isNotEmpty ? membre.numeroTelephone : 'Non spécifié',
           ),
           _buildDetailRow(
             icon: Icons.language,
@@ -370,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ✅ NOUVELLE MÉTHODE : Traduit le statut du backend en affichage utilisateur
+  // Traduit le statut du backend en affichage utilisateur
   String _translateStatus(String status) {
     switch (status.toUpperCase()) {
       case 'ACCEPTEE':
@@ -428,7 +436,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     unselectedLabelColor: Colors.grey,
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                     tabs: const [
-                      // ✅ MISES À JOUR : Labels simplifiés pour le moment
                       Tab(text: 'Envoyées'),
                       Tab(text: 'Reçues'),
                     ],
@@ -443,7 +450,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     // Contenu de l'onglet "Envoyées" (Maintenant dynamique)
                     _buildSentInvitationsContent(),
-                    // Contenu de l'onglet "Reçues" (Vide pour le moment)
+                    // Contenu de l'onglet "Reçues" (Placeholder)
                     _buildReceivedInvitationsContent(),
                   ],
                 ),
@@ -455,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // ✅ MIS À JOUR : Contenu de l'onglet "Envoyées" (Utilise FutureBuilder)
+  // Contenu de l'onglet "Envoyées" (Utilise FutureBuilder)
   Widget _buildSentInvitationsContent() {
     return FutureBuilder<List<InvitationResponse>>(
       future: _sentInvitationsFuture,
@@ -521,7 +528,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Widget commun pour les cartes d'invitation (Mise à jour pour gérer le statut traduit)
+  // Widget commun pour les cartes d'invitation
   Widget _buildInvitationCard({
     required String name,
     required String email,

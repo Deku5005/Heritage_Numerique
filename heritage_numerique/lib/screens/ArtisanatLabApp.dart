@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'dart:async';
 
 // Importations de vos fichiers locaux :
 import 'package:heritage_numerique/screens/AppDrawer.dart';
 import 'package:heritage_numerique/service/ArtisanatService.dart';
 import 'package:heritage_numerique/model/ArtisanatModel.dart';
-
-// 💡 Importation de la nouvelle page de détails
 import 'package:heritage_numerique/screens/ArtisanatDetailsPage.dart';
 
 
-// --- Constantes de Couleurs Globales (tirées de CulturalContentScreen) ---
+// --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _searchBackground = Color(0xFFF7F2E8);
-const Color _buttonColor = Color(0xFF7B521A); // Couleur du bouton "Créer contenu"
+const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
-const Color _tagArtisanatColor = Color(0xFFC0A272); // Couleur pour les tags
+const Color _tagArtisanatColor = Color(0xFFC0A272);
+const Color _pendingColor = Colors.orange;
+const Color _publishedColor = Colors.green;
+const Color _rejectedColor = Color(0xFFD32F2E);
 
 // ----------------------------------------------
-// CLASSE WRAPPER : ArtisanatLabApp (Point d'entrée de navigation)
+// CLASSE WRAPPER : ArtisanatLabApp (Inchangé)
 // ----------------------------------------------
 class ArtisanatLabApp extends StatelessWidget {
   final int familyId;
@@ -32,14 +34,14 @@ class ArtisanatLabApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Artisanat Lab',
+      title: 'Artisanat ',
       home: ArtisanatLabPage(familyId: familyId),
     );
   }
 }
 
 // ----------------------------------------------
-// CLASSE PRINCIPALE : ArtisanatLabPage (StatefulWidget)
+// CLASSE PRINCIPALE : ArtisanatLabPage (Inchangé)
 // ----------------------------------------------
 class ArtisanatLabPage extends StatefulWidget {
   final int familyId;
@@ -51,33 +53,27 @@ class ArtisanatLabPage extends StatefulWidget {
 }
 
 class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
-  // 1. Initialisation du service et du Future
+
   final ArtisanatService _artisanatService = ArtisanatService();
   late Future<List<Artisanat>> _artisanatFuture;
 
   @override
   void initState() {
     super.initState();
-    // 2. Charger les données au démarrage
     _artisanatFuture = _fetchArtisanat();
   }
 
-  // 3. Méthode de récupération des données
   Future<List<Artisanat>> _fetchArtisanat() async {
     try {
-      // NOTE: Le token d'auth est géré à l'intérieur du service via AuthService
       return await _artisanatService.fetchArtisanatByFamilleId(
         familleId: widget.familyId,
       );
     } catch (e) {
-      // Gérer l'erreur de chargement ici (ex: afficher un message)
       print("Erreur de chargement des contenus Artisanat: $e");
-      // Renvoie une liste vide pour éviter le crash
       return [];
     }
   }
 
-  // 4. Fonction de rafraîchissement
   Future<void> _refreshContent() async {
     if (mounted) {
       setState(() {
@@ -86,7 +82,6 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
     }
   }
 
-  // Affichage du modal de création (Bouton "Créer contenu")
   void _showContentCreationModal(BuildContext context) {
     showDialog(
       context: context,
@@ -97,13 +92,11 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
         contentPadding: EdgeInsets.zero,
         content: _ArtisanatCreationForm(
           familyId: widget.familyId,
-          onContentCreated: _refreshContent, // Lier au rafraîchissement
+          onContentCreated: _refreshContent,
         ),
       ),
     );
   }
-
-  // --- Méthodes de construction de l'UI ---
 
   Widget _buildCustomHeader(BuildContext context) {
     return Builder(
@@ -164,7 +157,6 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
           ),
         ),
         const Spacer(),
-        // Bouton de filtrage
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -200,19 +192,19 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 10.0,
         mainAxisSpacing: 10.0,
-        // Ajustement du ratio pour laisser plus de place en hauteur (réduit le dépassement)
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.68,
       ),
       itemCount: artisanats.length,
       itemBuilder: (context, index) {
         return ContentContainer(
           artisanat: artisanats[index],
+          artisanatService: _artisanatService,
+          onActionComplete: _refreshContent,
         );
       },
     );
   }
 
-  // --- Méthode Build Principale ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,7 +234,6 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
                     _buildActionButtons(context),
                     const SizedBox(height: 20),
 
-                    // Utilisation de FutureBuilder pour gérer l'état de chargement
                     FutureBuilder<List<Artisanat>>(
                       future: _artisanatFuture,
                       builder: (context, snapshot) {
@@ -260,7 +251,6 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
                             ),
                           );
                         } else {
-                          // Afficher la grille avec les données
                           return _buildArtisanatGrid(snapshot.data!);
                         }
                       },
@@ -276,9 +266,9 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
   }
 }
 
-// ---
-// FORMULAIRE DE CRÉATION DE CONTENU D'ARTISANAT
-// ---
+// ----------------------------------------------------------------------------------
+// FORMULAIRE DE CRÉATION DE CONTENU D'ARTISANAT (Non modifié, conservé pour complétude)
+// ----------------------------------------------------------------------------------
 class _ArtisanatCreationForm extends StatefulWidget {
   final int familyId;
   final VoidCallback onContentCreated;
@@ -302,8 +292,6 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
   String? _errorMessage;
 
   final ArtisanatService _artisanatService = ArtisanatService();
-
-  // Catégorie 2 par défaut comme demandé
   final int _defaultIdCategorie = 2;
 
   final TextEditingController _titleController = TextEditingController();
@@ -322,7 +310,6 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
     super.dispose();
   }
 
-  // --- Sélection de fichier (Réutilisée) ---
   Future<void> _pickFile({
     required String type,
     required List<String> allowedExtensions,
@@ -362,7 +349,6 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
     }
   }
 
-  // --- Logique de Soumission (Intégration du service) ---
   Future<void> _submitArtisanat() async {
     if (_titleController.text.trim().isEmpty || _descriptionController.text.trim().isEmpty) {
       setState(() => _errorMessage = 'Le titre et la description sont obligatoires.');
@@ -394,14 +380,12 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
         );
       }
     } catch (e) {
-      // Afficher l'erreur du service API
       setState(() => _errorMessage = 'Échec de la création: ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- Widgets Utilitaires pour le Formulaire ---
   Widget _buildTextField(TextEditingController controller, String label, String hint, {int maxLines = 1, bool isRequired = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -523,18 +507,54 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
   }
 }
 
-// ---
-// WIDGET : ContentContainer (Carte d'artisanat DYNAMIQUE - CLICQUABLE)
-// ---
-class ContentContainer extends StatelessWidget {
+// -------------------------------------------------------------
+// WIDGET : ContentContainer (CORRIGÉ pour le statut REJETEE)
+// -------------------------------------------------------------
+class ContentContainer extends StatefulWidget {
   final Artisanat artisanat;
-  const ContentContainer({required this.artisanat, super.key});
+  final ArtisanatService artisanatService;
+  final VoidCallback onActionComplete;
+
+  const ContentContainer({
+    required this.artisanat,
+    required this.artisanatService,
+    required this.onActionComplete,
+    super.key,
+  });
+
+  @override
+  State<ContentContainer> createState() => _ContentContainerState();
+}
+
+class _ContentContainerState extends State<ContentContainer> {
+
+  // Status que nous gérons LOCAUX (en priorité)
+  late String _currentApiStatus;
+  bool _isRequesting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Utilisation du statut du contenu comme base
+    _currentApiStatus = widget.artisanat.statut.toUpperCase();
+  }
+
+  @override
+  void didUpdateWidget(covariant ContentContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Réinitialisation de l'état local avec le statut de l'Artisanat (BROUILLON, PUBLIE)
+    if (oldWidget.artisanat.statut != widget.artisanat.statut) {
+      _currentApiStatus = widget.artisanat.statut.toUpperCase();
+    }
+  }
+
 
   Widget _buildInfoCard(IconData icon, String text, [Color? color]) {
-    return Flexible( // Utilisation de Flexible pour éviter le dépassement horizontal
+    return Flexible(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
-        margin: const EdgeInsets.only(right: 4.0), // Marge entre les cards
+        margin: const EdgeInsets.only(right: 4.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(4.0),
@@ -543,12 +563,12 @@ class ContentContainer extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 10, color: color ?? Colors.blue), // Icône plus petite
+            Icon(icon, size: 10, color: color ?? Colors.blue),
             const SizedBox(width: 2),
-            Flexible( // Flexible pour le texte
+            Flexible(
               child: Text(
                 text,
-                style: TextStyle(fontSize: 9, color: Colors.grey[800]), // Texte plus petit
+                style: TextStyle(fontSize: 9, color: Colors.grey[800]),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -558,21 +578,129 @@ class ContentContainer extends StatelessWidget {
     );
   }
 
+  void _requestPublication() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isRequesting = true;
+    });
+
+    try {
+      final responseMap = await widget.artisanatService.requestPublication(contenuId: widget.artisanat.id);
+      final String newStatus = responseMap['newStatus'];
+
+      if (mounted) {
+        setState(() {
+          _currentApiStatus = newStatus.toUpperCase();
+          _isRequesting = false;
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Demande de publication réussie. Statut: $newStatus.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      widget.onActionComplete();
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Échec de la demande: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequesting = false;
+        });
+      }
+    }
+  }
+
+  // Logique de construction du badge (inchangée)
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String text;
+    IconData icon;
+
+    switch (status.toUpperCase()) {
+      case 'BROUILLON':
+        color = Colors.grey;
+        text = 'Brouillon';
+        icon = Icons.edit;
+        break;
+      case 'EN_ATTENTE':
+        color = _pendingColor;
+        text = 'En Attente...';
+        icon = Icons.schedule;
+        break;
+      case 'PUBLIE':
+      case 'APPROUVEE':
+        color = _publishedColor;
+        text = 'Validé';
+        icon = Icons.check_circle;
+        break;
+      case 'REJETEE':
+        color = _rejectedColor;
+        text = 'Rejeté';
+        icon = Icons.cancel; // Icône 'X' est représentée par Icons.cancel (ou Icons.close)
+        break;
+      default:
+        color = Colors.grey;
+        text = status;
+        icon = Icons.info;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    // URL de l'image (prend la première photo ou utilise un placeholder)
-    final String imageUrl = (artisanat.urlPhotos.isNotEmpty)
-        ? artisanat.urlPhotos.first
+    String displayStatus = _currentApiStatus;
+
+    // CORRECTION ICI : Le bouton s'affiche UNIQUEMENT pour BROUILLON.
+    final bool showPublicationButton = displayStatus == 'BROUILLON';
+
+
+    final String imageUrl = (widget.artisanat.urlPhotos.isNotEmpty)
+        ? widget.artisanat.urlPhotos.first
         : 'assets/images/Tapis.png';
 
-    final String auteurInitiales = (artisanat.prenomAuteur.isNotEmpty && artisanat.nomAuteur.isNotEmpty)
-        ? '${artisanat.prenomAuteur[0]}${artisanat.nomAuteur[0]}'
+    final String auteurInitiales = (widget.artisanat.prenomAuteur.isNotEmpty && widget.artisanat.nomAuteur.isNotEmpty)
+        ? '${widget.artisanat.prenomAuteur[0]}${widget.artisanat.nomAuteur[0]}'
         : '??';
 
-    final String auteurNomComplet = '${artisanat.prenomAuteur} ${artisanat.nomAuteur}';
+    final String auteurNomComplet = '${widget.artisanat.prenomAuteur} ${widget.artisanat.nomAuteur}';
 
-    // Pour la date
-    final dateDifference = DateTime.now().difference(artisanat.dateCreation);
+    final dateDifference = DateTime.now().difference(widget.artisanat.dateCreation);
     String dateDisplay;
     if (dateDifference.inHours < 24) {
       dateDisplay = 'il y a ${dateDifference.inHours} h';
@@ -580,12 +708,13 @@ class ContentContainer extends StatelessWidget {
       dateDisplay = 'il y a ${dateDifference.inDays} j';
     }
 
-    return GestureDetector( // 💡 Rendre la carte cliquable
+
+    return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ArtisanatDetailPage(artisanat: artisanat),
+            builder: (context) => ArtisanatDetailPage(artisanat: widget.artisanat),
           ),
         );
       },
@@ -635,14 +764,14 @@ class ContentContainer extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       _buildInfoCard(Icons.palette, 'Artisanat', Colors.blue),
-                      _buildInfoCard(Icons.place, artisanat.region ?? 'Inconnu', Colors.grey),
+                      _buildInfoCard(Icons.place, widget.artisanat.region ?? 'Inconnu', Colors.grey),
                     ],
                   ),
                   const SizedBox(height: 8),
 
                   // Titre
                   Text(
-                    artisanat.titre,
+                    widget.artisanat.titre,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -681,6 +810,48 @@ class ContentContainer extends StatelessWidget {
                         dateDisplay,
                         style: const TextStyle(fontSize: 9, color: Colors.grey),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Espace pour le badge ET le bouton
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Badge de statut (toujours affiché)
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: _buildStatusBadge(displayStatus),
+                        ),
+                      ),
+
+                      // Bouton de publication (conditionnellement affiché UNIQUEMENT pour BROUILLON)
+                      if (showPublicationButton)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: SizedBox(
+                            width: 100,
+                            child: ElevatedButton.icon(
+                              onPressed: _isRequesting ? null : _requestPublication,
+                              icon: _isRequesting
+                                  ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5))
+                                  : const Icon(Icons.send, size: 10, color: Colors.white),
+                              label: Text(
+                                  _isRequesting ? 'Envoi...' : 'Publier',
+                                  style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isRequesting ? Colors.blue.shade300 : Colors.blue.shade700,
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                elevation: 0,
+                                minimumSize: const Size(80, 25),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ],
