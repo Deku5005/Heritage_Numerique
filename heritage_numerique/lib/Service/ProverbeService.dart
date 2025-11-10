@@ -3,13 +3,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-// 💡 CORRECTION de l'import : le nom du fichier du modèle est 'ProverbeModel.dart'
-import '../model/PrvebeModel.dart'; // <-- Correction: était 'PrvebeModel.dart'
+
+import '../model/PrvebeModel.dart'; // Import du modèle Proverbe
 import 'Auth-service.dart'; // Import du service d'authentification
+import '../model/DemandePublication.dart'; // 💡 AJOUT DE L'IMPORT DU MODÈLE DE DEMANDE
 
 class ProverbeService {
-  // 💡 REMPLACEZ PAR VOTRE URL DE BASE RÉELLE (Doit correspondre à celle du modèle)
-  // Utilisation de la constante définie dans le modèle pour la cohérence
+  // BASE URL : Adresse du serveur local
   static const String _baseUrl = "http://10.0.2.2:8080";
 
   final AuthService _authService = AuthService();
@@ -51,7 +51,6 @@ class ProverbeService {
     request.fields['idFamille'] = idFamille.toString();
     request.fields['idCategorie'] = idCategorie.toString();
     request.fields['titre'] = titre;
-    // Les champs ci-dessous correspondent à la structure attendue par votre backend Java
     request.fields['origineProverbe'] = origineProverbe;
     request.fields['significationProverbe'] = significationProverbe;
     request.fields['texteProverbe'] = texteProverbe;
@@ -64,7 +63,7 @@ class ProverbeService {
       final File file = File(photoPath);
       if (await file.exists()) {
         request.files.add(await http.MultipartFile.fromPath(
-          'photoProverbe', // 🔑 NOM DU CHAMP CÔTÉ SERVEUR (Multipart)
+          'photoProverbe', // NOM DU CHAMP CÔTÉ SERVEUR (Multipart)
           photoPath,
         ));
       } else {
@@ -126,6 +125,59 @@ class ProverbeService {
         errorMessage += " Réponse brute: ${response.body}";
       }
       throw Exception(errorMessage);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // --- 3. NOUVELLE MÉTHODE : Demande de Publication (POST) ---
+  // -------------------------------------------------------------------
+
+  /// Envoie une demande de publication pour un contenu spécifique.
+  Future<Map<String, dynamic>> requestPublication({required int contenuId}) async {
+    final String? token = await _getAuthToken();
+
+    final String path = '/api/contenus/$contenuId/demander-publication';
+    final Uri uri = Uri.parse(_baseUrl).resolve(path);
+
+    print('DEBUG PROVERBE SERVICE: Tentative de demande de publication pour Contenu ID $contenuId : $uri');
+
+    try {
+      final http.Response response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({}),
+      );
+
+      print('Réponse POST $path: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> responseBody = json.decode(response.body);
+
+        // 💡 UTILISATION DU MODÈLE DemandePublication comme dans ArtisanatService
+        final demande = DemandePublication.fromJson(responseBody);
+
+        // Retourner l'ID du contenu et le statut de la DEMANDE (EN_ATTENTE)
+        return {
+          'contenuId': demande.idContenu,
+          'newStatus': demande.statut.toUpperCase(), // Ex: "EN_ATTENTE"
+        };
+
+      } else {
+        // Gérer les erreurs
+        String errorMessage = "Échec de la demande de publication (Statut: ${response.statusCode}).";
+        try {
+          final Map<String, dynamic> errorBody = json.decode(response.body);
+          errorMessage = errorBody['message'] ?? errorMessage;
+        } catch (_) {
+          errorMessage += " Réponse brute: ${response.body}";
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      throw Exception('Échec de la connexion réseau ou erreur de traitement : $e');
     }
   }
 }

@@ -111,7 +111,7 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
                   onPressed: () => Scaffold.of(innerContext).openDrawer(),
                 ),
                 const Text(
-                  'Artisanat Laba',
+                  'Artisanat Malien',
                   style: TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold, fontSize: 20),
                 ),
                 const SizedBox(width: 48),
@@ -267,7 +267,7 @@ class _ArtisanatLabPageState extends State<ArtisanatLabPage> {
 }
 
 // ----------------------------------------------------------------------------------
-// FORMULAIRE DE CRÉATION DE CONTENU D'ARTISANAT (Non modifié, conservé pour complétude)
+// FORMULAIRE DE CRÉATION DE CONTENU D'ARTISANAT (Inchangé)
 // ----------------------------------------------------------------------------------
 class _ArtisanatCreationForm extends StatefulWidget {
   final int familyId;
@@ -508,7 +508,7 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
 }
 
 // -------------------------------------------------------------
-// WIDGET : ContentContainer (CORRIGÉ pour le statut REJETEE)
+// WIDGET : ContentContainer (CORRIGÉ : Overflow, Taille Badge et Bouton)
 // -------------------------------------------------------------
 class ContentContainer extends StatefulWidget {
   final Artisanat artisanat;
@@ -625,7 +625,7 @@ class _ContentContainerState extends State<ContentContainer> {
     }
   }
 
-  // Logique de construction du badge (inchangée)
+  // Logique de construction du badge (MODIFIÉ POUR ÊTRE PLUS PETIT)
   Widget _buildStatusBadge(String status) {
     Color color;
     String text;
@@ -651,7 +651,7 @@ class _ContentContainerState extends State<ContentContainer> {
       case 'REJETEE':
         color = _rejectedColor;
         text = 'Rejeté';
-        icon = Icons.cancel; // Icône 'X' est représentée par Icons.cancel (ou Icons.close)
+        icon = Icons.cancel;
         break;
       default:
         color = Colors.grey;
@@ -661,7 +661,8 @@ class _ContentContainerState extends State<ContentContainer> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // Réduction du padding
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
@@ -670,11 +671,13 @@ class _ContentContainerState extends State<ContentContainer> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
+          // Réduction de l'icône
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
           Text(
             text,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+            // Réduction de la taille de police
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
           ),
         ],
       ),
@@ -686,7 +689,6 @@ class _ContentContainerState extends State<ContentContainer> {
   Widget build(BuildContext context) {
     String displayStatus = _currentApiStatus;
 
-    // CORRECTION ICI : Le bouton s'affiche UNIQUEMENT pour BROUILLON.
     final bool showPublicationButton = displayStatus == 'BROUILLON';
 
 
@@ -814,41 +816,39 @@ class _ContentContainerState extends State<ContentContainer> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Espace pour le badge ET le bouton
+                  // Espace pour le badge ET le bouton (CORRIGÉ POUR ÉVITER L'OVERFLOW)
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Badge de statut (toujours affiché)
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _buildStatusBadge(displayStatus),
-                        ),
-                      ),
+                      _buildStatusBadge(displayStatus),
+
+                      const Spacer(), // Ajout d'un Spacer pour prendre l'espace restant et repousser le bouton
 
                       // Bouton de publication (conditionnellement affiché UNIQUEMENT pour BROUILLON)
                       if (showPublicationButton)
                         Padding(
                           padding: const EdgeInsets.only(left: 8.0),
-                          child: SizedBox(
-                            width: 100,
-                            child: ElevatedButton.icon(
-                              onPressed: _isRequesting ? null : _requestPublication,
-                              icon: _isRequesting
-                                  ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5))
-                                  : const Icon(Icons.send, size: 10, color: Colors.white),
-                              label: Text(
-                                  _isRequesting ? 'Envoi...' : 'Publier',
-                                  style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isRequesting ? Colors.blue.shade300 : Colors.blue.shade700,
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                elevation: 0,
-                                minimumSize: const Size(80, 25),
-                              ),
+                          child: ElevatedButton.icon(
+                            onPressed: _isRequesting ? null : _requestPublication,
+                            // Réduction de la taille de l'icône
+                            icon: _isRequesting
+                                ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5))
+                                : const Icon(Icons.send, size: 10, color: Colors.white),
+                            label: Text(
+                                _isRequesting ? 'Envoi...' : 'Publier',
+                                // Réduction de la taille de police
+                                style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isRequesting ? Colors.blue.shade300 : Colors.blue.shade700,
+                              // Réduction du padding
+                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              elevation: 0,
+                              // Réduction de la taille minimale
+                              minimumSize: const Size(60, 20),
                             ),
                           ),
                         ),

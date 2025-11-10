@@ -1,11 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 // Import du service de stockage sécurisé
 import 'package:heritage_numerique/Service/token-storage-service.dart';
 import 'package:heritage_numerique/Service/Auth-service.dart';
 import 'package:heritage_numerique/Service/InvitationService.dart';
 import 'package:heritage_numerique/model/dashboard-models.dart';
+import 'package:heritage_numerique/screens/home_screen.dart';
+import 'package:heritage_numerique/screens/splash_screen.dart';
 import 'CreateFamilyAccountScreen.dart';
 import 'HomeDashboardScreen.dart';
+
+// Import de la page de connexion ou de l'écran de décision après déconnexion
+// NOTE: Nous utilisons SplashScreen car il gère l'état initial (authentifié ou non)
+import 'login_screen.dart';
 
 // NOUVEL IMPORT: Nécessaire pour décoder le JWT et extraire l'ID utilisateur de manière dynamique
 import 'dart:convert'; // Required for JWT decoding
@@ -15,6 +22,8 @@ const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _buttonOpacityColor = Color(0x87D9D9D9);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
+// 💡 NOUVELLE COULEUR : Marron Chocolat/Terre Cuite pour le bouton de navigation
+const Color _chocolateColor = Color(0xFF8B4513);
 
 
 class DashboardScreen extends StatefulWidget {
@@ -59,8 +68,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- NOUVELLE MÉTHODE: Extraction de l'ID utilisateur à partir du JWT ---
-  // Note: Cette implémentation est basique et suppose que votre JWT est standard.
-  // Vous devriez utiliser une librairie comme `dart_jsonwebtoken` pour une production sérieuse.
   int? _decodeJwtGetUserId(String token) {
     if (token.isEmpty) return null;
 
@@ -69,7 +76,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (parts.length != 3) return null;
 
       // Décodage du payload (partie 2 du JWT)
-      // Base64Url sans padding est courant pour les JWT
       String payload = parts[1].replaceAll('-', '+').replaceAll('_', '/');
       while (payload.length % 4 != 0) {
         payload += '=';
@@ -78,13 +84,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final Map<String, dynamic> payloadMap = jsonDecode(decodedPayload);
 
       // Assurez-vous que la clé 'userId' ou 'sub' correspond à votre structure JWT
-      // Nous cherchons 'userId' ou une autre clé contenant l'ID (généralement 'sub' ou 'id')
       if (payloadMap.containsKey('userId')) {
-        // Tente de convertir en int, si c'est un String
         return payloadMap['userId'] is String ? int.tryParse(payloadMap['userId']) : payloadMap['userId'] as int?;
       }
       if (payloadMap.containsKey('sub')) {
-        // Tente de convertir le champ 'subject'
         return payloadMap['sub'] is String ? int.tryParse(payloadMap['sub']) : payloadMap['sub'] as int?;
       }
       return null;
@@ -99,41 +102,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ----------------------------------------------------------------------
   Future<void> _loadUserSession() async {
     try {
-      // 1. Récupération dynamique du jeton depuis le service de stockage sécurisé
       final String? token = await _storageService.getAuthToken();
 
       if (mounted) {
-        // 2. Initialisation des variables de session
         _authToken = token;
-        _currentDashboardData = null; // Réinitialiser les données locales au chargement de session
+        _currentDashboardData = null;
 
-        // 4. Initialisation dynamique des services API avec le jeton récupéré
         if (_authToken != null && _authToken!.isNotEmpty) {
-          // --- DYNAMIQUE: Extraction de l'ID à partir du jeton ---
           _currentUserId = _decodeJwtGetUserId(_authToken!);
 
-          // 3. Vérification de la validité
           if (_currentUserId != null) {
-
-            // 4. Initialisation dynamique des services API (Le constructeur d'AuthService est maintenant corrigé)
             _authService = AuthService(authToken: _authToken!);
             _invitationService = InvitationService(_authToken!);
 
-            // 5. Lancement du fetch du dashboard
             _dashboardData = _authService.fetchPersonnelDashboard();
 
             setState(() {
               _isSessionReady = true;
             });
           } else {
-            // Jeton présent mais invalide/indécodable (pas d'ID)
             setState(() {
               _sessionError = "Jeton d'authentification invalide ou ID utilisateur introuvable.";
               _isSessionReady = true;
             });
           }
         } else {
-          // Gérer le cas où le jeton est manquant (utilisateur déconnecté, session expirée)
           setState(() {
             _sessionError = "Jeton d'authentification manquant. Veuillez vous connecter ou la session a expiré.";
             _isSessionReady = true;
@@ -150,12 +143,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-
   // ----------------------------------------------------------------------
-  // --- GESTION DES INVITATIONS (Modifiée pour mise à jour locale) ---
+  // --- GESTION DES INVITATIONS ---
   // ----------------------------------------------------------------------
   void _acceptInvitation(String invitationId) async {
-    // Vérification de sécurité avant l'appel API et des données locales
     if (_authToken == null || !_isSessionReady || _currentDashboardData == null) {
       _showSnackbar("Session non valide ou données manquantes. Veuillez vous reconnecter.", color: Colors.red);
       return;
@@ -177,21 +168,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
 
           if (invitationIndex != -1) {
-            // Si le modèle 'Invitation' a un copyWith, l'utiliser pour mettre à jour
             final updatedInvitation = _currentDashboardData!.invitationsEnAttente[invitationIndex].copyWith(
               statut: 'ACCEPTEE',
             );
 
-            // Mise à jour de l'objet dans la liste existante
             _currentDashboardData!.invitationsEnAttente[invitationIndex] = updatedInvitation;
 
-            // Mise à jour du compteur pour les statistiques (si l'API ne le gère pas après la réponse)
             _currentDashboardData = _currentDashboardData!.copyWith(
               nombreInvitationsEnAttente: _currentDashboardData!.nombreInvitationsEnAttente - 1,
               nombreFamillesAppartenance: _currentDashboardData!.nombreFamillesAppartenance + 1,
             );
           }
-          // L'UI se mettra à jour grâce au setState et utilisera le nouveau statut de l'invitation
         });
       }
     } catch (e) {
@@ -203,7 +190,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _refuseInvitation(String invitationId) async {
-    // Vérification de sécurité avant l'appel API et des données locales
     if (_authToken == null || !_isSessionReady || _currentDashboardData == null) {
       _showSnackbar("Session non valide ou données manquantes. Veuillez vous reconnecter.", color: Colors.red);
       return;
@@ -225,20 +211,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
 
           if (invitationIndex != -1) {
-            // Si le modèle 'Invitation' a un copyWith, l'utiliser pour mettre à jour
             final updatedInvitation = _currentDashboardData!.invitationsEnAttente[invitationIndex].copyWith(
               statut: 'REFUSEE',
             );
 
-            // Mise à jour de l'objet dans la liste existante
             _currentDashboardData!.invitationsEnAttente[invitationIndex] = updatedInvitation;
 
-            // Mise à jour du compteur pour les statistiques
             _currentDashboardData = _currentDashboardData!.copyWith(
               nombreInvitationsEnAttente: _currentDashboardData!.nombreInvitationsEnAttente - 1,
             );
           }
-          // L'UI se mettra à jour
         });
       }
     } catch (e) {
@@ -302,10 +284,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 20),
                 // Bouton de déconnexion/reconnexion
                 ElevatedButton(
-                  onPressed: () {
-                    // ⚠️ Logique de déconnexion/redirection ici
-                    _storageService.deleteAuthToken(); // Nettoyage du token
-                    // Normalement, vous navigueriez vers l'écran de connexion ici.
+                  onPressed: () async {
+                    // ⚠️ CORRECTION CLÉ: Appel de la déconnexion complète et redirection vers SplashScreen
+                    await AuthService().logout();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const SplashScreen()),
+                            (Route<dynamic> route) => false,
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: _mainAccentColor),
                   child: const Text('Aller à la Connexion', style: TextStyle(color: Colors.white)),
@@ -362,8 +349,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ElevatedButton(
                       onPressed: () {
                         setState(() {
-                          // On réutilise _authService qui a été initialisé avec le jeton
-                          // IMPORTANT: On réinitialise _currentDashboardData pour forcer l'utilisation de la nouvelle donnée
                           _currentDashboardData = null;
                           _dashboardData = _authService.fetchPersonnelDashboard();
                         });
@@ -380,7 +365,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // État de Succès (Données disponibles)
         if (snapshot.hasData) {
-          // Utiliser les données du snapshot pour la première fois, puis utiliser la variable d'état locale
           if (_currentDashboardData == null) {
             _currentDashboardData = snapshot.data!;
           }
@@ -393,9 +377,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: _mainAccentColor,
               onRefresh: () async {
                 setState(() {
-                  // Déclencher un nouvel appel API et réinitialiser les données locales
                   _dashboardData = _authService.fetchPersonnelDashboard();
-                  _currentDashboardData = null; // Assure que le snapshot est utilisé à nouveau
+                  _currentDashboardData = null;
                 });
                 await _dashboardData;
               },
@@ -411,18 +394,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         context,
                         data.nombreFamillesAppartenance,
                         data.nombreQuizCrees,
-                        data.invitationsEnAttente.length // Utiliser la longueur de la liste mise à jour
+                        data.invitationsEnAttente.length
                     ),
                     const SizedBox(height: 30),
                     _buildSectionTitle('Famille (${data.nombreFamillesAppartenance})'),
                     const SizedBox(height: 15),
                     _buildFamilyGrid(context, data.familles),
                     const SizedBox(height: 30),
-                    _buildSectionTitle('Invitation (${data.invitationsEnAttente.length})'), // Utiliser la longueur de la liste mise à jour
+                    _buildSectionTitle('Invitation (${data.invitationsEnAttente.length})'),
                     const SizedBox(height: 15),
                     _buildInvitationGrid(context, data.invitationsEnAttente),
                     const SizedBox(height: 30),
-                    _buildActionContainer(context),
+                    _buildActionContainer(context), // Contient les deux gros boutons
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -471,7 +454,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return GestureDetector(
       onTap: () {
-        // CORRECTION APPLIQUÉE : Passage obligatoire de familyId
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -711,7 +693,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildInvitationCard(BuildContext context, Invitation invitation) {
-    // Si l'invitation n'est plus en attente, les boutons sont remplacés par un statut visuel
     final bool isPending = invitation.statut == 'EN_ATTENTE';
     IconData statusIcon = Icons.access_time;
     Color statusColor = Colors.orange;
@@ -859,54 +840,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
       height: 30,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: iconColor.withOpacity(0.1), // Rendre le cercle un peu transparent
+        color: iconColor.withOpacity(0.1),
       ),
-      child: Icon(icon, color: iconColor, size: 20),
+      child: Center(
+        child: Icon(icon, size: 20, color: iconColor),
+      ),
     );
   }
 
+  // ----------------------------------------------------------------------
+  // --- CONTENEUR D'ACTIONS (Boutons en bas) ---
+  // ----------------------------------------------------------------------
   Widget _buildActionContainer(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Container(
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Ajouter d'autres actions ici
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Déconnexion',
-                  style: TextStyle(
-                    color: _cardTextColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+      child: Row(
+        children: [
+          // 1. Bouton de Navigation 'Découvrir le Patrimoine'
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Navigation vers le nouvel écran HomeScreen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HomeScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.public, size: 20, color: Colors.white),
+                label: const Text('Découvrir le Patrimoine', style: TextStyle(color: Colors.white, fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _chocolateColor,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 4,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.redAccent),
-                  onPressed: () {
-                    _storageService.deleteAuthToken();
-                    _showSnackbar('Déconnexion réussie. Veuillez vous reconnecter.', color: Colors.redAccent);
-                    // Redirection vers l'écran de connexion (à implémenter dans votre navigation principale)
-                  },
-                ),
-              ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // 2. Bouton "Déconnexion" (avec la CORRECTION DE REDIRECTION)
+          SizedBox(
+            width: 150,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                // ⚠️ CORRECTION APPLIQUÉE ICI
+                // 1. Appel du logout complet (supprime Token et ID Membre)
+                await AuthService().logout();
+
+                // 2. Redirection explicite vers l'écran de splash/connexion
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const SplashScreen()), // Remplacez par LoginScreen() si vous en avez un
+                        (Route<dynamic> route) => false, // Vider la pile de navigation
+                  );
+                }
+              },
+              icon: const Icon(Icons.logout, size: 20, color: _mainAccentColor),
+              label: const Text('Déconnexion', style: TextStyle(color: _mainAccentColor, fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: _mainAccentColor, width: 1.5),
+                ),
+                elevation: 4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

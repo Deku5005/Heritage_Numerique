@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:heritage_numerique/model/Recits_model.dart';
 import 'package:heritage_numerique/screens/ArtisanatLabApp.dart';
+import 'package:heritage_numerique/screens/DemandesAdminScreen.dart';
 import 'package:heritage_numerique/screens/Profil.dart';
 import 'package:heritage_numerique/screens/Proverbes.dart';
+import 'package:heritage_numerique/screens/dashboard_screen.dart';
 import 'package:heritage_numerique/screens/quiz.dart';
 import 'package:heritage_numerique/screens/quizScreen.dart';
 // Assurez-vous d'importer tous les écrans vers lesquels vous naviguez
@@ -207,7 +209,19 @@ class AppDrawer extends StatelessWidget {
                   _navigateToReplace(context, ProfilePage(familyId: safeFamilyId));
                 }),
 
-                // 13. Paramètre
+                // 13. Profil
+                _buildDrawerItem(Icons.pending_actions, 'Mes demandes', onTap: () {
+                  // 💡 C'est ici que AppDrawer appelle DemandesAdminScreen avec familyId
+                  _navigateToReplace(context, DemandesAdminScreen(familyId: safeFamilyId));
+                }),
+
+                // 13. Profil
+                _buildDrawerItem(Icons.dashboard_customize_outlined, 'Mon dashboard', onTap: () {
+                  // 💡 C'est ici que AppDrawer appelle DemandesAdminScreen avec familyId
+                  _navigateToReplace(context, DashboardScreen());
+                }),
+
+                // 14. Paramètre
                 _buildDrawerItem(Icons.settings_outlined, 'Paramètre', onTap: () {
                   // 💡 Retrait de 'const'
                   _navigateToReplace(context, SettingsScreen(familyId: safeFamilyId));

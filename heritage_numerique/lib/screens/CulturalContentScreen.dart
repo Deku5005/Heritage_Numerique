@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+// 💡 Assurez-vous que l'importation suivante est correcte :
 import 'package:heritage_numerique/model/Recits_model.dart';
 import '../service/RecitService.dart';
 import 'AppDrawer.dart';
@@ -15,6 +16,12 @@ const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
 const Color _tagRecitColor = Color(0xFFC0A272);
 
+// 💡 NOUVELLES COULEURS POUR LES STATUTS
+const Color _pendingColor = Colors.orange;
+const Color _publishedColor = Colors.green;
+const Color _rejectedColor = Color(0xFFD32F2E);
+
+
 // --- CulturalContentScreen : Widget d'État ---
 class CulturalContentScreen extends StatefulWidget {
   final int? familyId;
@@ -28,16 +35,30 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
   late Future<List<Recit>> _recitsFuture;
   final RecitService _recitService = RecitService();
 
+  // Filtrage (non implémenté, mais prêt pour les récits)
+  // List<Recit> _allRecits = [];
+  // List<Recit> _filteredRecits = [];
+  // final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _recitsFuture = _fetchRecits();
+    // _searchController.addListener(_filterRecits);
   }
+
+  // @override
+  // void dispose() {
+  //   _searchController.removeListener(_filterRecits);
+  //   _searchController.dispose();
+  //   super.dispose();
+  // }
 
   Future<List<Recit>> _fetchRecits() async {
     if (widget.familyId == null) {
       throw Exception("L'ID de la famille est manquant. Impossible de charger les récits.");
     }
+    // Mise à jour de la liste locale si vous ajoutez le filtrage
     return _recitService.fetchRecitsByFamilleId(familleId: widget.familyId!);
   }
 
@@ -165,137 +186,17 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
         childAspectRatio: 0.75,
       ),
       itemBuilder: (context, index) {
-        return _buildRecitCard(recits[index]);
+        // 💡 Utiliser le nouveau RecitCard
+        return RecitCard(
+          recit: recits[index],
+          recitService: _recitService,
+          onActionComplete: _refreshRecits,
+        );
       },
     );
   }
 
-  Widget _buildRecitCard(Recit recit) {
-    const Color typeColor = _tagRecitColor;
-    const String typeLabel = "Récit / Conte";
-
-    return InkWell(
-      onTap: () => _showRecitDetailsBottomSheet(context, recit),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: recit.urlPhoto.isNotEmpty ? Colors.grey.shade300 : _searchBackground,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                    image: recit.urlPhoto.isNotEmpty
-                        ? DecorationImage(
-                      image: NetworkImage(recit.urlPhoto),
-                      fit: BoxFit.cover,
-                    )
-                        : null,
-                  ),
-                  child: recit.urlPhoto.isEmpty
-                      ? Center(child: Icon(Icons.book, color: Colors.grey.shade500, size: 40))
-                      : null,
-                ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: typeColor,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: const Text(
-                      typeLabel,
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                // Langue (à remplir dynamiquement plus tard)
-                const Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    child: Text(
-                      'Langue',
-                      style: TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      recit.titre,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: _cardTextColor,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: _mainAccentColor.withOpacity(0.5),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              recit.nomAuteur.isNotEmpty ? recit.nomAuteur[0].toUpperCase() : '?',
-                              style: const TextStyle(color: Colors.white, fontSize: 10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            '${recit.prenomAuteur} ${recit.nomAuteur}',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          '${recit.dateCreation.day}/${recit.dateCreation.month}/${recit.dateCreation.year}',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // NOTE: La méthode _buildRecitCard est supprimée d'ici et transformée en RecitCard StatefulWidget
 
   Widget _buildCustomHeader(BuildContext context) {
     return Padding(
@@ -411,8 +312,359 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
   }
 }
 
+
+// -------------------------------------------------------------
+// NOUVEAU WIDGET : RecitCard (Gestion du Statut et Action de Publication)
+// -------------------------------------------------------------
+class RecitCard extends StatefulWidget {
+  final Recit recit;
+  final RecitService recitService;
+  final VoidCallback onActionComplete;
+
+  const RecitCard({
+    required this.recit,
+    required this.recitService,
+    required this.onActionComplete,
+    super.key,
+  });
+
+  @override
+  State<RecitCard> createState() => _RecitCardState();
+}
+
+class _RecitCardState extends State<RecitCard> {
+  // Initialisation à 'BROUILLON' si le statut de l'API est null
+  late String _currentApiStatus;
+  bool _isRequesting = false;
+  final String typeLabel = "Récit / Conte";
+  final Color typeColor = _tagRecitColor;
+
+  @override
+  void initState() {
+    super.initState();
+    // Correction de la null safety: utilise 'BROUILLON' si statut est null
+    _currentApiStatus = (widget.recit.statut ?? 'BROUILLON').toUpperCase();
+  }
+
+  @override
+  void didUpdateWidget(covariant RecitCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.recit.statut != widget.recit.statut) {
+      // Correction de la null safety
+      _currentApiStatus = (widget.recit.statut ?? 'BROUILLON').toUpperCase();
+    }
+  }
+
+  // --- Logique de la demande de publication ---
+  void _requestPublication() async {
+    if (!mounted || _isRequesting) return;
+
+    setState(() {
+      _isRequesting = true;
+    });
+
+    try {
+      // Appel du service de publication
+      final responseMap = await widget.recitService.requestPublication(contenuId: widget.recit.id!);
+      final String newStatus = responseMap['newStatus']; // Ex: EN_ATTENTE
+
+      if (mounted) {
+        setState(() {
+          _currentApiStatus = newStatus.toUpperCase(); // MAJ immédiate du statut local
+          _isRequesting = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Demande de publication réussie. Statut: $newStatus.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Déclencher le rafraîchissement de la liste principale
+        widget.onActionComplete();
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Échec de la demande: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequesting = false;
+        });
+      }
+    }
+  }
+
+  // --- Affichage du Badge de Statut ---
+  Widget _buildStatusBadge() {
+    Color color;
+    String text;
+    IconData icon;
+    final String status = _currentApiStatus;
+
+    switch (status) {
+      case 'BROUILLON':
+        color = Colors.grey.shade400;
+        text = 'Brouillon';
+        icon = Icons.edit;
+        break;
+      case 'EN_ATTENTE':
+        color = _pendingColor;
+        text = 'En Attente';
+        icon = Icons.schedule;
+        break;
+      case 'PUBLIE':
+        color = _publishedColor;
+        text = 'Publié';
+        icon = Icons.check_circle;
+        break;
+      case 'REJETE':
+        color = _rejectedColor;
+        text = 'Rejeté';
+        icon = Icons.cancel;
+        break;
+      default:
+        color = Colors.grey;
+        text = 'Inconnu';
+        icon = Icons.help_outline;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Construction du Bouton d'Action ---
+  Widget _buildActionButton() {
+    // Si la demande est en cours, afficher le chargement
+    if (_isRequesting) {
+      return SizedBox(
+          width: 15,
+          height: 15,
+          child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2)
+      );
+    }
+
+    // Si c'est un brouillon, afficher le bouton de demande de publication
+    if (_currentApiStatus == 'BROUILLON') {
+      return ElevatedButton.icon(
+        onPressed: _requestPublication,
+        icon: const Icon(Icons.send, color: Colors.white, size: 12),
+        label: const Text(
+          'Publier',
+          style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _mainAccentColor,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          elevation: 0,
+        ),
+      );
+    }
+
+    // Sinon, retourner un widget vide
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    void navigateToDetail() {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext sheetContext) => RecitDetailScreen(recit: widget.recit),
+      );
+    }
+
+    final String imageUrl = widget.recit.urlPhoto;
+    final bool hasImage = imageUrl.isNotEmpty;
+
+    return InkWell(
+      onTap: navigateToDetail,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                // Image/Placeholder
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: hasImage ? Colors.grey.shade300 : _searchBackground,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    image: hasImage
+                        ? DecorationImage(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                    )
+                        : null,
+                  ),
+                  child: !hasImage
+                      ? Center(child: Icon(Icons.book, color: Colors.grey.shade500, size: 40))
+                      : null,
+                ),
+
+                // Tag Type
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: typeColor,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      typeLabel,
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+
+                // Bouton Détail
+                Positioned(
+                  top: 5,
+                  right: 5,
+                  child: InkWell(
+                    onTap: navigateToDetail,
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(3.0),
+                      child: Icon(Icons.more_vert, color: Colors.white, size: 24),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Contenu Texte et Action
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.recit.titre,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: _cardTextColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    // Ligne Auteur et Date
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: _mainAccentColor.withOpacity(0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    widget.recit.nomAuteur.isNotEmpty ? widget.recit.nomAuteur[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  '${widget.recit.prenomAuteur} ${widget.recit.nomAuteur}',
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Date
+                        Text(
+                          '${widget.recit.dateCreation.day}/${widget.recit.dateCreation.month}/${widget.recit.dateCreation.year}',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        ),
+                      ],
+                    ),
+
+                    // 💡 LIGNE STATUT ET BOUTON D'ACTION
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildStatusBadge(),
+                        _buildActionButton(),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 // =====================================================================
-// --- FORMULAIRE DE CRÉATION (100% synchronisé avec RecitService) ---
+// --- FORMULAIRE DE CRÉATION (_ContentCreationForm - Inchangé) ---
 // =====================================================================
 class _ContentCreationForm extends StatefulWidget {
   final int familyId;

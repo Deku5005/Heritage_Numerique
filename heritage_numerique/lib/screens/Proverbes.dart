@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:async';
 
 // Importations dynamiques
 import '../model/PrvebeModel.dart'; // Import corrigé
@@ -16,6 +17,11 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
+// Nouvelles couleurs pour les statuts
+const Color _pendingColor = Colors.orange;
+const Color _publishedColor = Colors.green;
+const Color _rejectedColor = Color(0xFFD32F2E);
+
 
 // ----------------------------------------------
 // CLASSE PRINCIPALE : Proverbes (StatefulWidget)
@@ -113,155 +119,6 @@ class _ProverbesState extends State<Proverbes> {
     );
   }
 
-  // --- Widget pour un seul Proverbe (Container) ---
-  Widget _buildProverbeCard(BuildContext context, Proverbe proverbe) {
-    void navigateToDetail() {
-      // 💡 Navigation vers la page de détails avec l'objet Proverbe dynamique
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ProverbeDetailPage(proverbe: proverbe),
-        ),
-      );
-    }
-
-    // 💡 Déterminer l'URL de l'image (si null, utiliser un placeholder)
-    final String imageUrl = proverbe.urlPhoto ?? 'assets/images/placeholder.jpg';
-
-    // isNetworkImage est vrai si une URL est présente ET qu'elle commence par http/https (Asset si non-null et local)
-    // NOTE : Si proverbe.urlPhoto est null, imageUrl est l'asset, donc isNetworkImage est false.
-    final bool isNetworkImage = imageUrl.startsWith('http');
-
-    // 🔑 PRINT CRITIQUE POUR LE DIAGNOSTIC : AFFICHE L'URL EXACTE
-    print("DEBUG URL utilisée: $imageUrl (Réseau: $isNetworkImage)");
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _lightCardColor,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Image à gauche (Network ou Asset)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: isNetworkImage
-                ? Image.network(
-              imageUrl,
-              width: 90,
-              height: 90,
-              fit: BoxFit.cover,
-              // 💡 AJOUT DU DÉBOGAGE ICI
-              errorBuilder: (context, error, stackTrace) {
-                print("ERREUR CARTE PROVERBE (URL: $imageUrl): $error");
-                // Retourne un Asset en cas d'échec de chargement réseau
-                return Image.asset(
-                  'assets/images/placeholder.jpg',
-                  width: 90,
-                  height: 90,
-                  fit: BoxFit.cover,
-                );
-              },
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                // Afficher un indicateur pendant le chargement réseau
-                return Container(
-                  width: 90, height: 90,
-                  color: Colors.grey.shade200,
-                  child: const Center(child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2)),
-                );
-              },
-            )
-                : Image.asset(
-              imageUrl, // Utilise l'asset si isNetworkImage est false (donc urlPhoto était null/vide)
-              width: 90,
-              height: 90,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                  width: 90, height: 90, color: Colors.grey,
-                  child: const Icon(Icons.image_not_supported, color: Colors.white)),
-            ),
-          ),
-          const SizedBox(width: 15),
-
-          // 2. Texte et Bouton
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Texte du Proverbe (le texte du proverbe lui-même)
-                    Expanded(
-                      child: Text(
-                        '«${proverbe.proverbe}»',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: _cardTextColor,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-
-                    // Bouton Détail (haut à droite)
-                    InkWell(
-                      onTap: navigateToDetail,
-                      borderRadius: BorderRadius.circular(20),
-                      child: const Padding(
-                        padding: EdgeInsets.only(left: 8.0),
-                        child: Icon(Icons.more_vert, color: Colors.grey, size: 24),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Trait noir et Origine Proverbe (en jaune)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-                  child: Row(
-                    children: [
-                      // Trait
-                      Container(
-                        width: 30,
-                        height: 1,
-                        color: Colors.black,
-                        margin: const EdgeInsets.only(right: 8),
-                      ),
-                      // Texte jaune (Origine)
-                      Text(
-                        proverbe.origine,
-                        style: const TextStyle(
-                          color: _mainAccentColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // --- Méthode Build Principale ---
   @override
   Widget build(BuildContext context) {
@@ -336,7 +193,11 @@ class _ProverbesState extends State<Proverbes> {
                           // Afficher la liste filtrée
                           return Column(
                             children: _filteredProverbes.map((proverbe) {
-                              return _buildProverbeCard(context, proverbe);
+                              return ProverbeCard(
+                                proverbe: proverbe,
+                                proverbeService: _proverbeService,
+                                onActionComplete: _refreshContent, // Pour recharger les données après l'action
+                              );
                             }).toList(),
                           );
                         }
@@ -419,8 +280,335 @@ class _ProverbesState extends State<Proverbes> {
   }
 }
 
+// -------------------------------------------------------------
+// NOUVEAU WIDGET : ProverbeCard (Gestion du Statut et Action de Publication)
+// -------------------------------------------------------------
+class ProverbeCard extends StatefulWidget {
+  final Proverbe proverbe;
+  final ProverbeService proverbeService;
+  final VoidCallback onActionComplete;
+
+  const ProverbeCard({
+    required this.proverbe,
+    required this.proverbeService,
+    required this.onActionComplete,
+    super.key,
+  });
+
+  @override
+  State<ProverbeCard> createState() => _ProverbeCardState();
+}
+
+class _ProverbeCardState extends State<ProverbeCard> {
+
+  // Initialisation à 'BROUILLON' si le statut de l'API est null
+  late String _currentApiStatus;
+  bool _isRequesting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🔑 Correction de la null safety
+    _currentApiStatus = (widget.proverbe.statut ?? 'BROUILLON').toUpperCase();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProverbeCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.proverbe.statut != widget.proverbe.statut) {
+      // 🔑 Correction de la null safety
+      _currentApiStatus = (widget.proverbe.statut ?? 'BROUILLON').toUpperCase();
+    }
+  }
+
+  // --- Logique de la demande de publication (Identique à Artisanat) ---
+  void _requestPublication() async {
+    if (!mounted || _isRequesting) return;
+
+    setState(() {
+      _isRequesting = true;
+    });
+
+    try {
+      // 💡 Appel du service de publication
+      final responseMap = await widget.proverbeService.requestPublication(contenuId: widget.proverbe.id);
+      final String newStatus = responseMap['newStatus']; // Ex: EN_ATTENTE
+
+      if (mounted) {
+        setState(() {
+          _currentApiStatus = newStatus.toUpperCase(); // MAJ immédiate du statut local
+          _isRequesting = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Demande de publication réussie. Statut: $newStatus.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 💡 Déclencher le rafraîchissement de la liste principale (page parente)
+        widget.onActionComplete();
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Échec de la demande: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequesting = false;
+        });
+      }
+    }
+  }
+
+  // --- Affichage du Badge de Statut (Extrait du code précédent) ---
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String text;
+    IconData icon;
+
+    switch (status) {
+      case 'BROUILLON':
+        color = Colors.grey.shade400;
+        text = 'Brouillon';
+        icon = Icons.edit;
+        break;
+      case 'EN_ATTENTE':
+        color = _pendingColor;
+        text = 'En Attente...';
+        icon = Icons.schedule;
+        break;
+      case 'PUBLIE':
+        color = _publishedColor;
+        text = 'Publié';
+        icon = Icons.check_circle;
+        break;
+      case 'REJETE':
+        color = _rejectedColor;
+        text = 'Rejeté';
+        icon = Icons.cancel;
+        break;
+      default:
+        color = Colors.grey;
+        text = 'Inconnu';
+        icon = Icons.help_outline;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Construction du Bouton d'Action ---
+  Widget _buildActionButton() {
+    // Si la demande est en cours, afficher le chargement
+    if (_isRequesting) {
+      return SizedBox(
+          width: 15,
+          height: 15,
+          child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2)
+      );
+    }
+
+    // Si c'est un brouillon, afficher le bouton de demande de publication
+    if (_currentApiStatus == 'BROUILLON') {
+      return ElevatedButton.icon(
+        onPressed: _requestPublication,
+        icon: const Icon(Icons.send, color: Colors.white, size: 12),
+        label: const Text(
+          'Publier',
+          style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _mainAccentColor,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          elevation: 0,
+        ),
+      );
+    }
+
+    // Sinon, retourner un widget vide (ou le badge si on veut le statut affiché séparément)
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    void navigateToDetail() {
+      // Navigation vers la page de détails avec l'objet Proverbe dynamique
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProverbeDetailPage(proverbe: widget.proverbe),
+        ),
+      );
+    }
+
+    final String imageUrl = widget.proverbe.urlPhoto ?? 'assets/images/placeholder.jpg';
+    final bool isNetworkImage = imageUrl.startsWith('http');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _lightCardColor,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Image à gauche (Network ou Asset)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: isNetworkImage
+                ? Image.network(
+              imageUrl,
+              width: 90,
+              height: 90,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.asset('assets/images/placeholder.jpg', width: 90, height: 90, fit: BoxFit.cover);
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  width: 90, height: 90,
+                  color: Colors.grey.shade200,
+                  child: const Center(child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2)),
+                );
+              },
+            )
+                : Image.asset(
+              imageUrl,
+              width: 90,
+              height: 90,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                  width: 90, height: 90, color: Colors.grey,
+                  child: const Icon(Icons.image_not_supported, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(width: 15),
+
+          // 2. Texte et Action
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Texte du Proverbe
+                    Expanded(
+                      child: Text(
+                        '«${widget.proverbe.proverbe}»',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: _cardTextColor,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                    // Bouton Détail (haut à droite)
+                    InkWell(
+                      onTap: navigateToDetail,
+                      borderRadius: BorderRadius.circular(20),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.more_vert, color: Colors.grey, size: 24),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Trait noir et Origine Proverbe
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, bottom: 4.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 1,
+                        color: Colors.black,
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+                      Text(
+                        widget.proverbe.origine,
+                        style: const TextStyle(
+                          color: _mainAccentColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 🔑 SECTION MISE À JOUR : Statut et Bouton sur la même ligne
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween, // Aligner à gauche et à droite
+                  children: [
+                    // 1. Affichage du badge de statut (même si c'est BROUILLON)
+                    _buildStatusBadge(_currentApiStatus),
+
+                    // 2. Affichage du bouton d'action (UNIQUEMENT si BROUILLON)
+                    _buildActionButton(),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
 // ----------------------------------------------
-// FORMULAIRE DE CRÉATION DE PROVERBE (DYNAMIQUE)
+// FORMULAIRE DE CRÉATION DE PROVERBE (INCHANGÉ)
 // ----------------------------------------------
 class _ProverbeCreationForm extends StatefulWidget {
   final VoidCallback onProverbeCreated;
@@ -436,14 +624,12 @@ class __ProverbeCreationFormState extends State<_ProverbeCreationForm> {
   static const int MAX_PHOTO_SIZE_MB = 5;
 
   final ProverbeService _proverbeService = ProverbeService();
-  // 💡 Catégorie par défaut corrigée
   final int _idCategorie = 4;
 
   File? _selectedPhotoFile;
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Contrôleurs pour les champs de proverbe
   final TextEditingController _titreController = TextEditingController();
   final TextEditingController _proverbeTextController = TextEditingController();
   final TextEditingController _significationController = TextEditingController();
@@ -463,7 +649,7 @@ class __ProverbeCreationFormState extends State<_ProverbeCreationForm> {
     super.dispose();
   }
 
-  // --- Sélection de fichier ---
+  // --- Sélection de fichier (Inchangée) ---
   Future<void> _pickPhoto() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -494,9 +680,8 @@ class __ProverbeCreationFormState extends State<_ProverbeCreationForm> {
     }
   }
 
-  // --- Logique de Soumission (Utilisation du service) ---
+  // --- Logique de Soumission (Inchangée) ---
   Future<void> _submitProverbe() async {
-    // Validation des champs obligatoires (titre et texteProverbe)
     if (_titreController.text.trim().isEmpty ||
         _proverbeTextController.text.trim().isEmpty ||
         _significationController.text.trim().isEmpty ||
@@ -525,20 +710,19 @@ class __ProverbeCreationFormState extends State<_ProverbeCreationForm> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        widget.onProverbeCreated(); // Déclenche le rafraîchissement
+        widget.onProverbeCreated();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Proverbe créé avec succès !'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
-      // Afficher l'erreur du service API
       setState(() => _errorMessage = 'Échec de la création: ${e.toString().replaceFirst('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- Widgets Utilitaires pour le Formulaire ---
+  // --- Widgets Utilitaires pour le Formulaire (Inchangé) ---
   Widget _buildTextField(TextEditingController controller, String label, String hint, {int maxLines = 1, bool isRequired = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -625,7 +809,7 @@ class __ProverbeCreationFormState extends State<_ProverbeCreationForm> {
           _buildTextField(_lieuController, 'Lieu', 'Ex: Mali'),
           _buildTextField(_regionController, 'Région', 'Ex: Ségou'),
 
-          _buildPhotoPicker(), // Sélecteur d'image dynamique
+          _buildPhotoPicker(),
 
           if (_errorMessage != null)
             Padding(

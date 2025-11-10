@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async'; // Nécessaire pour Future
 // Importez les services et modèles requis
 import '../model/DevinetteModel.dart'; // Import du modèle Devinette
-// 💡 CORRECTION: Utilisation du chemin d'import réel que vous avez fourni
-// J'ai renommé en 'DevinetteApiService.dart' si c'est le nom du fichier
 import '../Service/DevinetteApiService.dart'; // Supposé être le chemin correct
 import 'AppDrawer.dart'; // Supposé exister
 
@@ -15,6 +13,12 @@ const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
 const Color _tagColor = Color(0xFF808080); // Gris pour les éléments spécifiques aux devinettes
+
+// 💡 NOUVELLES COULEURS POUR LES STATUTS (ajoutées ici pour la complétude)
+const Color _pendingColor = Colors.orange;
+const Color _publishedColor = Colors.green;
+const Color _rejectedColor = Color(0xFFD32F2E);
+
 
 // ------------------------------------------------
 // --- ÉCRAN PRINCIPAL : DevinettesDashScreen (Stateful) ---
@@ -35,6 +39,13 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
 
   // État de chargement et liste des données
   late Future<List<Devinette>> _devinettesFuture;
+  // ... (Autres états et contrôleurs de formulaire inchangés) ...
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _questionController = TextEditingController();
+  final _answerController = TextEditingController();
+  final int _idCategorieDefault = 1;
+
 
   @override
   void initState() {
@@ -43,22 +54,21 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
     _devinettesFuture = _fetchData();
   }
 
-  // Méthode pour recharger les devinettes après une création
-  void _refreshDevinettes() {
+  // Méthode pour recharger les devinettes après une création ou une action
+  Future<void> _refreshDevinettes() async {
     setState(() {
       _devinettesFuture = _fetchData();
     });
+    // Optionnel mais recommandé : Attendre que le futur se termine
+    await _devinettesFuture;
   }
 
   // Méthode pour charger les devinettes
   Future<List<Devinette>> _fetchData() async {
     try {
-      // Utilisez l'ID de famille passé au widget
       return await _apiService.fetchDevinettesByFamily(widget.familyId);
     } catch (e) {
-      // En cas d'erreur de chargement
       print("Erreur de chargement des devinettes : $e");
-      // Afficher un tableau vide ou relancer l'erreur pour le FutureBuilder
       rethrow;
     }
   }
@@ -67,14 +77,8 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
   // --- Fonctionnalité de Création (Popup) ---
   // ------------------------------------
 
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _questionController = TextEditingController();
-  final _answerController = TextEditingController();
-  // Catégorie est mise en dur pour l'exemple, à adapter
-  final int _idCategorieDefault = 1;
+  // (Méthodes _showCreateRiddleDialog et _handleCreateRiddle inchangées)
 
-  // Méthode pour afficher le dialogue de création
   void _showCreateRiddleDialog() {
     showDialog(
       context: context,
@@ -139,7 +143,6 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
     );
   }
 
-  // Logique d'envoi à l'API
   void _handleCreateRiddle(BuildContext dialogContext) async {
     Navigator.of(dialogContext).pop(); // Fermer le dialogue immédiatement
 
@@ -170,7 +173,6 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
       _answerController.clear();
     }
   }
-
 
   // ------------------------------------
   // --- Widgets de Construction de l'Écran ---
@@ -222,13 +224,12 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
     );
   }
 
-  // Mise à jour du widget pour appeler la fonction _showCreateRiddleDialog
   Widget _buildCreateButton() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
       child: ElevatedButton.icon(
-        onPressed: _showCreateRiddleDialog, // 💡 APPEL DU POPUP
+        onPressed: _showCreateRiddleDialog, // APPEL DU POPUP
         icon: const Icon(Icons.add, color: _backgroundColor),
         label: const Text(
           'Créer Devinette',
@@ -255,80 +256,89 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       drawer: AppDrawer(familyId: widget.familyId),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. En-tête (Menu Burger, Titre)
-            Builder(
-                builder: (BuildContext innerContext) {
-                  return _buildCustomHeader(innerContext);
-                }
-            ),
-            const SizedBox(height: 20),
-
-            // 2. Bouton "Créer Devinette"
-            _buildCreateButton(),
-            const SizedBox(height: 10),
-
-            // 3. Corps de la page (Titre, Recherche)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Titre de la section Devintettes
-                  const Text(
-                    'Devinettes mystérieuses',
-                    style: TextStyle(
-                      color: _cardTextColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Barre de recherche
-                  _buildSearchBar(),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-
-            // 4. Zone de Liste des Devinettes (Dynamique)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: FutureBuilder<List<Devinette>>(
-                future: _devinettesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Erreur: ${snapshot.error}. Impossible de charger les devinettes.', textAlign: TextAlign.center));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('Aucune devinette trouvée pour cette famille.'));
+      body: RefreshIndicator( // Ajout de RefreshIndicator pour recharger en tirant
+        onRefresh: _refreshDevinettes,
+        color: _mainAccentColor,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Important pour RefreshIndicator
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. En-tête (Menu Burger, Titre)
+              Builder(
+                  builder: (BuildContext innerContext) {
+                    return _buildCustomHeader(innerContext);
                   }
-
-                  // Données chargées avec succès
-                  final List<Devinette> devinettes = snapshot.data!;
-
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: devinettes.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 15.0),
-                        // Utiliser le widget mis à jour pour accepter Devinette
-                        child: _DevinetteCard(devinette: devinettes[index]),
-                      );
-                    },
-                  );
-                },
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              // 2. Bouton "Créer Devinette"
+              _buildCreateButton(),
+              const SizedBox(height: 10),
+
+              // 3. Corps de la page (Titre, Recherche)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Titre de la section Devintettes
+                    const Text(
+                      'Devinettes mystérieuses',
+                      style: TextStyle(
+                        color: _cardTextColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Barre de recherche
+                    _buildSearchBar(),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+
+              // 4. Zone de Liste des Devinettes (Dynamique)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: FutureBuilder<List<Devinette>>(
+                  future: _devinettesFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Erreur: ${snapshot.error}. Impossible de charger les devinettes.', textAlign: TextAlign.center));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('Aucune devinette trouvée pour cette famille.'));
+                    }
+
+                    // Données chargées avec succès
+                    final List<Devinette> devinettes = snapshot.data!;
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: devinettes.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 15.0),
+                          // 💡 Passer le service et la callback pour la gestion d'état
+                          child: _DevinetteCard(
+                            devinette: devinettes[index],
+                            apiService: _apiService, // Pass the service
+                            onActionComplete: _refreshDevinettes, // Pass the refresh callback
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -340,11 +350,16 @@ class _DevinettesDashScreenState extends State<DevinettesDashScreen> {
 // --- WIDGET D'UNE CARTE DE DEVIINETTE (STATEFUL) ---
 // ------------------------------------------------
 
-// Remplacement de _RiddleCard par _DevinetteCard et de Riddle par Devinette
 class _DevinetteCard extends StatefulWidget {
   final Devinette devinette;
+  final DevinetteApiService apiService; // Ajout du service
+  final VoidCallback onActionComplete; // Ajout de la callback
 
-  const _DevinetteCard({required this.devinette});
+  const _DevinetteCard({
+    required this.devinette,
+    required this.apiService,
+    required this.onActionComplete,
+  });
 
   @override
   State<_DevinetteCard> createState() => _DevinetteCardState();
@@ -353,11 +368,174 @@ class _DevinetteCard extends StatefulWidget {
 class _DevinetteCardState extends State<_DevinetteCard> {
   // État pour contrôler l'affichage de la réponse
   bool _showAnswer = false;
+  // État pour le statut et le chargement de l'API
+  late String _currentApiStatus;
+  bool _isRequesting = false;
+
+
+  @override
+  void initState() {
+    super.initState();
+    // 💡 Correction de la null safety
+    _currentApiStatus = (widget.devinette.statut ?? 'BROUILLON').toUpperCase();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DevinetteCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.devinette.statut != widget.devinette.statut) {
+      // 💡 Correction de la null safety
+      _currentApiStatus = (widget.devinette.statut ?? 'BROUILLON').toUpperCase();
+    }
+  }
+
+
+  // --- Logique de la demande de publication ---
+  void _requestPublication() async {
+    if (!mounted || _isRequesting) return;
+
+    setState(() {
+      _isRequesting = true;
+    });
+
+    try {
+      // Appel du service de publication
+      // Note: Assurez-vous que votre DevinetteApiService a bien une méthode requestPublication
+      final responseMap = await widget.apiService.requestPublication(contenuId: widget.devinette.id!);
+      final String newStatus = responseMap['newStatus']; // Ex: EN_ATTENTE
+
+      if (mounted) {
+        setState(() {
+          _currentApiStatus = newStatus.toUpperCase(); // MAJ immédiate du statut local
+          _isRequesting = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Demande de publication réussie. Statut: $newStatus.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Déclencher le rafraîchissement de la liste principale
+        widget.onActionComplete();
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Échec de la demande: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRequesting = false;
+        });
+      }
+    }
+  }
 
   void _toggleAnswerVisibility() {
     setState(() {
       _showAnswer = !_showAnswer;
     });
+  }
+
+  // --- Affichage du Badge de Statut ---
+  Widget _buildStatusBadge() {
+    Color color;
+    String text;
+    IconData icon;
+    final String status = _currentApiStatus;
+
+    switch (status) {
+      case 'BROUILLON':
+        color = Colors.grey.shade400;
+        text = 'Brouillon';
+        icon = Icons.edit;
+        break;
+      case 'EN_ATTENTE':
+        color = _pendingColor;
+        text = 'En Attente';
+        icon = Icons.schedule;
+        break;
+      case 'PUBLIE':
+        color = _publishedColor;
+        text = 'Publié';
+        icon = Icons.check_circle;
+        break;
+      case 'REJETE':
+        color = _rejectedColor;
+        text = 'Rejeté';
+        icon = Icons.cancel;
+        break;
+      default:
+        color = Colors.grey;
+        text = 'Inconnu';
+        icon = Icons.help_outline;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Construction du Bouton d'Action ---
+  Widget _buildActionButton() {
+    // Si la demande est en cours, afficher le chargement
+    if (_isRequesting) {
+      return SizedBox(
+          width: 15,
+          height: 15,
+          child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2)
+      );
+    }
+
+    // Si c'est un brouillon, afficher le bouton de demande de publication
+    if (_currentApiStatus == 'BROUILLON') {
+      return ElevatedButton.icon(
+        onPressed: _requestPublication,
+        icon: const Icon(Icons.send, color: Colors.white, size: 12),
+        label: const Text(
+          'Publier',
+          style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _mainAccentColor,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+          elevation: 0,
+        ),
+      );
+    }
+
+    // Sinon, retourner un widget vide
+    return const SizedBox.shrink();
   }
 
   @override
@@ -395,7 +573,6 @@ class _DevinetteCardState extends State<_DevinetteCard> {
               const SizedBox(width: 10),
               // Texte de la Question
               Expanded(
-                // Affiche le champ 'devinette' du modèle Devinette
                 child: Text(
                   widget.devinette.devinette,
                   style: const TextStyle(
@@ -423,7 +600,6 @@ class _DevinetteCardState extends State<_DevinetteCard> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    // Affiche le champ 'reponse' du modèle Devinette
                     widget.devinette.reponse,
                     style: const TextStyle(
                       fontSize: 16,
@@ -436,36 +612,51 @@ class _DevinetteCardState extends State<_DevinetteCard> {
               ],
             ),
 
-          // 3. Bouton Dynamique Afficher/Masquer la Réponse
-          GestureDetector(
-            onTap: _toggleAnswerVisibility,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                // Conteneur gris avec opacité faible
-                color: Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+          // 3. LIGNE ACTION : Bouton Afficher/Masquer + Statut + Bouton Publier
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 3.1 Bouton Afficher/Masquer la Réponse
+              GestureDetector(
+                onTap: _toggleAnswerVisibility,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _showAnswer ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: Colors.grey.shade600,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _showAnswer ? 'Masquer' : 'Réponse',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              child: Row(
+
+              // 3.2 Statut et Bouton de Publication (Alignés à droite)
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    _showAnswer ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: Colors.grey.shade600,
-                    size: 18,
-                  ),
+                  _buildStatusBadge(),
                   const SizedBox(width: 8),
-                  Text(
-                    _showAnswer ? 'Masquer la réponse' : 'Afficher la réponse',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  _buildActionButton(),
                 ],
               ),
-            ),
+            ],
           ),
         ],
       ),

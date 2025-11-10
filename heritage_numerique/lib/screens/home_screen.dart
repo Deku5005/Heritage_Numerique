@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/dashboard_screen.dart';
 import 'contes_screen.dart';
 import 'artisans_screen.dart';
 import 'music_screen.dart';
@@ -91,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                 // et revenir à l'écran de splash (la racine).
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const SplashScreen()),
+                  MaterialPageRoute(builder: (context) => const DashboardScreen()),
                       (Route<dynamic> route) => false, // Supprime toutes les routes précédentes
                 );
               },
