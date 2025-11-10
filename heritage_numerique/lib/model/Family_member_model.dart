@@ -12,7 +12,6 @@ class FamilyMemberModel {
   final String statut;
   final int idFamille;
   final String nomFamille;
-  // NOTE: 'bio' a été retiré pour coller aux champs vus dans les APIs précédentes.
 
   FamilyMemberModel({
     required this.id,
@@ -35,22 +34,30 @@ class FamilyMemberModel {
     return FamilyMemberModel(
       id: json['id'] as int,
       idUtilisateur: json['idUtilisateur'] as int,
-      nom: json['nom'] as String,
-      prenom: json['prenom'] as String,
-      email: json['email'] as String,
-      telephone: json['telephone'] as String,
-      ethnie: json['ethnie'] as String,
-      roleFamille: json['roleFamille'] as String,
-      lienParente: json['lienParente'] as String?,
-      // Utilisation d'une date par défaut ou de 'DateTime.tryParse' pour la robustesse
+
+      // ✅ Sécurité ajoutée pour toutes les Strings non-nullable du modèle :
+      nom: (json['nom'] as String?) ?? 'N/A',
+      prenom: (json['prenom'] as String?) ?? 'N/A',
+      email: (json['email'] as String?) ?? 'N/A',
+      telephone: (json['telephone'] as String?) ?? 'N/A',
+      ethnie: (json['ethnie'] as String?) ?? 'N/A',
+
+      // ✅ C'EST ICI QUE LE CRASH SE PRODUIT AVEC UN NULL
+      roleFamille: (json['roleFamille'] as String?) ?? 'LECTEUR',
+
+      lienParente: json['lienParente'] as String?, // Reste String?
+
       dateAjout: DateTime.tryParse(json['dateAjout'] as String? ?? '') ?? DateTime(0),
-      statut: json['statut'] as String,
+
+      // ✅ C'EST ICI QUE LE CRASH SE PRODUIT AVEC UN NULL
+      statut: (json['statut'] as String?) ?? 'INCONNU',
+
       idFamille: json['idFamille'] as int,
-      nomFamille: json['nomFamille'] as String,
+      nomFamille: (json['nomFamille'] as String?) ?? 'N/A',
     );
   }
 
-  /// Méthode pour le Request Body (Ajout d'un membre - non utilisé ici, mais maintenu).
+  /// Méthode pour le Request Body (non utilisée ici).
   Map<String, dynamic> toJsonForCreation() {
     return {
       "idFamille": idFamille,
