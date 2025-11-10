@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // Nécessaire pour les Futures
+import 'dart:async';
 
 // Imports de vos fichiers (vérifiez les chemins)
 import '../model/conte.dart';
 import '../Service/conteService.dart';
 import '../widgets/bottom_navigation_widget.dart';
-import 'affichage_contes_screen.dart';
+import 'affichage_contes_screen.dart'; // Écran de destination
 
 /// Écran affichant la liste des contes.
 class ContesScreen extends StatefulWidget {
@@ -26,6 +26,9 @@ class _ContesScreenState extends State<ContesScreen> {
   static const Color _accentColor = Color(0xFFD69301);
   static const Color _cardTextColor = Color(0xFF2E2E2E);
 
+  // URL DE BASE POUR LES IMAGES
+  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +36,7 @@ class _ContesScreenState extends State<ContesScreen> {
     _contesFuture = _conteService.getContes();
   }
 
-  // --- Méthode de construction principale (inchangée) ---
+  // --- Méthode de construction principale ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +67,6 @@ class _ContesScreenState extends State<ContesScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0),
-            // *** Changement ici : Remplacement de la grille statique par FutureBuilder ***
             sliver: _buildContesFutureBuilder(context),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 50)),
@@ -74,16 +76,15 @@ class _ContesScreenState extends State<ContesScreen> {
   }
 
   // ----------------------------------------------------
-  // --- NOUVELLE MÉTHODE : GESTION DU CHARGEMENT API ---
+  // --- GESTION DU CHARGEMENT API (FUTURE BUILDER) ---
   // ----------------------------------------------------
 
   Widget _buildContesFutureBuilder(BuildContext context) {
     return FutureBuilder<List<Conte>>(
       future: _contesFuture,
       builder: (context, snapshot) {
-        // 1. État d'erreur (ex: réseau coupé, erreur serveur)
         if (snapshot.hasError) {
-          print('Erreur FutureBuilder: ${snapshot.error}'); // Utile pour le debug
+          print('Erreur FutureBuilder: ${snapshot.error}');
           return SliverToBoxAdapter(
             child: Center(
               child: Padding(
@@ -98,7 +99,6 @@ class _ContesScreenState extends State<ContesScreen> {
           );
         }
 
-        // 2. État de chargement (en attente)
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SliverToBoxAdapter(
             child: Center(
@@ -110,7 +110,6 @@ class _ContesScreenState extends State<ContesScreen> {
           );
         }
 
-        // 3. État de réussite (données prêtes)
         if (snapshot.hasData) {
           final List<Conte> contes = snapshot.data!;
           if (contes.isEmpty) {
@@ -123,29 +122,26 @@ class _ContesScreenState extends State<ContesScreen> {
               ),
             );
           }
-          // Afficher la grille si les données sont présentes
           return _buildTalesGrid(context, contes);
         }
 
-        // Retour par défaut (ne devrait normalement pas être atteint)
         return const SliverToBoxAdapter(child: SizedBox.shrink());
       },
     );
   }
 
   // -------------------------------------------------------------------
-  // --- MÉTHODES EXISTANTES ADAPTÉES POUR UTILISER LA CLASSE CONTE ---
+  // --- MÉTHODES AUXILIAIRES ---
   // -------------------------------------------------------------------
 
-  // 1. Construction de l'en-tête (inchangée)
   Widget _buildHeader() {
-    return SliverAppBar(
+    return const SliverAppBar(
       backgroundColor: Colors.white,
       floating: true,
       snap: true,
       elevation: 0,
       centerTitle: true,
-      title: const Text(
+      title: Text(
         'Contes Traditionnels',
         style: TextStyle(
           color: _cardTextColor,
@@ -156,7 +152,6 @@ class _ContesScreenState extends State<ContesScreen> {
     );
   }
 
-  // 2. Barre de recherche simulée (inchangée)
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -175,7 +170,6 @@ class _ContesScreenState extends State<ContesScreen> {
     );
   }
 
-  // 3. Construction de la grille des contes (avec la List<Conte> réelle)
   Widget _buildTalesGrid(BuildContext context, List<Conte> contes) {
     return SliverGrid(
       delegate: SliverChildBuilderDelegate(
@@ -184,7 +178,7 @@ class _ContesScreenState extends State<ContesScreen> {
 
           return _buildTaleCard(
             context,
-            conte, // Passe l'objet Conte complet
+            conte,
           );
         },
         childCount: contes.length,
@@ -198,18 +192,26 @@ class _ContesScreenState extends State<ContesScreen> {
     );
   }
 
-  // 4. Construction d'une seule carte de conte (mise à jour)
-  Widget _buildTaleCard(
-      BuildContext context,
-      Conte conte, // Reçoit maintenant l'objet Conte
-      ) {
-    // Les champs de votre API sont maintenant utilisés
-    final String title = conte.titre;
-    final String subtitle = conte.description; // Utilisation de la description pour le sous-titre
-    final String imageUrl = conte.urlPhoto; // Utilisation de l'URL de la photo
+  // -------------------------------------------------------------------
+  // --- CARTE DU CONTE AVEC LOGIQUE D'URL ROBUSTE ---
+  // -------------------------------------------------------------------
 
-    // NOTE: Il faudra peut-être adapter l'écran AffichageContesScreen pour recevoir
-    // l'objet Conte plutôt que le Map de contenu multilingue statique.
+  Widget _buildTaleCard(BuildContext context, Conte conte) {
+    // *** LOGIQUE AJOUTÉE POUR VÉRIFIER L'URL ***
+    String imageUrl = conte.urlPhoto;
+
+    // Si l'URL de la photo ne commence PAS par 'http', nous ajoutons l'URL de base.
+    // Cela gère le cas où l'API renvoie soit un chemin relatif, soit une URL complète.
+    if (imageUrl.isNotEmpty && !imageUrl.toLowerCase().startsWith('http')) {
+      // Nous nous assurons qu'il n'y ait pas de double barre oblique
+      final String sanitizedPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+      imageUrl = '$_apiBaseUrlForImages/$sanitizedPath';
+    }
+
+    final String fullImageUrl = imageUrl; // Utilisation de l'URL ajustée
+
+    final String title = conte.titre;
+    final String subtitle = conte.description;
 
     return Container(
       decoration: BoxDecoration(
@@ -226,15 +228,15 @@ class _ContesScreenState extends State<ContesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image du conte (doit maintenant charger depuis une URL)
+          // Image du conte (chargement depuis le réseau)
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network( // Utilisation de Image.network
-                    imageUrl,
+                  Image.network(
+                    fullImageUrl, // << Utilisation de l'URL corrigée
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -250,12 +252,16 @@ class _ContesScreenState extends State<ContesScreen> {
                         ),
                       );
                     },
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: Center(
-                        child: Icon(Icons.menu_book, size: 40, color: _accentColor.withOpacity(0.8)),
-                      ),
-                    ),
+                    errorBuilder: (context, error, stackTrace) {
+                      // Utile pour le débogage: affiche l'URL qui a échoué
+                      print('Erreur de chargement d\'image pour le conte ${conte.titre}: $fullImageUrl');
+                      return Container(
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: Icon(Icons.menu_book, size: 40, color: _accentColor.withOpacity(0.8)),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -290,7 +296,7 @@ class _ContesScreenState extends State<ContesScreen> {
               ],
             ),
           ),
-          // Boutons "Lire" et "Quiz" (si présent)
+          // Boutons "Lire" et "Quiz"
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
@@ -298,13 +304,13 @@ class _ContesScreenState extends State<ContesScreen> {
               children: [
                 _buildActionButton(context, 'Lire', Icons.book, _accentColor,
                     onTap: () {
-                      // NOTE: Vous devez mettre à jour AffichageContesScreen
-                      // pour accepter l'objet Conte à la place du Map multilingue
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => AffichageContesScreen(conte: conte)));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Naviguer vers le détail du conte...'),
-                          backgroundColor: _accentColor,
+                      // *** NAVIGATION CORRIGÉE : Passage de l'objet Conte ***
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AffichageContesScreen(
+                            conte: conte,
+                          ),
                         ),
                       );
                     }),
@@ -340,7 +346,6 @@ class _ContesScreenState extends State<ContesScreen> {
     );
   }
 
-  // 5. Construction d'un bouton d'action. (inchangée)
   Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, {required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
