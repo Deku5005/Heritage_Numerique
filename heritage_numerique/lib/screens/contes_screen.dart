@@ -1,92 +1,39 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_widget.dart';
-import 'affichage_contes_screen.dart'; 
+import 'dart:async'; // Nécessaire pour les Futures
 
-/// Écran affichant la liste des contes pour la catégorie "Contes".
-class ContesScreen extends StatelessWidget {
+// Imports de vos fichiers (vérifiez les chemins)
+import '../model/conte.dart';
+import '../Service/conteService.dart';
+import '../widgets/bottom_navigation_widget.dart';
+import 'affichage_contes_screen.dart';
+
+/// Écran affichant la liste des contes.
+class ContesScreen extends StatefulWidget {
   const ContesScreen({super.key});
 
-  // Couleur principale Ocre Vif (D69301)
+  @override
+  State<ContesScreen> createState() => _ContesScreenState();
+}
+
+class _ContesScreenState extends State<ContesScreen> {
+
+  // Instance du service pour appeler l'API
+  final ConteService _conteService = ConteService();
+  // Future pour contenir le résultat de l'appel API
+  late Future<List<Conte>> _contesFuture;
+
+  // Constantes de style
   static const Color _accentColor = Color(0xFFD69301);
   static const Color _cardTextColor = Color(0xFF2E2E2E);
 
-  // Données de contes simulées (AVEC CONTENU MULTILINGUE COMPLET)
-  final List<Map<String, dynamic>> tales = const [
-    {
-      'subtitle': 'Un conte malien classique sur l\'intelligence et la malice face à la force brute.',
-      'image_path': 'assets/images/Lion.jpg',
-      'content': {
-        'Français': {
-          'title': 'Le Lion et le Lièvre Rusé',
-          'text': "Le lièvre Rusé et le lion est un conte populaire d'Afrique de l'Ouest. Le lièvre, petit et faible, utilise son intelligence pour tromper le lion, grand et fort. Cette histoire symbolise la victoire de l'esprit sur la force brute. Le lièvre parvient souvent à échapper aux pièges du lion, ou même à le faire tomber dans les siens, démontrant que la malice peut vaincre la puissance. C'est un conte largement répandu et apprécié pour sa morale sur l'ingéniosité. Le lièvre Rusé et le lion. Le lièvre Rusé et le lion. Le lièvre Rusé et le lion. Le lièvre Rusé et le lion. Le lièvre Rusé et le lion. Le lièvre Rusé et le lion. (Texte long en français)",
-          'narrator': 'Fanta Coulibaly',
-          'duration': '5:30 min',
-        },
-        'Bambara': {
-          'title': 'Jara ni Sulukalɛ', // Jara = Lion, Sulukalɛ = Lièvre
-          'text': "Sulukalɛ ni Jara ye Mali jamanadenw ka jɛgɛnw dɔ ye. Sulukalɛ, dɔgɔman ani barika tɛ, a bɛ a ka hakiliw kɛ ka Jara wili, bamanankɛ ani barikama. Tariku in bɛ hakili ka dɛsɛ yira barika kɔnɔ. A ka ɲi ka fɔ ko Sulukalɛ bɛ minɛnɔgɔw bɛɛ tiɲɛ, ani a bɛ Jara yɛrɛ lajɛ. (Texte long en bambara)",
-          'narrator': 'Sékou Traoré',
-          'duration': '6:15 min',
-        },
-        'Anglais': {
-          'title': 'The Lion and the Cunning Hare',
-          'text': "The Cunning Hare and the Lion is a popular tale from West Africa. The hare, small and weak, uses its intelligence to trick the lion, big and strong. This story symbolizes the victory of wit over brute force. The hare often manages to escape the lion's traps, or even make the lion fall into its own, demonstrating that cunning can overcome power. (Long text in English)",
-          'narrator': 'Aminata Cissé',
-          'duration': '5:00 min',
-        },
-      },
-    },
-    {
-      'subtitle': 'L\'histoire d\'un arbre millénaire qui détient le savoir des ancêtres.',
-      'image_path': 'assets/images/Baobab.jpg',
-      'content': {
-        'Français': {
-          'title': 'La Sagesse du Vieux Baobab',
-          'text': "Le vieux Baobab est un témoin silencieux de l'histoire du Mali. Il a vu des générations passer et détient la sagesse des anciens. C'est un lieu de rassemblement et de médiation. Ses racines sont profondément ancrées dans la terre, tout comme la culture malienne dans l'histoire. Ce conte parle de respect, de nature, et de la transmission du savoir intergénérationnel. (Texte long en français)",
-          'narrator': 'Amadou Traoré',
-          'duration': '4:00 min',
-        },
-        'Bambara': {
-          'title': 'Sankalan Ba Kolo Ba Hakili',
-          'text': "Sankalan Ba Kolo Ba ye Mali tariku ka sebere gɛlɛn dɔ ye. A ye mɔgɔ kɔrɔw ye ka tɛmɛ, ani a bɛ kɔrɔw ka hakili mara. A ye jɔyɔrɔ dɔ ye ka mɔgɔw lajɛ ani ka hakili kɛ. (Texte long en bambara)",
-          'narrator': 'Amadou Traoré',
-          'duration': '4:30 min',
-        },
-        'Anglais': {
-          'title': 'The Wisdom of the Old Baobab',
-          'text': "The old Baobab tree is a silent witness to the history of Mali. It has seen generations pass and holds the wisdom of the elders. It is a place of gathering and meditation. Its roots are deeply anchored in the earth, just like Malian culture in history. (Long text in English)",
-          'narrator': 'Aminata Cissé',
-          'duration': '3:45 min',
-        },
-      },
-    },
-    {
-      'subtitle': 'La jeunesse du fondateur de l\'Empire du Mali et ses épreuves.',
-      'image_path': 'assets/images/Djata.jpg',
-      'content': {
-        'Français': {
-          'title': 'L\'Initiation de Soundjata',
-          'text': "Soundjata Keita, le fondateur de l'Empire du Mali, n'a pas eu une jeunesse facile. Né infirme, il a surmonté de nombreuses épreuves pour devenir le 'Maître du Mandé'. Ce conte épique raconte son initiation, ses combats, et comment il a unifié les peuples pour créer l'un des plus grands empires de l'histoire de l'Afrique de l'Ouest. C'est un récit de courage, de destinée et de leadership. (Texte long en français)",
-          'narrator': 'Mariam Diarra',
-          'duration': '8:00 min',
-        },
-        'Bambara': {
-          'title': 'Sunjata Ka Ladili',
-          'text': "Sunjata Kɛyta, Mali Mansamara datigɛla, a ka dencɛya tun tɛ nɔgɔn na. A jiginna ni gɛlɛya ye, a ye gɛlɛyaw bɛɛ kɔnɔ ka kɛ 'Mandɛ Kuntigi' ye. Tariku in bɛ a ka ladili, a ka kɛlɛw, ani a ka mɔgɔw ka ɲɔgɔn sɔrɔ yɔrɔ jira. (Texte long en bambara)",
-          'narrator': 'Mariam Diarra',
-          'duration': '8:45 min',
-        },
-        'Anglais': {
-          'title': 'The Initiation of Sundiata',
-          'text': "Sundiata Keita, the founder of the Mali Empire, did not have an easy youth. Born disabled, he overcame many trials to become the 'Master of Mandé'. This epic tale tells of his initiation, his battles, and how he unified the people to create one of the largest empires in West African history. It is a story of courage, destiny, and leadership. (Long text in English)",
-          'narrator': 'Aminata Cissé',
-          'duration': '7:30 min',
-        },
-      },
-    },
-    // Vous pouvez ajouter plus de contes ici
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Déclenchement de l'appel API lors de l'initialisation de l'état
+    _contesFuture = _conteService.getContes();
+  }
 
+  // --- Méthode de construction principale (inchangée) ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,7 +64,8 @@ class ContesScreen extends StatelessWidget {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0),
-            sliver: _buildTalesGrid(context),
+            // *** Changement ici : Remplacement de la grille statique par FutureBuilder ***
+            sliver: _buildContesFutureBuilder(context),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 50)),
         ],
@@ -125,7 +73,71 @@ class ContesScreen extends StatelessWidget {
     );
   }
 
-  /// 1. Construction de l'en-tête (AppBar)
+  // ----------------------------------------------------
+  // --- NOUVELLE MÉTHODE : GESTION DU CHARGEMENT API ---
+  // ----------------------------------------------------
+
+  Widget _buildContesFutureBuilder(BuildContext context) {
+    return FutureBuilder<List<Conte>>(
+      future: _contesFuture,
+      builder: (context, snapshot) {
+        // 1. État d'erreur (ex: réseau coupé, erreur serveur)
+        if (snapshot.hasError) {
+          print('Erreur FutureBuilder: ${snapshot.error}'); // Utile pour le debug
+          return SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(30.0),
+                child: Text(
+                  '⚠️ Erreur de chargement: ${snapshot.error.toString().replaceAll("Exception:", "")}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // 2. État de chargement (en attente)
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 50.0),
+                child: CircularProgressIndicator(color: _accentColor),
+              ),
+            ),
+          );
+        }
+
+        // 3. État de réussite (données prêtes)
+        if (snapshot.hasData) {
+          final List<Conte> contes = snapshot.data!;
+          if (contes.isEmpty) {
+            return const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 30.0),
+                  child: Text('Aucun conte trouvé pour l\'instant.'),
+                ),
+              ),
+            );
+          }
+          // Afficher la grille si les données sont présentes
+          return _buildTalesGrid(context, contes);
+        }
+
+        // Retour par défaut (ne devrait normalement pas être atteint)
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      },
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // --- MÉTHODES EXISTANTES ADAPTÉES POUR UTILISER LA CLASSE CONTE ---
+  // -------------------------------------------------------------------
+
+  // 1. Construction de l'en-tête (inchangée)
   Widget _buildHeader() {
     return SliverAppBar(
       backgroundColor: Colors.white,
@@ -144,7 +156,7 @@ class ContesScreen extends StatelessWidget {
     );
   }
 
-  /// 2. Barre de recherche simulée.
+  // 2. Barre de recherche simulée (inchangée)
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -163,24 +175,19 @@ class ContesScreen extends StatelessWidget {
     );
   }
 
-  /// 3. Construction de la grille des contes.
-  Widget _buildTalesGrid(BuildContext context) {
+  // 3. Construction de la grille des contes (avec la List<Conte> réelle)
+  Widget _buildTalesGrid(BuildContext context, List<Conte> contes) {
     return SliverGrid(
       delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final tale = tales[index];
-          // Nous prenons les données initiales du français pour l'affichage de la carte
-          final frenchContent = tale['content']['Français'] as Map<String, String>; 
-          
+            (context, index) {
+          final conte = contes[index];
+
           return _buildTaleCard(
             context,
-            frenchContent['title']!, // Titre par défaut (Français)
-            tale['subtitle']!,
-            tale['image_path']!,
-            tale['content'] as Map<String, Map<String, String>>, // Passe TOUTES les données de contenu
+            conte, // Passe l'objet Conte complet
           );
         },
-        childCount: tales.length,
+        childCount: contes.length,
       ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -191,14 +198,19 @@ class ContesScreen extends StatelessWidget {
     );
   }
 
-  /// 4. Construction d'une seule carte de conte.
+  // 4. Construction d'une seule carte de conte (mise à jour)
   Widget _buildTaleCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    String imagePath,
-    Map<String, Map<String, String>> allContent, // Le nouveau paramètre
-  ) {
+      BuildContext context,
+      Conte conte, // Reçoit maintenant l'objet Conte
+      ) {
+    // Les champs de votre API sont maintenant utilisés
+    final String title = conte.titre;
+    final String subtitle = conte.description; // Utilisation de la description pour le sous-titre
+    final String imageUrl = conte.urlPhoto; // Utilisation de l'URL de la photo
+
+    // NOTE: Il faudra peut-être adapter l'écran AffichageContesScreen pour recevoir
+    // l'objet Conte plutôt que le Map de contenu multilingue statique.
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -214,16 +226,30 @@ class ContesScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image du conte
+          // Image du conte (doit maintenant charger depuis une URL)
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    imagePath,
+                  Image.network( // Utilisation de Image.network
+                    imageUrl,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: _accentColor.withOpacity(0.8),
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey[300],
                       child: Center(
@@ -264,34 +290,47 @@ class ContesScreen extends StatelessWidget {
               ],
             ),
           ),
-          // Boutons "Lire" et "Partager"
+          // Boutons "Lire" et "Quiz" (si présent)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildActionButton(context, 'Lire', Icons.book, _accentColor, 
-                  onTap: () {
-                    // Navigation vers l'écran de détail AVEC le bloc de contenu multilingue
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AffichageContesScreen(
-                          allContent: allContent, // LE PARAMÈTRE CLÉ
-                          imagePath: imagePath,
+                _buildActionButton(context, 'Lire', Icons.book, _accentColor,
+                    onTap: () {
+                      // NOTE: Vous devez mettre à jour AffichageContesScreen
+                      // pour accepter l'objet Conte à la place du Map multilingue
+                      // Navigator.push(context, MaterialPageRoute(builder: (context) => AffichageContesScreen(conte: conte)));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Naviguer vers le détail du conte...'),
+                          backgroundColor: _accentColor,
                         ),
-                      ),
-                    );
-                  }),
-                _buildActionButton(context, 'Partager', Icons.share, Colors.grey, 
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Partager : Partager'),
-                        backgroundColor: Colors.grey,
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+
+                // Afficher le bouton Quiz SEULEMENT si conte.quiz n'est pas null
+                if (conte.quiz != null)
+                  _buildActionButton(context, 'Quiz', Icons.question_answer, Colors.green,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Lancer le Quiz: ${conte.quiz!.titre}'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }),
+
+                if (conte.quiz == null)
+                  _buildActionButton(context, 'Partager', Icons.share, Colors.grey,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Partager ce conte.'),
+                            backgroundColor: Colors.grey,
+                          ),
+                        );
+                      }),
               ],
             ),
           ),
@@ -301,7 +340,7 @@ class ContesScreen extends StatelessWidget {
     );
   }
 
-  /// 5. Construction d'un bouton d'action.
+  // 5. Construction d'un bouton d'action. (inchangée)
   Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, {required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
