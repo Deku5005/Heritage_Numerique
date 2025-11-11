@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation_widget.dart';
-import '../model/conte.dart'; // Importez le modèle Conte
-import '../model/quiz.dart'; // Assurez-vous d'importer le modèle Quiz
+import '../model/conte.dart';
+import '../model/quiz.dart';
+import '../model/question.dart';
+import '../model/proposition.dart';
 
-/// Écran affichant les détails et le contenu d'un conte traditionnel Malien.
+// *** AJOUT NÉCESSAIRE ***
+// Assurez-vous que le chemin ci-dessous correspond à l'emplacement réel de QuizScreen
+import '../screens/quizscreenn.dart';
+
+/// Écran affichant les détails et le contenu d'un conte traditionnel Malien,
+/// y compris le quiz et les questions associées s'ils existent.
 class AffichageContesScreen extends StatefulWidget {
 
-  // *** NOUVEAUX PARAMÈTRES POUR ACCEPTER L'OBJET CONTE DE L'API ***
   final Conte conte;
 
   const AffichageContesScreen({
     super.key,
     required this.conte,
-    // Les anciens paramètres allContent et imagePath ne sont plus nécessaires ici
   });
 
   @override
@@ -41,7 +46,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
       'section_title': 'Informations',
       'narrator': 'Conteur',
       'language': 'Langue sélectionnée',
-      'duration': 'Fichier/Durée', // Adapté pour le lien
+      'duration': 'Fichier/Durée',
       'date': 'Date de publication',
     },
     'Bambara': {
@@ -60,24 +65,21 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     },
   };
 
-  // --- NOUVEAU : Simulation des données multilingues à partir de l'objet Conte ---
-  // C'est la clé pour faire fonctionner votre ancien code d'affichage.
+  // Simulation des données multilingues
   late Map<String, Map<String, String>> _simulatedAllContent;
 
   @override
   void initState() {
     super.initState();
 
-    // Simuler que le titre et la description de l'API sont en Français.
-    // Si votre API supporte réellement plusieurs langues, ce mapping doit être plus complexe.
     final String fullNarratorName = '${widget.conte.prenomAuteur} ${widget.conte.nomAuteur}';
 
     _simulatedAllContent = {
       'Français': {
         'title': widget.conte.titre,
-        'text': widget.conte.description, // Utilise la description comme corps du texte
+        'text': widget.conte.description,
         'narrator': fullNarratorName,
-        'duration': widget.conte.urlFichier, // Utilise l'URL du fichier audio/PDF comme 'durée'
+        'duration': widget.conte.urlFichier,
       },
       // Simuler des traductions pour que le sélecteur fonctionne
       'Bambara': {
@@ -94,19 +96,18 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
       },
     };
 
-    // Initialisation basée sur les langues disponibles dans la simulation
     _selectedLanguage = _simulatedAllContent.keys.firstWhere(
           (lang) => _languages.contains(lang),
       orElse: () => _languages.first,
     );
   }
 
-  /// Fonction utilitaire pour obtenir les données du conte pour la langue sélectionnée
+  // --- Fonctions Utilitaires ---
+
   Map<String, String> _getCurrentTaleData() {
     return _simulatedAllContent[_selectedLanguage] ?? _simulatedAllContent['Français']!;
   }
 
-  /// Fonction utilitaire pour obtenir les libellés traduits
   Map<String, String> _getCurrentLabels() {
     return _infoLabels[_selectedLanguage] ?? _infoLabels['Français']!;
   }
@@ -114,14 +115,11 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Récupère les données dynamiques du conte
     final currentData = _getCurrentTaleData();
     final title = currentData['title']!;
     final contentText = currentData['text']!;
     final narrator = currentData['narrator']!;
-    final duration = currentData['duration']!; // Qui est maintenant l'URL du fichier
-
-    // Récupère les libellés traduits
+    final duration = currentData['duration']!;
     final currentLabels = _getCurrentLabels();
 
     return Scaffold(
@@ -136,21 +134,20 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
             children: [
               const SizedBox(height: 10),
 
-              // --- 1. SÉLECTEUR DE LANGUE (Dropdown) ---
               _buildLanguageSelector(context),
               const SizedBox(height: 15),
 
-              // --- 2. CARTE AUDIO (Lecteur) ---
               _buildAudioCard(context, title, narrator),
               const SizedBox(height: 30),
 
-              // *** AJOUT CLÉ : Affichage Conditionnel du Quiz ***
+              // *** LOGIQUE D'AFFICHAGE DU QUIZ ET DES QUESTIONS ***
               if (widget.conte.quiz != null)
                 _buildQuizSection(context, widget.conte.quiz!),
               if (widget.conte.quiz != null)
                 const SizedBox(height: 30),
+              // *************************************************
 
-              // --- 3. TEXTE DU CONTE (Dynamique) ---
+              // --- TEXTE DU CONTE ---
               Text(
                 contentText,
                 style: const TextStyle(
@@ -162,7 +159,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
               ),
               const SizedBox(height: 30),
 
-              // --- 4. SECTION INFORMATIONS (Dynamique) ---
+              // --- SECTION INFORMATIONS ---
               _buildInformationSection(currentLabels, narrator, duration),
               const SizedBox(height: 40),
             ],
@@ -174,7 +171,6 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
 
   // --- WIDGETS DE STRUCTURE ---
 
-  /// Barre d'application personnalisée pour le titre et le bouton de retour.
   AppBar _buildAppBar(BuildContext context, String title) {
     return AppBar(
       backgroundColor: Colors.white,
@@ -201,7 +197,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
       ),
       centerTitle: true,
       title: Text(
-        title, // Utilise le titre dynamique
+        title,
         style: const TextStyle(
           color: _cardTextColor,
           fontWeight: FontWeight.bold,
@@ -211,7 +207,6 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     );
   }
 
-  /// Sélecteur de langue (DropdownButton).
   Widget _buildLanguageSelector(BuildContext context) {
     final availableLanguages = _languages.where((lang) => _simulatedAllContent.containsKey(lang)).toList();
 
@@ -262,10 +257,13 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     );
   }
 
-  /// Carte pour l'audio/narration.
   Widget _buildAudioCard(BuildContext context, String title, String narrator) {
-    // Utilisation de l'URL de l'API pour l'image
-    final String fullImageUrl = '$_apiBaseUrl${widget.conte.urlPhoto}';
+    String imageUrl = widget.conte.urlPhoto;
+    if (imageUrl.isNotEmpty && !imageUrl.toLowerCase().startsWith('http')) {
+      final String sanitizedPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+      imageUrl = '$_apiBaseUrl/$sanitizedPath';
+    }
+    final String fullImageUrl = imageUrl;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -279,7 +277,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
-              fullImageUrl, // Image depuis l'API
+              fullImageUrl,
               width: 80,
               height: 60,
               fit: BoxFit.cover,
@@ -341,57 +339,133 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     );
   }
 
-  /// Section pour afficher le Quiz.
+  /// Section pour afficher le Quiz, les Questions et les Propositions.
   Widget _buildQuizSection(BuildContext context, Quiz quiz) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 20),
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+    // Vérifie si la liste de questions n'est pas vide
+    final bool hasQuestions = quiz.questions.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // --- 1. CARTE RÉSUMÉ DU QUIZ ---
+        Card(
+          elevation: 4,
+          margin: const EdgeInsets.only(bottom: 20),
+          color: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.quiz, color: Colors.green, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  'Testez vos connaissances !',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                const Row(
+                  children: [
+                    Icon(Icons.quiz, color: Colors.green, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Testez vos connaissances !',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  ],
                 ),
+                const Divider(color: Colors.grey, height: 20),
+                Text('Titre du Quiz: ${quiz.titre}'),
+                Text('Difficulté: ${quiz.difficulte}'),
+                Text('Nombre de questions: ${quiz.nombreQuestions}'),
+                const SizedBox(height: 15),
+                // Le bouton de démarrage n'est affiché que si le quiz a des questions
+                if (hasQuestions)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // *** LOGIQUE CORRIGÉE : NAVIGATION VERS QUIZSCREEN ***
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuizScreen(
+                            quiz: quiz, // Passe l'objet Quiz complet
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.start, size: 18),
+                    label: const Text('Commencer le Quiz'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  )
+                else
+                  const Text('Aucune question n\'est encore attachée à ce quiz.', style: TextStyle(fontStyle: FontStyle.italic)),
               ],
             ),
-            const Divider(color: Colors.grey, height: 20),
-            Text('Titre du Quiz: ${quiz.titre}'),
-            Text('Difficulté: ${quiz.difficulte}'),
-            Text('Nombre de questions: ${quiz.nombreQuestions}'),
-            const SizedBox(height: 15),
-            ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Démarrage du quiz: ${quiz.titre}')),
-                );
-                // Logique de navigation vers l'écran du Quiz (à implémenter)
-              },
-              icon: const Icon(Icons.start, size: 18),
-              label: const Text('Commencer le Quiz'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+
+        // --- 2. AFFICHAGE DES QUESTIONS ET PROPOSITIONS (Pour le débogage/visualisation) ---
+        if (hasQuestions)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Aperçu des Questions (À des fins de débogage/développement)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _cardTextColor),
+              ),
+              const SizedBox(height: 10),
+
+              // Itération sur la liste des questions
+              ...quiz.questions.asMap().entries.map((entry) {
+                final int index = entry.key;
+                final Question question = entry.value;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Titre de la Question
+                      Text(
+                        '${index + 1}. ${question.texteQuestion} (Points: ${question.points})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _accentColor),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Itération sur la liste des propositions
+                      ...question.propositions.map((proposition) {
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 10.0, bottom: 4.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                proposition.estCorrecte ? Icons.check_circle : Icons.radio_button_unchecked,
+                                color: proposition.estCorrecte ? Colors.green : Colors.grey,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  proposition.texteProposition,
+                                  style: TextStyle(
+                                    color: proposition.estCorrecte ? Colors.green.shade800 : _cardTextColor,
+                                    fontStyle: proposition.estCorrecte ? FontStyle.italic : FontStyle.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+      ],
     );
   }
 
-  /// Section des informations complémentaires.
   Widget _buildInformationSection(Map<String, String> labels, String narrator, String urlFichier) {
-    // Utilise la date de création de l'objet conte
     final String date = widget.conte.dateCreation.split('T').first;
 
     return Container(
@@ -405,7 +479,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            labels['section_title']!, // Titre de la section (ex: Informations)
+            labels['section_title']!,
             style: const TextStyle(
               color: _cardTextColor,
               fontSize: 18,
@@ -413,17 +487,15 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
             ),
           ),
           const SizedBox(height: 15),
-          // Libellés dynamiques
-          _buildInfoRow(labels['narrator']!, narrator), // Conteur
-          _buildInfoRow(labels['language']!, _selectedLanguage), // Langue
-          _buildInfoRow(labels['duration']!, urlFichier), // URL du Fichier
-          _buildInfoRow(labels['date']!, date), // Date
+          _buildInfoRow(labels['narrator']!, narrator),
+          _buildInfoRow(labels['language']!, _selectedLanguage),
+          _buildInfoRow(labels['duration']!, urlFichier),
+          _buildInfoRow(labels['date']!, date),
         ],
       ),
     );
   }
 
-  /// Ligne d'information pour la section "Informations".
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -433,7 +505,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
           SizedBox(
             width: 120,
             child: Text(
-              label, // Le libellé est maintenant traduit
+              label,
               style: const TextStyle(
                 color: _actionColor,
                 fontWeight: FontWeight.bold,

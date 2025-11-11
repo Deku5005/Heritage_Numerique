@@ -26,7 +26,7 @@ class _ContesScreenState extends State<ContesScreen> {
   static const Color _accentColor = Color(0xFFD69301);
   static const Color _cardTextColor = Color(0xFF2E2E2E);
 
-  // URL DE BASE POUR LES IMAGES
+  // URL DE BASE POUR LES IMAGES (Doit correspondre à l'adresse de votre backend)
   static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
 
   @override
@@ -193,22 +193,20 @@ class _ContesScreenState extends State<ContesScreen> {
   }
 
   // -------------------------------------------------------------------
-  // --- CARTE DU CONTE AVEC LOGIQUE D'URL ROBUSTE ---
+  // --- CARTE DU CONTE AVEC LOGIQUE D'URL ET NAVIGATION ---
   // -------------------------------------------------------------------
 
   Widget _buildTaleCard(BuildContext context, Conte conte) {
-    // *** LOGIQUE AJOUTÉE POUR VÉRIFIER L'URL ***
+    // *** LOGIQUE DE ROBUSTESSE D'URL (CONSERVÉE) ***
     String imageUrl = conte.urlPhoto;
 
-    // Si l'URL de la photo ne commence PAS par 'http', nous ajoutons l'URL de base.
-    // Cela gère le cas où l'API renvoie soit un chemin relatif, soit une URL complète.
     if (imageUrl.isNotEmpty && !imageUrl.toLowerCase().startsWith('http')) {
-      // Nous nous assurons qu'il n'y ait pas de double barre oblique
       final String sanitizedPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
       imageUrl = '$_apiBaseUrlForImages/$sanitizedPath';
     }
 
-    final String fullImageUrl = imageUrl; // Utilisation de l'URL ajustée
+    final String fullImageUrl = imageUrl;
+    // **********************************************
 
     final String title = conte.titre;
     final String subtitle = conte.description;
@@ -236,7 +234,7 @@ class _ContesScreenState extends State<ContesScreen> {
                 fit: StackFit.expand,
                 children: [
                   Image.network(
-                    fullImageUrl, // << Utilisation de l'URL corrigée
+                    fullImageUrl,
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -304,7 +302,7 @@ class _ContesScreenState extends State<ContesScreen> {
               children: [
                 _buildActionButton(context, 'Lire', Icons.book, _accentColor,
                     onTap: () {
-                      // *** NAVIGATION CORRIGÉE : Passage de l'objet Conte ***
+                      // Navigation vers l'écran de détail, passant l'objet Conte
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -327,6 +325,7 @@ class _ContesScreenState extends State<ContesScreen> {
                         );
                       }),
 
+                // Bouton Partager (si pas de quiz, sinon Quiz prend la place)
                 if (conte.quiz == null)
                   _buildActionButton(context, 'Partager', Icons.share, Colors.grey,
                       onTap: () {

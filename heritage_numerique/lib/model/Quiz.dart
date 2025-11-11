@@ -1,4 +1,6 @@
-// lib/models/quiz.dart
+// lib/models/quiz.dart (CORRIGÉ ET ROBUSTE)
+
+import 'question.dart';
 
 class Quiz {
   final int id;
@@ -14,6 +16,7 @@ class Quiz {
   final int nombreQuestions;
   final String dateCreation;
   final String quiz;
+  final List<Question> questions;
 
   Quiz({
     required this.id,
@@ -29,23 +32,31 @@ class Quiz {
     required this.nombreQuestions,
     required this.dateCreation,
     required this.quiz,
+    required this.questions,
   });
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> questionsJson = json['questions'] ?? [];
+    final List<Question> questions = questionsJson
+        .map((q) => Question.fromJson(q as Map<String, dynamic>))
+        .toList();
+
     return Quiz(
-      id: json['id'] as int,
-      idFamille: json['idFamille'] as int,
-      nomFamille: json['nomFamille'] as String,
-      idCreateur: json['idCreateur'] as int,
-      nomCreateur: json['nomCreateur'] as String,
-      titre: json['titre'] as String,
-      description: json['description'] as String,
-      difficulte: json['difficulte'] as String,
-      tempsLimite: json['tempsLimite'] as int,
-      actif: json['actif'] as bool,
-      nombreQuestions: json['nombreQuestions'] as int,
-      dateCreation: json['dateCreation'] as String,
-      quiz: json['quiz'] as String,
+      // Utilisation de ?? pour gérer les valeurs nulles
+      id: json['id'] as int? ?? 0,
+      idFamille: json['idFamille'] as int? ?? 0,
+      nomFamille: json['nomFamille'] as String? ?? '',
+      idCreateur: json['idCreateur'] as int? ?? 0,
+      nomCreateur: json['nomCreateur'] as String? ?? '',
+      titre: json['titre'] as String? ?? 'Quiz sans titre',
+      description: json['description'] as String? ?? '',
+      difficulte: json['difficulte'] as String? ?? '',
+      tempsLimite: json['tempsLimite'] as int? ?? 0,
+      actif: json['actif'] as bool? ?? false,
+      nombreQuestions: json['nombreQuestions'] as int? ?? 0,
+      dateCreation: json['dateCreation'] as String? ?? '',
+      quiz: json['quiz'] as String? ?? '',
+      questions: questions,
     );
   }
 }
