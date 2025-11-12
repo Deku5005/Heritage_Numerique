@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_widget.dart'; // Assurez-vous d'importer le widget de navigation
+import '../widgets/bottom_navigation_widget.dart';
+import '../model/artisanat1.dart';
 
-/// Écran affichant le profil détaillé d'un artisan et ses créations, avec support multilingue.
+/// Écran affichant le profil détaillé d'un artisan et ses créations.
 class ArtisanDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> artisanData;
+  final Artisanat1 artisanData;
 
   const ArtisanDetailScreen({
     super.key,
@@ -18,93 +19,58 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   // COULEURS
   static const Color _accentColor = Color(0xFFD69301);
   static const Color _cardTextColor = Color(0xFF2E2E2E);
-  static const Color _actionColor = Color(0xFF9F9646); 
+  static const Color _actionColor = Color(0xFF9F9646);
 
-  // État actuel de la langue sélectionnée
-  late String _selectedLanguage;
-
-  // Liste des langues disponibles
-  final List<String> _languages = const ['Français', 'Bambara', 'Anglais'];
+  // URL DE BASE POUR LES IMAGES
+  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
 
   @override
   void initState() {
     super.initState();
-    // Initialise avec la première langue disponible dans le bloc de contenu (qui est 'Français' dans notre structure)
-    _selectedLanguage = 'Français'; 
   }
 
-  /// Fonction utilitaire pour obtenir les données du conte pour la langue sélectionnée
-  Map<String, String> _getCurrentContent() {
-    final Map<String, Map<String, String>> allContent = widget.artisanData['content'] as Map<String, Map<String, String>>;
-    return allContent[_selectedLanguage] ?? allContent['Français']!;
-  }
+  // LOGIQUE POUR COMPLÉTER LES URLS RELATIVES
+  String _getFullImageUrl(String? relativePath) {
+    if (relativePath == null || relativePath.isEmpty) {
+      return '';
+    }
+    if (relativePath.toLowerCase().startsWith('http')) {
+      return relativePath;
+    }
 
-  /// Sélecteur de langue (DropdownButton) - Réutilisé du ContesScreen
-  Widget _buildLanguageSelector() {
-    // Filtre les langues disponibles en fonction de ce qui existe dans 'content'
-    final Map<String, Map<String, String>> allContent = widget.artisanData['content'] as Map<String, Map<String, String>>;
-    final availableLanguages = _languages.where((lang) => allContent.containsKey(lang)).toList();
+    final String sanitizedPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
 
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade300, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-            ),
-          ]
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.flag, color: _accentColor, size: 16),
-            const SizedBox(width: 8),
-            
-            DropdownButton<String>(
-              value: _selectedLanguage,
-              icon: const Icon(Icons.keyboard_arrow_down, color: _accentColor),
-              iconSize: 24,
-              elevation: 16,
-              style: const TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold),
-              underline: Container(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedLanguage = newValue;
-                  });
-                }
-              },
-              items: availableLanguages.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
+    return '$_apiBaseUrlForImages/$sanitizedPath';
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentContent = _getCurrentContent();
-    final artisanName = widget.artisanData['artisan_name'] as String;
-    final profileImage = widget.artisanData['profile_image'] as String;
-    final artisanBio = currentContent['artisan_bio']!;
-    final videoTitle = currentContent['video_title']!;
-    final galleryTitle = currentContent['gallery_title']!;
-    final videoUrl = widget.artisanData['video_url'] as String;
-    final supportLink = widget.artisanData['support_link'] as String;
-    final watchVideoLabel = currentContent['watch_video_label']!;
-    final supportArtisanLabel = currentContent['support_artisan_label']!;
-    final smallImages = widget.artisanData['small_images'] as List<String>;
+    final Artisanat1 data = widget.artisanData;
+
+    // 1. GESTION DU NULL-SAFETY ET VALEURS PAR DÉFAUT
+    final String titre = data.titre ?? 'Détail Artisanat';
+    final String description = data.description ?? 'Description non spécifiée par l\'artisan.';
+
+    final String nomAuteurComplet = '${data.prenomAuteur ?? ''} ${data.nomAuteur ?? 'Auteur inconnu'}'.trim();
+
+    final String? videoPath = data.urlVideo;
+    final String? emailAuteur = data.emailAuteur;
+
+    // 2. CONSTRUCTION DES URLS COMPLÈTES POUR L'IMAGE PRINCIPALE ET LA VIDÉO
+    final String fullVideoUrl = _getFullImageUrl(videoPath);
+
+    // On prend toutes les photos (ou une liste vide si null)
+    final List<String> allPhotosPaths = data.urlPhotos ?? [];
+
+    // URL de l'image principale (utilisée comme bannière dans le détail)
+    final String primaryImagePath = allPhotosPaths.isNotEmpty ? allPhotosPaths.first : '';
+    final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
+
+    // *** LOGIQUE POUR LA GALERIE RETIRÉE ***
+
+    // Libellés
+    const String watchVideoLabel = 'Regarder la vidéo';
+    const String supportArtisanLabel = 'Contacter l\'Auteur';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -112,26 +78,31 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildCustomAppBar(context, 'Artisanat'), // Basé sur la capture d'écran
-            
+            _buildCustomAppBar(context, 'Artisanat : $titre'),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
-                  
-                  // --- 1. SÉLECTEUR DE LANGUE ---
-                  _buildLanguageSelector(),
+
+                  // --- IMAGE PRINCIPALE DE L'ARTISANAT ---
+                  _buildPrimaryImage(fullPrimaryImageUrl),
                   const SizedBox(height: 30),
 
-                  // --- 2. PROFIL ARTISAN (Image et Nom) ---
-                  _buildArtisanProfile(profileImage, artisanName),
+
+                  // --- 1. PROFIL ARTISAN ---
+                  _buildArtisanProfile(
+                    nomAuteurComplet,
+                    // Utilisation de ?.isNotEmpty == true pour la vérification sécurisée
+                    emailAuteur?.isNotEmpty == true ? Icons.person : Icons.person_off,
+                  ),
                   const SizedBox(height: 20),
-                  
-                  // --- 3. BIO/DESCRIPTION (Dynamique) ---
+
+                  // --- 2. BIO/DESCRIPTION ---
                   Text(
-                    artisanBio,
+                    description,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: _cardTextColor.withOpacity(0.7),
@@ -141,32 +112,22 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // --- 4. VIDÉO DE L'ARTISAN ---
-                  _buildVideoSection(videoTitle, videoUrl, watchVideoLabel),
-                  const SizedBox(height: 30),
-
-                  // --- 5. BOUTON DE SOUTIEN ---
-                  _buildActionButton(supportArtisanLabel, Icons.favorite, _accentColor, supportLink),
-                  const SizedBox(height: 30),
+                  // --- 3. VIDÉO DE L'ARTISAN ---
+                  // Vérification sécurisée si l'URL complète n'est pas vide
+                  if (fullVideoUrl.isNotEmpty)
+                    _buildVideoSection(fullVideoUrl, watchVideoLabel),
+                  if (fullVideoUrl.isNotEmpty) const SizedBox(height: 30),
 
 
-                  // --- 6. GALERIE (Titre Dynamique) ---
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      galleryTitle,
-                      style: const TextStyle(
-                        color: _cardTextColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
+                  // --- 4. BOUTON DE SOUTIEN ---
+                  // Vérification sécurisée
+                  if (emailAuteur?.isNotEmpty == true)
+                    _buildActionButton(supportArtisanLabel, Icons.email, _accentColor, 'mailto:${emailAuteur!}'),
 
-                  // --- 7. IMAGES DE GALERIE ---
-                  _buildGallery(smallImages),
+                  // Séparateur (Reste si le bouton est là, ou si c'est la fin du contenu)
                   const SizedBox(height: 50),
+
+                  // *** LA GALERIE A ÉTÉ RETIRÉE ICI ***
                 ],
               ),
             ),
@@ -175,11 +136,11 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
       ),
     );
   }
-  
+
   // --- WIDGETS DE STRUCTURE ---
 
   Widget _buildCustomAppBar(BuildContext context, String title) {
-     return SafeArea(
+    return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
         child: Row(
@@ -187,47 +148,84 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
           children: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white, 
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
               ),
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: _accentColor),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
-            Text(
-              title,
-              style: const TextStyle(
-                color: _cardTextColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.5,
+              child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _cardTextColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
-            // Placeholder pour l'alignement
-            const SizedBox(width: 48), 
+            const SizedBox(width: 48),
           ],
         ),
       ),
     );
   }
 
+  /// Image Principale de l'Artisanat
+  Widget _buildPrimaryImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Container(); // Retourne vide si l'URL n'est pas disponible
+    }
 
-  /// 2. PROFIL ARTISAN (Image et Nom)
-  Widget _buildArtisanProfile(String imagePath, String name) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        color: Colors.grey[300],
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                color: _accentColor,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) => Center(
+            child: Icon(Icons.image_not_supported, size: 50, color: _cardTextColor.withOpacity(0.5)),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  /// 1. PROFIL ARTISAN
+  Widget _buildArtisanProfile(String name, IconData icon) {
     return Column(
       children: [
         CircleAvatar(
           radius: 60,
           backgroundColor: _accentColor.withOpacity(0.2),
-          backgroundImage: imagePath.isNotEmpty ? AssetImage(imagePath) : null,
-          child: imagePath.isEmpty ? Icon(Icons.person, size: 60, color: _accentColor) : null,
+          child: Icon(icon, size: 60, color: _accentColor),
         ),
         const SizedBox(height: 10),
         Text(
@@ -242,11 +240,11 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     );
   }
 
-  /// 4. VIDÉO DE L'ARTISAN
-  Widget _buildVideoSection(String title, String url, String buttonLabel) {
+  /// 3. VIDÉO DE L'ARTISAN (Le titre a été enlevé car il était fixe et redondant)
+  Widget _buildVideoSection(String url, String buttonLabel) {
     return Column(
       children: [
-        // Placeholder de la vidéo (simulé par un conteneur avec un bouton Play)
+        // Utilisation d'une image de placeholder pour la miniature de la vidéo
         AspectRatio(
           aspectRatio: 16 / 9,
           child: Container(
@@ -254,7 +252,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
               color: Colors.black,
               borderRadius: BorderRadius.circular(15),
               image: const DecorationImage(
-                image: AssetImage('assets/images/video_placeholder.jpg'), // Remplacez par une image plus appropriée
+                image: NetworkImage('https://via.placeholder.com/300x168.png?text=Video+Placeholder'),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
               ),
@@ -268,7 +266,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
                 child: IconButton(
                   icon: const Icon(Icons.play_arrow, color: Colors.white, size: 50),
                   onPressed: () {
-                     ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('$buttonLabel (URL: $url)'),
                         backgroundColor: _actionColor,
@@ -281,13 +279,12 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        // Le titre de la vidéo peut être affiché ici si nécessaire, mais on utilise le bouton pour l'action.
         _buildActionButton(buttonLabel, Icons.play_arrow, _actionColor, url),
       ],
     );
   }
 
-  /// 5. et 7. BOUTON D'ACTION ET GALERIE
+  /// BOUTON D'ACTION
   Widget _buildActionButton(String text, IconData icon, Color color, String url) {
     return GestureDetector(
       onTap: () {
@@ -299,7 +296,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
         );
       },
       child: Container(
-        width: double.infinity, 
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: color,
@@ -312,7 +309,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
             Icon(icon, size: 20, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              text, // Libellé dynamique
+              text,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -325,28 +322,5 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     );
   }
 
-  /// 7. IMAGES DE GALERIE
-  Widget _buildGallery(List<String> imagePaths) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: imagePaths.map((path) => Expanded(
-        child: Padding(
-          padding: EdgeInsets.only(right: path == imagePaths.last ? 0 : 10),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
-              path,
-              fit: BoxFit.cover,
-              height: 150,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 150,
-                color: Colors.grey[300],
-                child: Center(child: Icon(Icons.image, color: _cardTextColor.withOpacity(0.5))),
-              ),
-            ),
-          ),
-        ),
-      )).toList(),
-    );
-  }
+// La méthode _buildGallery a été complètement retirée.
 }

@@ -1,100 +1,77 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_widget.dart';
-import 'Artisan_detail_screen.dart'; // Importez le nouvel écran de détail
+import 'dart:async';
 
-/// Écran affichant la liste des produits d'artisanat Malien (adapté au design fourni).
-class ArtisansScreen extends StatelessWidget {
+import '../widgets/bottom_navigation_widget.dart';
+import 'Artisan_detail_screen.dart';
+import '../model/artisanat1.dart';
+import '../Service/Artisanatservice1.dart';
+
+class ArtisansScreen extends StatefulWidget {
   const ArtisansScreen({super.key});
 
-  // Couleur principale Ocre Vif (D69301)
+  @override
+  State<ArtisansScreen> createState() => _ArtisansScreenState();
+}
+
+class _ArtisansScreenState extends State<ArtisansScreen> {
+  // 1. Déclaration des dépendances et de l'état
+  final ArtisanatService1 _artisanatService = ArtisanatService1();
+  List<Artisanat1> _artisanats = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  // URL DE BASE POUR LES IMAGES (Nécessaire pour les chemins relatifs)
+  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+
+  // Couleurs statiques
   static const Color _accentColor = Color(0xFFD69301);
   static const Color _cardTextColor = Color(0xFF2E2E2E);
-  static const Color _actionColor = Color(0xFF9F9646); // Utilisée pour les actions
 
-  // NOUVEAU : Données d'Artisans/Catégories multilingues
-  final List<Map<String, dynamic>> artisans = const [
-    {
-      'artisan_name': 'Fatoumata Diawara', // Nom statique pour le profil
-      'profile_image': 'assets/images/Artisan_Fatoumata.jpg', // Image de l'artisan (pour l'en-tête du détail)
-      'primary_image': 'assets/images/Tissage.jpg', // Image principale pour la carte
-      'small_images': ['assets/images/Tissage2.jpg', 'assets/images/Tissage3.jpg'], // Galerie
-      'video_url': 'https://www.youtube.com/watch?v=fatou_bogolan',
-      'support_link': 'https://www.example.com/support_fatoumata',
-      'content': {
-        'Français': {
-          'category_title': 'TISSAGE de Bogolan',
-          'description': 'Tissus traditionnels Bogolan, Indigo, et pagnes. Techniques anciennes. Un savoir-faire unique.',
-          'artisan_bio': 'Maîtresse tisserande spécialisée dans le Bogolan, Fatoumata Diawara préserve des techniques ancestrales et travaille principalement à Ségou.',
-          'video_title': 'La tradition du Bogolan Malien',
-          'gallery_title': 'Galerie des créations',
-          'watch_video_label': 'Regarder la vidéo (Tissage)',
-          'support_artisan_label': 'Soutenir l\'Artisan',
-        },
-        'Bambara': {
-          'category_title': 'Bogolan Dilili',
-          'description': 'Bogolan, Indigo, ni kafodenw ka dililiw. Dilili yɔrɔ kɔrɔw. Dɔnko kɛrɛnkɛrɛnnen.',
-          'artisan_bio': 'Dilili dɔnnikɛla kɔrɔba, Fatoumata Diawara bɛ dɔnko kɔrɔw mara ani a bɛ baara kɛ Segu.',
-          'video_title': 'Mali ka Bogolan Kuma',
-          'gallery_title': 'Baarakɛlaw Jɛkulu',
-          'watch_video_label': 'Videwo lajɛ (Dilili)',
-          'support_artisan_label': 'Dɔnnikɛla Dɛmɛ',
-        },
-        'Anglais': {
-          'category_title': 'Bogolan Weaving',
-          'description': 'Traditional Bogolan, Indigo fabrics. Ancient techniques. A unique expertise.',
-          'artisan_bio': 'Master weaver specializing in Bogolan, Fatoumata Diawara preserves ancestral techniques and primarily works in Ségou.',
-          'video_title': 'The Malian Bogolan Tradition',
-          'gallery_title': 'Creation Gallery',
-          'watch_video_label': 'Watch Video (Weaving)',
-          'support_artisan_label': 'Support the Artisan',
-        },
-      },
-    },
-    {
-      'artisan_name': 'Amadou Traoré',
-      'profile_image': 'assets/images/Artisan_Amadou.jpg',
-      'primary_image': 'assets/images/Poterie.jpg',
-      'small_images': ['assets/images/Poterie2.jpg', 'assets/images/Poterie3.jpg'],
-      'video_url': 'https://www.youtube.com/watch?v=amadou_poterie',
-      'support_link': 'https://www.example.com/support_amadou',
-      'content': {
-        'Français': {
-          'category_title': 'Poterie en Terre Cuite',
-          'description': 'Poteries en terre cuite et objets décoratifs. Art ancestral Malien.',
-          'artisan_bio': 'Amadou Traoré est un potier reconnu pour ses jarres et ustensiles traditionnels, perpétuant l\'art de la terre dans la région de Djenné.',
-          'video_title': 'L\'art de la Poterie au Mali',
-          'gallery_title': 'Pièces maîtresses',
-          'watch_video_label': 'Regarder la vidéo (Poterie)',
-          'support_artisan_label': 'Soutenir l\'Artisan',
-        },
-        'Bambara': {
-          'category_title': 'Bɔgɔ Dilan',
-          'description': 'Bɔgɔw ni fɛn dilannaw. Mali ka dɔnko kɔrɔba.',
-          'artisan_bio': 'Amadou Traoré ye bɔgɔ dilannikɛla min dɔnna ni a ka kurusow ani minɛnw ye.',
-          'video_title': 'Mali ka Bɔgɔ Dilan Dɔnko',
-          'gallery_title': 'Baara Jɛkulu',
-          'watch_video_label': 'Videwo lajɛ (Bɔgɔ)',
-          'support_artisan_label': 'Dɔnnikɛla Dɛmɛ',
-        },
-        'Anglais': {
-          'category_title': 'Terracotta Pottery',
-          'description': 'Terracotta pots and decorative objects. Ancestral Malian art.',
-          'artisan_bio': 'Amadou Traoré is a potter renowned for his traditional jars and utensils, perpetuating the art of the earth in the Djenné region.',
-          'video_title': 'The Art of Pottery in Mali',
-          'gallery_title': 'Masterpieces',
-          'watch_video_label': 'Watch Video (Pottery)',
-          'support_artisan_label': 'Support the Artisan',
-        },
-      },
-    },
-    // Ajoutez d'autres éléments ici
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchArtisanats();
+  }
+
+  Future<void> _fetchArtisanats() async {
+    try {
+      final data = await _artisanatService.getArtisanats();
+      setState(() {
+        _artisanats = data;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Impossible de charger les données: ${e.toString()}';
+        _isLoading = false;
+      });
+      debugPrint('Erreur de chargement des artisanats: $e');
+    }
+  }
+
+  // 2. LOGIQUE POUR COMPLÉTER LES URLS RELATIVES
+  String _getFullImageUrl(String? relativePath) {
+    if (relativePath == null || relativePath.isEmpty) {
+      return '';
+    }
+    // Si l'URL est déjà complète (contient http), on la renvoie telle quelle.
+    if (relativePath.toLowerCase().startsWith('http')) {
+      return relativePath;
+    }
+
+    // Supprime le '/' initial si présent (pour éviter //)
+    final String sanitizedPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+
+    return '$_apiBaseUrlForImages/$sanitizedPath';
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'), 
+      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 0),
         child: Column(
@@ -118,9 +95,8 @@ class ArtisansScreen extends StatelessWidget {
     );
   }
 
-  /// 1. Construction de l'en-tête (Basé sur l'image fournie)
+  /// 1. Construction de l'en-tête (Méthode inchangée)
   Widget _buildHeader(BuildContext context) {
-    // ... (Reste de la méthode _buildHeader inchangée) ...
     return Stack(
       children: [
         Container(
@@ -134,8 +110,9 @@ class ArtisansScreen extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
+                // Image locale
                 Image.asset(
-                  'assets/images/mali_craftsman.jpg', 
+                  'assets/images/mali_craftsman.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: _accentColor.withOpacity(0.2),
@@ -179,7 +156,7 @@ class ArtisansScreen extends StatelessWidget {
               padding: const EdgeInsets.only(left: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.2), 
+                  color: Colors.black.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -199,15 +176,14 @@ class ArtisansScreen extends StatelessWidget {
     );
   }
 
-  /// 2. Construction de la barre de recherche.
+  /// 2. Construction de la barre de recherche. (Méthode inchangée)
   Widget _buildSearchBar() {
-    // ... (Code de _buildSearchBar inchangé) ...
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: _accentColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade300, width: 1.5), 
+        border: Border.all(color: Colors.grey.shade300, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))],
       ),
       child: TextField(
@@ -222,30 +198,70 @@ class ArtisansScreen extends StatelessWidget {
     );
   }
 
-  /// 3. Construction de la grille d'artisanat.
+  /// 3. Construction de la grille d'artisanat. (Mis à jour pour l'état et l'URL)
   Widget _buildCraftsGrid() {
+    if (_isLoading) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(40.0),
+        child: CircularProgressIndicator(color: _accentColor),
+      ));
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Text(
+            'Erreur de chargement: $_errorMessage',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    if (_artisanats.isEmpty) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(40.0),
+        child: Text('Aucun artisanat trouvé.', style: TextStyle(fontSize: 16, color: _cardTextColor)),
+      ));
+    }
+
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      itemCount: artisans.length,
+      itemCount: _artisanats.length,
+      // CHANGEMENT : childAspectRatio ajusté de 0.65 à 0.75
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.65, 
+        childAspectRatio: 0.75, // Ajusté pour le retrait des deux cartes
       ),
       itemBuilder: (context, index) {
-        final craft = artisans[index];
-        // Utiliser la version française pour l'affichage de la carte
-        final frenchContent = craft['content']['Français']; 
-        
+        final artisanat = _artisanats[index];
+
+        // --- CORRECTION NULL-SAFETY ---
+        // Liste sécurisée (utilise une liste vide si urlPhotos est null)
+        final List<String> safeUrlPhotos = artisanat.urlPhotos ?? [];
+
+        // 1. Construction de l'URL principale
+        final String primaryImagePath = safeUrlPhotos.isNotEmpty ? safeUrlPhotos.first : '';
+        final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
+
+        // Les petites images ne sont plus nécessaires, mais on récupère l'URL complète
+        // pour passer l'objet complet à l'écran de détail
+        final List<String> smallImagePaths = safeUrlPhotos.skip(1).take(2).toList();
+        final List<String> fullSmallImageUrls = smallImagePaths.map((path) => _getFullImageUrl(path)).toList();
+
         return _buildCraftCard(
           context,
-          craft['primary_image']! as String,
-          frenchContent['description']! as String,
-          frenchContent['category_title']! as String, // Titre Français pour la carte
-          craft['small_images'] as List<String>,
-          craft, // Passe tout l'objet pour la navigation
+          fullPrimaryImageUrl,
+          artisanat.description ?? 'Description non disponible',
+          artisanat.titre ?? 'Artisanat sans titre',
+          // fullSmallImageUrls n'est plus utilisé par _buildCraftCard, mais on le garde en paramètre si besoin futur.
+          fullSmallImageUrls,
+          artisanat,
         );
       },
     );
@@ -253,13 +269,13 @@ class ArtisansScreen extends StatelessWidget {
 
   /// 4. Construction d'une seule carte d'artisanat.
   Widget _buildCraftCard(
-    BuildContext context,
-    String primaryImagePath,
-    String description,
-    String categoryTitle, // Nouveau paramètre pour le titre affiché
-    List<String> smallImagePaths,
-    Map<String, dynamic> artisanData, // Toutes les données pour la navigation
-  ) {
+      BuildContext context,
+      String primaryImageUrl,
+      String description,
+      String categoryTitle,
+      List<String> smallImageUrls, // Reste pour la compatibilité, mais non utilisé
+      Artisanat1 artisanat,
+      ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -272,9 +288,9 @@ class ArtisansScreen extends StatelessWidget {
           // 4.1. IMAGE PRINCIPALE
           Expanded(
             flex: 6,
-            child: _buildPrimaryImage(primaryImagePath, categoryTitle), // Utilise categoryTitle pour le Tag
+            child: _buildPrimaryImage(primaryImageUrl, categoryTitle),
           ),
-            
+
           // 4.2. DESCRIPTION
           Padding(
             padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
@@ -288,19 +304,12 @@ class ArtisansScreen extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12), // Espacement ajusté
 
-          // 4.3. PETITES IMAGES
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildSmallImageRow(smallImagePaths),
-          ),
-          const SizedBox(height: 8),
-
-          // 4.4. BOUTON DÉCOUVRIR (Remplace les deux anciens boutons pour pointer vers le détail)
+          // 4.3. BOUTON DÉCOUVRIR
           Padding(
             padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
-            child: _buildDiscoverButton(context, artisanData), // Nouveau bouton d'action
+            child: _buildDiscoverButton(context, artisanat),
           ),
         ],
       ),
@@ -308,22 +317,21 @@ class ArtisansScreen extends StatelessWidget {
   }
 
   /// Bouton DÉCOUVRIR pour la navigation.
-  Widget _buildDiscoverButton(BuildContext context, Map<String, dynamic> artisanData) {
+  Widget _buildDiscoverButton(BuildContext context, Artisanat1 artisanat) {
     return GestureDetector(
       onTap: () {
-        // Navigation vers l'écran de détail avec toutes les données multilingues
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ArtisanDetailScreen(
-              artisanData: artisanData,
+              artisanData: artisanat,
             ),
           ),
         );
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: _accentColor,
           borderRadius: BorderRadius.circular(8),
@@ -347,9 +355,8 @@ class ArtisansScreen extends StatelessWidget {
     );
   }
 
-
-  /// Section d'image principale (Grande section en haut).
-  Widget _buildPrimaryImage(String imagePath, String categoryTitle) {
+  /// Section d'image principale. (Utilise Image.network)
+  Widget _buildPrimaryImage(String imageUrl, String categoryTitle) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
       child: Container(
@@ -357,14 +364,30 @@ class ArtisansScreen extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Center(
+            if (imageUrl.isNotEmpty) // Charger l'image depuis l'URL
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: _accentColor,
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Icon(Icons.image_not_supported, size: 40, color: _cardTextColor.withOpacity(0.5)),
+                ),
+              )
+            else // Afficher un placeholder si l'URL est vide
+              Center(
                 child: Icon(Icons.brush, size: 40, color: _cardTextColor.withOpacity(0.5)),
               ),
-            ),
-            // Tag "PRODUIT" (coin supérieur droit)
+            // Tag "PRODUIT"
             Positioned(
               top: 8,
               right: 8,
@@ -375,7 +398,7 @@ class ArtisansScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
-                  categoryTitle.toUpperCase(), // Utilise le titre de la catégorie comme tag
+                  categoryTitle.toUpperCase(),
                   style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -386,60 +409,5 @@ class ArtisansScreen extends StatelessWidget {
     );
   }
 
-  /// Section des deux petites images (En bas).
-  Widget _buildSmallImageRow(List<String> imagePaths) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSmallImageCard(imagePaths.isNotEmpty ? imagePaths[0] : '', 'Détail 1'),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSmallImageCard(imagePaths.length > 1 ? imagePaths[1] : '', 'Détail 2'),
-        ),
-      ],
-    );
-  }
-
-  /// Petite carte pour chaque image (avec texte en dessous).
-  Widget _buildSmallImageCard(String imagePath, String label) {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            color: Colors.grey[300],
-            height: 60, 
-            child: Stack(
-              children: [
-                Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Icon(Icons.image_not_supported, size: 20, color: _cardTextColor.withOpacity(0.5)),
-                  ),
-                ),
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    color: Colors.black.withOpacity(0.5),
-                    child: const Center(
-                      child: Text(
-                        'Détail produit',
-                        style: TextStyle(color: Colors.white, fontSize: 8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+// Les méthodes _buildSmallImageRow et _buildSmallImageCard ont été retirées.
 }

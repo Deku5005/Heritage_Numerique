@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heritage_numerique/screens/Profil.dart';
 import '../screens/contes_screen.dart';
 import '../screens/artisans_screen.dart';
 import '../screens/music_screen.dart';
@@ -7,10 +8,14 @@ import '../screens/proverb_screen.dart';
 /// Widget de navigation inférieure partagé pour toutes les pages
 class BottomNavigationWidget extends StatelessWidget {
   final String currentPage;
-  
+  // 💡 GARDÉ : Le familyId est présent
+  final int? familyId;
+
   const BottomNavigationWidget({
     super.key,
     required this.currentPage,
+    // 💡 CORRECTION : Rendu OPTIONNEL pour éviter la cascade d'erreurs
+    this.familyId,
   });
 
   // Couleur principale Ocre Vif (D69301)
@@ -21,7 +26,7 @@ class BottomNavigationWidget extends StatelessWidget {
     // Liste des éléments de la barre de navigation
     final List<Map<String, dynamic>> navItems = [
       {'icon': Icons.menu_book, 'label': 'Contes', 'page': 'contes'},
-      {'icon': Icons.music_note, 'label': 'Musique', 'page': 'music'},
+      {'icon': Icons.lightbulb_outline, 'label': 'Devinette', 'page': 'music'},
       {'icon': Icons.handyman, 'label': 'Artisanat', 'page': 'artisans'},
       {'icon': Icons.chat_bubble, 'label': 'Proverbe', 'page': 'proverb'},
       {'icon': Icons.person, 'label': 'Profil', 'page': 'profil'},
@@ -85,14 +90,11 @@ class BottomNavigationWidget extends StatelessWidget {
         targetScreen = const ProverbScreen();
         break;
       case 'profil':
-        // Pour l'instant, afficher un message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Section Profil en développement'),
-            backgroundColor: _accentColor,
-          ),
-        );
-        return;
+      // 💡 UTILISATION SÉCURISÉE : on passe l'ID si on l'a, sinon on passe null.
+      // Puisque familyId est maintenant optionnel dans le constructeur,
+      // les pages qui n'en ont pas besoin (comme ContesScreen) peuvent l'ignorer.
+        targetScreen = ProfilePage(familyId: familyId);
+        break;
       default:
         return;
     }

@@ -1,208 +1,100 @@
 import 'package:flutter/material.dart';
 
-// Constantes de Couleurs (à placer idéalement dans un fichier de thèmes global)
+// Constantes de Couleurs
 const Color _accentColor = Color(0xFFD69301); // Ocre Vif
 const Color _cardTextColor = Color(0xFF2E2E2E); // Gris foncé
-const Color _backgroundColor = Colors.white; 
+const Color _backgroundColor = Colors.white;
+const Color _revealColor = Color(0xFF4CAF50); // Vert pour révéler
 
-class MusicDetailScreen extends StatelessWidget {
-  final String musicTitle;
-  final String artistName;
-  final String description;
-  final String audioUrl;
-  final String imageUrl;
-  final Map<String, dynamic> details;
+/// Écran de Détail pour les Devinettes.
+/// NOTE: La classe garde le nom 'MusicDetailScreen' selon la demande explicite
+/// de l'utilisateur, mais elle est convertie en StatefulWidget pour gérer la
+/// révélation de la réponse.
+class MusicDetailScreen extends StatefulWidget {
+  // Propriétés adaptées au contexte des Devinettes
+  final String titre;
+  final String devinette; // Remplacement de 'description'
+  final String reponse;   // Remplacement de 'audioUrl' (réponse de l'énigme)
+  final String conteur;   // Remplacement de 'artistName'
+  final String imageUrl;  // Remplacé par une icône si non utilisé
+  final Map<String, dynamic> details; // Utilisé pour le lieu/langue
 
   const MusicDetailScreen({
     super.key,
-    required this.musicTitle,
-    required this.artistName,
-    required this.description,
-    required this.audioUrl,
+    required this.titre,
+    required this.devinette,
+    required this.reponse,
+    required this.conteur,
     required this.imageUrl,
     required this.details,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      // La BottomNavigationBar (avec les icônes Contes, Musique, etc.)
-      // devrait être gérée par le widget parent ou un wrapper si elle doit apparaître ici.
-      // Je ne l'inclus pas ici pour l'instant car elle n'est pas nécessaire pour le design du contenu.
+  State<MusicDetailScreen> createState() => _MusicDetailScreenState();
+}
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. En-tête et Lecteur Audio (Partie Supérieure Sombre)
-            _buildAudioPlayerHeader(context),
-            
-            // 2. Section Description et Informations
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Description',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _cardTextColor),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    // Utiliser le titre pour une description simple si aucune n'est disponible
-                    description.isEmpty ? 'Description détaillée de $musicTitle par $artistName.' : description,
-                    style: const TextStyle(fontSize: 16, color: _cardTextColor),
-                  ),
-                  const SizedBox(height: 20),
+class _MusicDetailScreenState extends State<MusicDetailScreen> {
+  bool _isRevealed = false;
 
-                  // Bloc d'Informations
-                  _buildInformationCard(details),
-                  
-                  const SizedBox(height: 100), // Espace pour la navigation en bas si elle est utilisée
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _toggleReveal() {
+    setState(() {
+      _isRevealed = !_isRevealed;
+    });
   }
-  
+
   // --- Widgets de Construction ---
 
-  /// Construit la section du lecteur audio avec l'image, le titre et les contrôles.
-  Widget _buildAudioPlayerHeader(BuildContext context) {
-    return Container(
-      height: 400, // Hauteur fixe pour le lecteur
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.black, // Fond noir comme dans l'image
-        // Optionnel: un dégradé subtil peut améliorer le look
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF1E1E1E), // Noir très foncé
-            Color(0xFF0A0A0A), // Noir pur
-          ],
+  @override
+  Widget build(BuildContext context) {
+    // Extraction du lieu si disponible (supposant qu'il est dans 'details')
+    final String lieu = widget.details['lieu'] ?? 'Lieu non spécifié';
+
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        title: Text(widget.titre, style: const TextStyle(color: _cardTextColor)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: _accentColor),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      child: Stack(
-        children: [
-          // Bouton de retour et titre de l'AppBar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), shape: BoxShape.circle),
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(0.9)),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ),
-              centerTitle: true,
-              title: const Text('Musiques', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 50), // Décalage pour l'AppBar
-                
-                // Image/Avatar de l'artiste ou de l'instrument
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10.0),
-                  child: Image.asset(
-                    imageUrl, 
-                    height: 150, 
-                    width: 150, 
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 150, width: 150, color: Colors.grey[800],
-                      child: const Icon(Icons.person, color: Colors.white70, size: 80),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                
-                // Titre
-                Text(
-                  musicTitle,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                
-                // Artiste
-                Text(
-                  artistName,
-                  style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
-                ),
-                const SizedBox(height: 20),
-                
-                // Barre de Progression (Simulée)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('2:17', style: TextStyle(color: _accentColor.withOpacity(0.9), fontSize: 12)), // Temps actuel simulé
-                          Text('3:35', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12)), // Durée totale simulée
-                        ],
-                      ),
-                      const LinearProgressIndicator(
-                        value: 0.6, // 60% de progression
-                        valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
-                        backgroundColor: Colors.grey,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Bloc de la Devinette (Remplaçant l'en-tête Audio)
+            _buildRiddleBlock(),
+            const SizedBox(height: 30),
 
-                // Contrôles de Lecture
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(icon: const Icon(Icons.skip_previous, size: 40, color: Colors.white70), onPressed: () {}),
-                    const SizedBox(width: 20),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: _accentColor, shape: BoxShape.circle),
-                      child: const Icon(Icons.play_arrow, color: Colors.white, size: 40),
-                    ),
-                    const SizedBox(width: 20),
-                    IconButton(icon: const Icon(Icons.skip_next, size: 40, color: Colors.white70), onPressed: () {}),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+            // 2. Bouton Révéler la Réponse
+            _buildRevealButton(),
+            const SizedBox(height: 30),
+
+            // 3. Bloc de la Réponse (Conditionnel)
+            if (_isRevealed) _buildAnswerBlock(),
+
+            const SizedBox(height: 30),
+
+            // 4. Informations additionnelles (Conteur et Lieu)
+            _buildInformationCard(widget.conteur, lieu),
+
+            const SizedBox(height: 50),
+          ],
+        ),
       ),
     );
   }
 
-  /// Construit la carte des informations (Nom et Langue).
-  Widget _buildInformationCard(Map<String, dynamic> details) {
+  /// Construit le bloc principal de l'énigme.
+  Widget _buildRiddleBlock() {
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      margin: const EdgeInsets.symmetric(vertical: 20.0),
+      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF0EAE0),
         borderRadius: BorderRadius.circular(10),
-        // Utilise un BoxShadow pour un effet de carte subtil
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -210,46 +102,153 @@ class MusicDetailScreen extends StatelessWidget {
             offset: const Offset(0, 5),
           ),
         ],
-        // Ajout d'un dégradé subtil pour imiter l'effet de l'image
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.grey.shade100,
-          ],
-        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.quiz_outlined, color: _accentColor, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Énigme: ${widget.titre}',
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _accentColor
+                ),
+              ),
+            ],
+          ),
+          const Divider(color: Colors.grey, height: 20),
+          Text(
+            widget.devinette,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: _cardTextColor,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.justify,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Construit le bouton de bascule pour révéler/cacher la réponse.
+  Widget _buildRevealButton() {
+    return ElevatedButton.icon(
+      onPressed: _toggleReveal,
+      icon: Icon(_isRevealed ? Icons.visibility_off : Icons.visibility, color: Colors.white),
+      label: Text(
+        _isRevealed ? 'Cacher la Réponse' : 'Révéler la Réponse',
+        style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _isRevealed ? Colors.red.shade700 : _revealColor,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 5,
+      ),
+    );
+  }
+
+  /// Construit le bloc affichant la réponse révélée.
+  Widget _buildAnswerBlock() {
+    return Container(
+      padding: const EdgeInsets.all(20.0),
+      decoration: BoxDecoration(
+        color: _revealColor.withOpacity(0.1),
+        border: Border.all(color: _revealColor, width: 2),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: _revealColor.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Informations',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
+            'La Réponse est:',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _revealColor
+            ),
           ),
-          const Divider(color: Colors.grey, height: 20),
-          
-          _buildDetailRow('Nom:', details['nom'] ?? 'Inconnu'),
-          _buildDetailRow('Langue:', details['langue'] ?? 'Inconnu'),
+          const Divider(color: _revealColor, height: 20),
+          Center(
+            child: Text(
+              widget.reponse,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: _cardTextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );
   }
-  
-  /// Ligne pour afficher une information (clé/valeur).
-  Widget _buildDetailRow(String label, String value) {
+
+  /// Construit la carte des informations additionnelles (Conteur et Lieu).
+  Widget _buildInformationCard(String conteur, String lieu) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Contexte Culturel',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
+          ),
+          const Divider(color: Colors.grey, height: 20),
+
+          _buildDetailRow(Icons.person, 'Conteur', conteur),
+          _buildDetailRow(Icons.location_on, 'Lieu d\'Origine', lieu),
+        ],
+      ),
+    );
+  }
+
+  /// Ligne pour afficher une information avec une icône.
+  Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Icon(icon, size: 20, color: _accentColor),
+          const SizedBox(width: 8),
           Text(
-            label,
+            '$label:',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _cardTextColor),
           ),
-          Text(
-            value,
-            style: TextStyle(fontSize: 16, color: _cardTextColor.withOpacity(0.7)),
+          const Spacer(),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 16, color: _cardTextColor.withOpacity(0.7)),
+            ),
           ),
         ],
       ),

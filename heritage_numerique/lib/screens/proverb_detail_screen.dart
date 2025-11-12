@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 // Constantes de Couleurs
 const Color _accentColor = Color(0xFFD69301); // Ocre Vif
 const Color _cardTextColor = Color(0xFF2E2E2E); // Gris foncé
-const Color _backgroundColor = Colors.white; 
+const Color _backgroundColor = Colors.white;
 
 class ProverbDetailScreen extends StatefulWidget {
-  final String proverbText; 
+  final String proverbText;
   final String source;
   final String conteur;
   final String langue;
@@ -34,8 +34,9 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedLanguage = widget.langue; 
-    
+    // Utiliser la langue du proverbe comme sélection initiale, si elle est dans la liste
+    _selectedLanguage = availableLanguages.contains(widget.langue) ? widget.langue : 'Français';
+
     // Initialisation des traductions simulées basées sur le proverbe original
     _proverbTranslations = {
       'Français': {
@@ -44,28 +45,28 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
         'nom_langue': 'Français',
       },
       'Anglais': {
-        'text': 'The cunning hare and the lion. The cunning hare and the lion... (Translation in English)',
+        'text': 'The proverb: ${widget.proverbText} has been translated. (Translation in English)',
         'conteur': widget.conteur,
         'nom_langue': 'English',
       },
       'Bambara': {
-        'text': 'Sègè kòrò ni jòn ba. Sègè kòrò ni jòn ba... (Translation in Bambara)',
+        'text': 'Sègè kòrò ni jòn ba. Traduction simulée en Bambara du proverbe original. (Translation in Bambara)',
         'conteur': widget.conteur,
         'nom_langue': 'Bambara',
       },
     };
   }
-  
+
   // Fonction pour obtenir le texte du proverbe dans la langue sélectionnée
   String _getTranslatedProverb() {
     return _proverbTranslations[_selectedLanguage]?['text'] ?? widget.proverbText;
   }
-  
+
   // Fonction pour obtenir le nom de la langue à afficher
   String _getDisplayName() {
     return _proverbTranslations[_selectedLanguage]?['nom_langue'] ?? widget.langue;
   }
-  
+
   // Fonction pour obtenir le drapeau (simulé)
   Widget _getFlag() {
     String flag = '🇫🇷';
@@ -91,7 +92,7 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
           children: [
             // --- 1. EN-TÊTE et Titre (Inclut le sélecteur de langue) ---
             _buildHeader(context),
-            
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -103,8 +104,8 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
 
                   // --- 3. Bloc d'Informations ---
                   _buildInformationCard(widget.conteur, currentLanguageDisplay),
-                  
-                  const SizedBox(height: 100), 
+
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -132,13 +133,13 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
               onPressed: () => Navigator.pop(context),
             ),
           ),
-          
+
           // Titre et Sélecteur de Langue (Centré verticalement)
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 15.0), // Espace sous l'StatusBar
-              
+
               // Titre "Proverbe"
               const Text(
                 'Proverbe',
@@ -149,7 +150,7 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
                 ),
               ),
               const SizedBox(height: 10), // Espace entre le titre et le sélecteur
-              
+
               // Sélecteur de langue
               _buildLanguageDropdown(),
             ],
@@ -183,7 +184,7 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
               value: value,
               child: Row(
                 children: [
-                  _getFlag(), 
+                  _getFlag(),
                   const SizedBox(width: 8),
                   Text(value),
                 ],
@@ -246,14 +247,14 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
           ),
           const Divider(color: Colors.grey, height: 20),
-          
+
           _buildDetailRow('Conteur', conteur),
           _buildDetailRow('Langue', langue),
         ],
       ),
     );
   }
-  
+
   /// Ligne pour afficher une information (clé/valeur).
   Widget _buildDetailRow(String label, String value) {
     return Padding(

@@ -206,7 +206,7 @@ class HomeScreen extends StatelessWidget {
           case 'Contes':
             targetScreen = const ContesScreen();
             break;
-          case 'Musiques':
+          case 'Devinette':
             targetScreen = const MusicScreen();
             break;
           case 'Artisanat':

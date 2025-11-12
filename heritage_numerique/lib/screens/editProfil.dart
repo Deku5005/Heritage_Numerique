@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 
+// Import du modèle et des services nécessaires
+import '../Service/UtilisateurService1.dart'; // Chemin ajusté
+import '../model/utilisateur1.dart'; // Correction du chemin vers models/utilisateur1.dart
+import 'package:http/http.dart' as http;
+
+
 // --- Constantes de Style (Repris de ProfilePage) ---
 const Color _primaryColor = Color(0xFF714D1D); // Brun foncé
 const Color _primaryTextColor = Color(0xFF000000);
 const Color _secondaryTextColor = Color(0xFF99928F); // Gris pour les hints
 
-// Constantes pour les données du profil (Utilisées comme valeurs initiales/hints)
-const String _userName = 'Niakalé Diakité';
-const String _userEmail = 'niakale@gmail.com';
-const String _userFirstName = 'Niakalé';
-const String _userPhone = '+223 77777777';
-
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({super.key});
+  // 1. Recevoir l'objet utilisateur réel via le constructeur
+  final Utilisateur1 initialUser;
+
+  // Le constructeur doit accepter initialUser en paramètre nommé et requis
+  const EditProfilePage({super.key, required this.initialUser});
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -20,10 +24,40 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   // Contrôleurs pour les champs de texte
-  final TextEditingController _nameController = TextEditingController(text: _userFirstName);
-  final TextEditingController _firstNameController = TextEditingController(text: _userFirstName);
-  final TextEditingController _phoneController = TextEditingController(text: _userPhone);
-  final TextEditingController _emailController = TextEditingController(text: _userEmail);
+  late final TextEditingController _nameController;
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _ethnieController;
+
+  // Nouveaux contrôleurs pour le changement de mot de passe
+  late final TextEditingController _currentPasswordController;
+  late final TextEditingController _newPasswordController;
+  late final TextEditingController _confirmPasswordController;
+
+  late final UtilisateurService1 _userService;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialisation du service
+    _userService = UtilisateurService1();
+
+    // 2. Initialisation des contrôleurs avec les données réelles
+    final user = widget.initialUser;
+
+    _nameController = TextEditingController(text: user.nom ?? '');
+    _firstNameController = TextEditingController(text: user.prenom ?? '');
+    _phoneController = TextEditingController(text: user.numeroTelephone ?? '');
+    _emailController = TextEditingController(text: user.email ?? '');
+    _ethnieController = TextEditingController(text: user.ethnie ?? '');
+
+    // Initialisation des contrôleurs de mot de passe
+    _currentPasswordController = TextEditingController();
+    _newPasswordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+  }
 
   // Widget pour un champ de formulaire
   Widget _buildInputField({
@@ -31,6 +65,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     required TextEditingController controller,
     required String hintText,
     bool isReadOnly = false,
+    bool obscureText = false, // Nouveau paramètre pour masquer le texte
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,14 +78,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
             style: const TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
-              fontSize: 14, // Légèrement augmenté pour la clarté
+              fontSize: 14,
               color: _primaryTextColor,
             ),
           ),
         ),
         // Champ de saisie
         Container(
-          height: 36, // Hauteur ajustée pour correspondre au design
+          height: 36, // Hauteur ajustée
           decoration: BoxDecoration(
             border: Border.all(color: Colors.transparent),
             borderRadius: BorderRadius.circular(5),
@@ -58,6 +93,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: TextField(
             controller: controller,
             readOnly: isReadOnly,
+            obscureText: obscureText, // Utilisation du paramètre
             style: const TextStyle(
               fontFamily: 'Roboto',
               fontSize: 14,
@@ -100,22 +136,77 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _firstNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _ethnieController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _saveProfile(BuildContext context) {
-    // Logique de sauvegarde ici (par exemple, appel API ou mise à jour de l'état)
-    print('Nom: ${_nameController.text}');
-    print('Prénom: ${_firstNameController.text}');
-    print('Téléphone: ${_phoneController.text}');
-    print('Email: ${_emailController.text}');
+  // Fonction de mise à jour du profil via l'API
+  void _updateProfile() async {
+    if (_isSaving) return;
 
-    // Après la sauvegarde, on revient à la page de profil
-    Navigator.of(context).pop();
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // 1. Création de l'objet de mise à jour avec les données du profil
+      final Map<String, dynamic> updateData = {
+        'nom': _nameController.text,
+        'prenom': _firstNameController.text,
+        'numeroTelephone': _phoneController.text,
+        'email': _emailController.text,
+        'ethnie': _ethnieController.text,
+      };
+
+      // 2. Logique de Changement de Mot de Passe
+      final newPassword = _newPasswordController.text;
+      final confirmPassword = _confirmPasswordController.text;
+      final currentPassword = _currentPasswordController.text;
+
+      // Si au moins un champ de mot de passe est rempli, vérifier la validité
+      if (currentPassword.isNotEmpty || newPassword.isNotEmpty || confirmPassword.isNotEmpty) {
+        if (newPassword.isEmpty) {
+          throw Exception('Le nouveau mot de passe ne peut pas être vide.');
+        }
+        if (newPassword != confirmPassword) {
+          throw Exception('Le nouveau mot de passe et la confirmation ne correspondent pas.');
+        }
+        // Pour les mises à jour de profil, on envoie le nouveau mot de passe
+        // Le backend est censé vérifier l'ancien mot de passe (si demandé)
+        // et hasher/mettre à jour le nouveau.
+        updateData['motDePasse'] = newPassword;
+      }
+
+      // 3. Appel de la méthode de mise à jour
+      await _userService.updateProfile(updateData);
+
+      // Succès: affiche un message et retourne à la page précédente avec 'true' pour recharger les données
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil mis à jour avec succès!')),
+      );
+      // Retourne 'true' pour indiquer à ProfilePage de rafraîchir
+      Navigator.of(context).pop(true);
+
+    } catch (e) {
+      // Échec: affiche un message d'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec de la mise à jour du profil : ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Calcul du nom complet pour l'affichage de l'avatar
+    final String dynamicUserName = '${_firstNameController.text} ${_nameController.text}'.trim();
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -123,7 +214,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: Colors.white,
         toolbarHeight: 64,
         elevation: 0,
-        automaticallyImplyLeading: false, // On gère le retour manuellement
+        automaticallyImplyLeading: false,
 
         // Conteneur pour simuler l'ombre sous l'App Bar
         bottom: PreferredSize(
@@ -145,7 +236,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         // Bouton de retour (Flèche)
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _primaryTextColor),
-          onPressed: () => Navigator.of(context).pop(), // Retour à la page précédente
+          // Retour simple (sans rechargement si l'utilisateur annule)
+          onPressed: () => Navigator.of(context).pop(false),
         ),
 
         // Titre "Modifier Profil" centré
@@ -155,7 +247,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
-              fontSize: 20, // Ajusté à 20px
+              fontSize: 20,
               color: _primaryTextColor,
             ),
           ),
@@ -182,7 +274,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    _userName[0],
+                    dynamicUserName.isNotEmpty ? dynamicUserName[0].toUpperCase() : 'U',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
@@ -194,7 +286,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                 // Nom complet
                 Text(
-                  _userName,
+                  dynamicUserName,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
@@ -204,7 +296,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                 // Email
                 Text(
-                  _userEmail,
+                  widget.initialUser.email ?? 'N/A', // Affiche l'email initial
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -216,7 +308,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
             const SizedBox(height: 30),
 
-            // --- Champs de Modification ---
+            // --- Champs de Modification (Nom, Prénom, Ethnie, Téléphone) ---
             _buildInputField(
               label: 'Nom',
               controller: _nameController,
@@ -230,29 +322,77 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
 
             _buildInputField(
-              label: 'Téléphone',
-              controller: _phoneController,
-              hintText: '+223 77777777',
+              label: 'Ethnie',
+              controller: _ethnieController,
+              hintText: 'Ethnie',
             ),
 
             _buildInputField(
-              label: 'Email',
-              controller: _emailController,
-              hintText: 'niakale@gmail.com',
+              label: 'Téléphone',
+              controller: _phoneController,
+              hintText: 'Téléphone',
             ),
 
-            // NOTE : Le champ "Changer mot de passe" serait une action ou un champ masqué, non un champ de texte standard sur cette page.
+            // Email (lecture seule)
+            _buildInputField(
+              label: 'Email',
+              controller: _emailController,
+              hintText: 'email@example.com',
+              isReadOnly: true,
+            ),
+
+            const SizedBox(height: 30),
+
+            // --- Section Changement de Mot de Passe ---
+            const Padding(
+              padding: EdgeInsets.only(top: 20.0, bottom: 10.0),
+              child: Text(
+                'Changer le mot de passe',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: _primaryColor,
+                ),
+              ),
+            ),
+
+            // Ancien mot de passe
+            _buildInputField(
+              label: 'Mot de passe actuel',
+              controller: _currentPasswordController,
+              hintText: 'Entrez votre mot de passe actuel',
+              obscureText: true,
+            ),
+
+            // Nouveau mot de passe
+            _buildInputField(
+              label: 'Nouveau mot de passe',
+              controller: _newPasswordController,
+              hintText: 'Entrez le nouveau mot de passe',
+              obscureText: true,
+            ),
+
+            // Confirmation du nouveau mot de passe
+            _buildInputField(
+              label: 'Confirmer le nouveau mot de passe',
+              controller: _confirmPasswordController,
+              hintText: 'Confirmez le nouveau mot de passe',
+              obscureText: true,
+            ),
+
 
             const SizedBox(height: 50),
 
             // --- Bouton Enregistrer ---
             Center(
               child: ElevatedButton.icon(
-                onPressed: () => _saveProfile(context),
-                icon: const Icon(Icons.save_outlined, color: Colors.white, size: 24),
-                label: const Text(
-                  'Enregistrer',
-                  style: TextStyle(
+                onPressed: _isSaving ? null : _updateProfile, // Désactivé pendant la sauvegarde
+                icon: _isSaving
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                    : const Icon(Icons.save_outlined, color: Colors.white, size: 24),
+                label: Text(
+                  _isSaving ? 'Sauvegarde...' : 'Enregistrer',
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 24,
                     color: Colors.white,
@@ -265,7 +405,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  minimumSize: const Size(150, 50), // Taille ajustée
+                  minimumSize: const Size(150, 50),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                 ),
               ),

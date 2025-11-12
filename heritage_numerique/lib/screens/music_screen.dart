@@ -1,208 +1,220 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation_widget.dart'; // Assurez-vous que ce widget existe
-import 'Music_detail_screen.dart'; // L'importation de la page de détail est activée
+import '../model/Devinette1.dart'; // Importation du modèle Devinette
+import '../Service/DevinetteService1.dart'; // Importation du service Devinette
+import 'Music_detail_screen.dart'; // Écran de détail adapté aux Devinettes
 
-/// Écran affichant la liste des morceaux et rythmes traditionnels Maliens.
-class MusicScreen extends StatelessWidget {
+/// Écran affichant la liste des Devinettes.
+/// La classe garde le nom 'MusicScreen' mais est adaptée aux Devinettes.
+class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
 
+  @override
+  State<MusicScreen> createState() => _MusicScreenState();
+}
+
+class _MusicScreenState extends State<MusicScreen> {
   // Constantes de Couleurs
-  // Couleur principale Ocre Vif (D69301)
-  static const Color _accentColor = Color(0xFFD69301);
-  // Gris foncé pour le texte des cartes pour un contraste optimal
+  static const Color _accentColor = Color(0xFFD69301); // Ocre Vif
   static const Color _cardTextColor = Color(0xFF2E2E2E);
-  // Couleur de fond pour le corps de la page
   static const Color _backgroundColor = Colors.white;
 
-  // Données de musique simulées
-  final List<Map<String, dynamic>> musicTracks = const [
-    {
-      'title': 'Kora de Nuit',
-      'artist': 'Toumani Diabaté',
-      'duration': '4:32',
-      'image': 'assets/images/Kora1.jpg',
-      'likes': 152,
-      'details': {'nom': 'Toumani', 'langue': 'Bambara'},
-      'description': "Un morceau envoûtant interprété à la kora, capturant la sérénité des nuits maliennes."
-    },
-    {
-      'title': 'Rythme Tam-Tam',
-      'artist': 'Djelimoussa Kounda',
-      'duration': '3:45',
-      'image': 'assets/images/Djembe1.jpg',
-      'likes': 98,
-      'details': {'nom': 'Kounda', 'langue': 'Peul'},
-      'description': "Une explosion de percussions traditionnelles jouées sur un djembe, essence des fêtes locales."
-    },
-    {
-      'title': 'Chant des Griots',
-      'artist': 'Bassekou Kouyaté',
-      'duration': '5:12',
-      'image': 'assets/images/Griot1.jpg',
-      'likes': 210,
-      'details': {'nom': 'Bassekou', 'langue': 'Malinké'},
-      'description': "Les récits poétiques des griots, gardiens de la mémoire et de l'histoire du Mali."
-    },
-    {
-      'title': 'Flûte Peule',
-      'artist': 'Harouna Samake',
-      'duration': '3:28',
-      'image': 'assets/images/Flute1.jpg',
-      'likes': 75,
-      'details': {'nom': 'Harouna', 'langue': 'Peul'},
-      'description': "Une mélodie douce et aérienne jouée à la flûte, typique des paysages pastoraux Peuls."
-    },
-    {
-      'title': 'Wassoulou Blues',
-      'artist': 'Oumou Sangaré',
-      'duration': '6:01',
-      'image': 'assets/images/Oumou.jpg',
-      'likes': 320,
-      'details': {'nom': 'Oumou', 'langue': 'Wassoulou'},
-      'description': "Le célèbre blues de la région du Wassoulou, fusion de tradition et de modernité."
-    },
-    {
-      'title': 'Balafon Magique',
-      'artist': 'Tidiane Koné',
-      'duration': '4:18',
-      'image': 'assets/images/Balafon.jpg',
-      'likes': 180,
-      'details': {'nom': 'Tidiane', 'langue': 'Bambara'},
-      'description': "Un morceau virtuose mettant en vedette le balafon, le xylophone africain ancestral."
-    },
-  ];
+  // Déclaration des états et du service
+  // NOTE : Ceci est un mock pour la démonstration. Le service réel doit être implémenté.
+  final DevinetteService1 _devinetteService = DevinetteService1();
+  List<Devinette1> _devinettes = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDevinettes();
+  }
+
+  /// Fonction de récupération des données
+  Future<void> _fetchDevinettes() async {
+    // Simulation du chargement et de la récupération de données
+    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final data = await _devinetteService.getDevinettes();
+      setState(() {
+        _devinettes = data;
+        _isLoading = false;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Impossible de charger les devinettes: ${e.toString()}';
+        _isLoading = false;
+      });
+      debugPrint('Erreur de chargement des devinettes: $e');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      // Utilise le widget de navigation en bas
-      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'musique'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 0),
-        child: Column(
-          children: [
-            // 1. EN-TÊTE ET BARRE D'APPLICATION
-            _buildHeader(context),
-            Padding(
+      // Adapté pour la navigation des devinettes
+      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'devinette'),
+      body: CustomScrollView(
+        slivers: [
+          // 1. EN-TÊTE ET BARRE D'APPLICATION (Adaptée)
+          _buildHeader(context),
+          SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // 2. BARRE DE RECHERCHE
+                  // 2. BARRE DE RECHERCHE (Adaptée)
                   _buildSearchBar(),
-                  const SizedBox(height: 20),
-                  // 3. GRILLE DES MORCEAUX
-                  _buildMusicGrid(),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          // 3. GRILLE DES DEVINETTES
+          _buildDevinettesGrid(),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
       ),
     );
   }
 
   /// 1. Construction de l'en-tête (Grande carte et AppBar)
   Widget _buildHeader(BuildContext context) {
-    return Stack(
-      children: [
-        // Grande carte thématique "Les Sons du Mali"
-        Container(
-          height: 250,
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+    return SliverAppBar(
+      automaticallyImplyLeading: false, // On gère le leading nous-mêmes
+      expandedHeight: 250,
+      pinned: true,
+      backgroundColor: _backgroundColor,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: EdgeInsets.zero,
+        centerTitle: true,
+        title: Container(
+          width: double.infinity,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.only(bottom: 8.0, top: 40.0),
+          // Affichage du titre 'Devinettes' lorsque la barre est repliée
+          child: Opacity(
+            opacity: 1.0, // Simplification de l'effet de fade
+            child: Text(
+              'Devinettes',
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.light ? _cardTextColor : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/images/Musique.png', // Image de Musique Mali
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.red.shade900,
-                    child: const Center(
-                      child: Text('Les Sons du Mali', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ),
-                // Overlay sombre
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.3),
-                        Colors.black.withOpacity(0.5),
-                      ],
-                    ),
-                  ),
-                ),
-                // Texte et Icône de lecture
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  right: 20,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Les Sons du Mali",
-                        style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text('Plongez au cœur des rythmes maliens ancestraux.',
-                              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, fontWeight: FontWeight.w500),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+        ),
+        background: Stack(
+          children: [
+            // Grande carte thématique "Devinettes et Énigmes"
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Image de fond (chemin simulé adapté)
+                    Image.asset(
+                      'assets/images/riddle_theme.png', // Chemin mis à jour pour un thème de devinette
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: _accentColor.withOpacity(0.6),
+                        child: const Center(
+                          child: Text(
+                            'Jeu de Devinettes',
+                            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                           ),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: _accentColor.withOpacity(0.9), shape: BoxShape.circle),
-                            child: const Icon(Icons.play_arrow, color: Colors.white, size: 30),
+                        ),
+                      ),
+                    ),
+                    // Overlay sombre
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.1),
+                            Colors.black.withOpacity(0.4),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Texte et Icône
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Devinettes et Énigmes",
+                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Testez votre esprit avec la sagesse ancestrale.',
+                                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, fontWeight: FontWeight.w500),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Icône de question, remplace l'icône de lecture
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: _accentColor.withOpacity(0.9), shape: BoxShape.circle),
+                                child: const Icon(Icons.quiz, color: Colors.white, size: 30),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        // Barre d'application
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: Container(
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), shape: BoxShape.circle),
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(0.9)),
-                  onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
               ),
             ),
-            centerTitle: true,
-            title: const Text('Musiques', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
+            // Barre d'application transparente avec bouton de retour
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), shape: BoxShape.circle),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(0.9)),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+                // Le titre est géré par la FlexibleSpaceBar pour l'effet de scroll
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -219,7 +231,7 @@ class MusicScreen extends StatelessWidget {
       child: TextField(
         decoration: InputDecoration(
           icon: const Icon(Icons.search, color: _accentColor),
-          hintText: 'Rechercher des morceaux',
+          hintText: 'Rechercher des devinettes',
           hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.6)),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
@@ -228,171 +240,177 @@ class MusicScreen extends StatelessWidget {
     );
   }
 
-  /// 3. Construction de la grille de musique.
-  Widget _buildMusicGrid() {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: musicTracks.length,
+  /// 3. Construction de la grille des devinettes.
+  Widget _buildDevinettesGrid() {
+    if (_isLoading) {
+      return const SliverFillRemaining(child: Center(child: Padding(
+        padding: EdgeInsets.all(40.0),
+        child: CircularProgressIndicator(color: _accentColor),
+      )));
+    }
+
+    if (_errorMessage != null) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40.0),
+            child: Text(
+              'Erreur de chargement: $_errorMessage',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red, fontSize: 16),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_devinettes.isEmpty) {
+      return const SliverToBoxAdapter(child: Center(child: Padding(
+        padding: EdgeInsets.all(40.0),
+        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 16, color: _cardTextColor)),
+      )));
+    }
+
+    return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.85, // Ratio adapté pour le contenu textuel
       ),
-      itemBuilder: (context, index) {
-        final track = musicTracks[index];
-        return GestureDetector(
-          // **CORRECTION : La navigation est activée ici**
-          onTap: () {
-            // Assurez-vous que MusicDetailScreen est correctement défini (voir réponse précédente)
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MusicDetailScreen(
-                  musicTitle: track['title'] as String,
-                  artistName: track['artist'] as String,
-                  description: track['description'] as String,
-                  audioUrl: 'url_audio_${index + 1}', // URL Audio simulé
-                  imageUrl: track['image'] as String,
-                  details: track['details'] as Map<String, dynamic>,
+      delegate: SliverChildBuilderDelegate(
+            (context, index) {
+          final devinette = _devinettes[index];
+
+          return GestureDetector(
+            onTap: () {
+              // --- LOGIQUE DE NAVIGATION CORRIGÉE ---
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MusicDetailScreen(
+                    titre: devinette.titre ?? 'Énigme',
+                    devinette: devinette.devinette ?? 'Devinette non spécifiée',
+                    reponse: devinette.reponse ?? 'Réponse non disponible',
+                    conteur: '${devinette.prenomAuteur ?? ''} ${devinette.nomAuteur ?? 'Auteur inconnu'}'.trim(),
+                    imageUrl: 'assets/icons/riddle.png', // Placeholder (non utilisé mais requis)
+                    details: {
+                      // Regrouper les infos non directes dans 'details'
+                      'nom': devinette.titre ?? 'Énigme',
+                      'langue':  'Inconnue',
+                      'lieu': devinette.lieu ?? 'Inconnu',
+                    },
+                  ),
                 ),
-              ),
-            );
-          },
-          child: _buildMusicCard(
-            context,
-            track['title'] as String,
-            track['artist'] as String,
-            track['duration'] as String,
-            track['image'] as String,
-            track['likes'] as int,
-          ),
-        );
-      },
+              );
+            },
+            child: _buildDevinetteCard(
+              devinette.titre ?? 'Énigme sans titre',
+              devinette.devinette ?? 'Devinette non spécifiée',
+              devinette.lieu ?? 'Lieu inconnu',
+            ),
+          );
+        },
+        childCount: _devinettes.length,
+      ),
     );
   }
 
-  /// 4. Construction d'une seule carte de morceau de musique.
-  Widget _buildMusicCard(
-      BuildContext context,
+  /// 4. Construction d'une seule carte de Devinette.
+  Widget _buildDevinetteCard(
       String title,
-      String artistName,
-      String duration,
-      String imagePath,
-      int likes,
+      String riddleText,
+      String location,
       ) {
-    // Calcule la hauteur totale disponible pour la carte (basé sur childAspectRatio=0.75)
-    // Nous allons utiliser un ratio approximatif de 70% pour l'image et 30% pour le texte.
-
-    // Pour éviter les débordements (overflow) de RenderFlex, on utilise un LayoutBuilder
-    // pour garantir que les enfants de Column ont des contraintes de taille précises,
-    // même si on est dans un GridView.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // La hauteur de la carte est gérée par GridView, on utilise la largeur pour estimer la hauteur.
-        final cardHeight = constraints.maxHeight;
-        // CORRECTION MAJEURE: Augmentation de l'espace alloué au texte pour éviter le débordement.
-        // On passe de 70/30% à 65/35% (Image/Texte)
-        final imageSectionHeight = cardHeight * 0.65; // 65% pour l'image
-        final textSectionHeight = cardHeight * 0.35; // 35% pour les détails
-
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 3))],
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: _accentColor.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Image du morceau avec icône de lecture (Hauteur fixe)
-              SizedBox(
-                height: imageSectionHeight, // Hauteur calculée
-                child: _buildVideoImage(imagePath),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icône de Devinette
+          const Icon(Icons.quiz_outlined, color: _accentColor, size: 28),
+          const SizedBox(height: 8),
+
+          // Titre
+          Text(
+            title,
+            style: const TextStyle(
+              color: _cardTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+
+          // Texte de la Devinette
+          Expanded(
+            child: Text(
+              riddleText,
+              style: TextStyle(
+                color: _cardTextColor.withOpacity(0.8),
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
               ),
+              maxLines: 4, // Légèrement réduit pour laisser de la place
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 8),
 
-              // 2. Section du texte et des actions (Hauteur fixe)
-              SizedBox(
-                height: textSectionHeight, // Hauteur calculée
-                child: Padding(
-                  // Garde le padding vertical à 6.0
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    // Garde le mainAxisAlignment à spaceAround
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      // Titre
-                      Text(title, style: const TextStyle(color: _cardTextColor, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-
-                      // Artiste, Durée, Likes
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Row(
-                              children: [
-                                Icon(Icons.person, size: 12, color: _cardTextColor.withOpacity(0.6)),
-                                const SizedBox(width: 2),
-                                Expanded( // Expanded est essentiel ici pour gérer le débordement horizontal
-                                  child: Text(artistName, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9), overflow: TextOverflow.ellipsis),
-                                ),
-                                const SizedBox(width: 5),
-                                Icon(Icons.timer, size: 12, color: _cardTextColor.withOpacity(0.6)),
-                                const SizedBox(width: 2),
-                                Text(duration, style: TextStyle(color: _cardTextColor.withOpacity(0.6), fontSize: 9)),
-                              ],
-                            ),
-                          ),
-                          _buildLikeButton(likes),
-                        ],
-                      ),
-                    ],
+          // Lieu
+          Row(
+            children: [
+              Icon(Icons.location_on, size: 12, color: Colors.grey.shade600),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  location,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
+          const SizedBox(height: 4),
 
-  /// Image du morceau avec icône de lecture au centre.
-  Widget _buildVideoImage(String imagePath) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-      child: Container(
-        color: Colors.grey[300],
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => Center(child: Icon(Icons.music_note, size: 40, color: _cardTextColor.withOpacity(0.5)))),
-            Container(color: Colors.black.withOpacity(0.1)),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
-                child: const Icon(Icons.play_arrow, color: Colors.white, size: 30),
+          // Bouton Révéler / Jouer (Visuel)
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _accentColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Révéler',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
-
-  /// Bouton J'aime/Cœur en bas de la carte.
-  Widget _buildLikeButton(int likes) {
-    // Ce bouton a été optimisé pour un usage minimal de l'espace.
-    return IconButton(
-      icon: const Icon(Icons.favorite_border, size: 18, color: Colors.grey),
-      onPressed: () {},
-      // Supprime l'espace intérieur inutile
-      padding: EdgeInsets.zero,
-      // Contraintes minimales pour le bouton pour éviter de le rendre invisible.
-      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
     );
   }
 }
