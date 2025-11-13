@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-// Import pour la sélection de fichier
 import 'package:file_picker/file_picker.dart';
-
 import 'dart:io';
-
-// Importez l'AppDrawer
+import '../model/FamilleModel.dart';
 import 'AppDrawer.dart';
-// Importez le service d'API
 import '../service/ArbreGenealogiqueService.dart';
+import '../model/Membre.dart';
+
 import 'package:intl/intl.dart';
 
 
@@ -19,12 +17,24 @@ const Color _searchBackground = Color(0xFFF7F2E8);
 const Color _buttonColor = Color(0xFF7B521A);
 const Color _lightCardColor = Color(0xFFF7F2E8);
 
+// 🔑 Membre factice pour le cas "Non Spécifié / Aucun"
+final Membre _noneMemberPlaceholder = Membre(
+  id: 0,
+  nomComplet: 'Non Spécifié / Aucun',
+  dateNaissance: '2000-01-01',
+  lieuNaissance: 'N/A',
+  relationFamiliale: 'Placeholder',
+  idFamille: 0,
+  nomFamille: 'N/A',
+  dateCreation: '2000-01-01',
+);
+
 
 class CreateTreeScreen extends StatefulWidget {
-  final int? familyId; // ID de la famille où ajouter le membre
+  final int? familyId;
+  final int? parentId; // ID du parent injecté depuis FamilyTreeScreen
 
-  const CreateTreeScreen({super.key, required this.familyId});
-
+  const CreateTreeScreen({super.key, required this.familyId, this.parentId});
 
   @override
   State<CreateTreeScreen> createState() => _CreateTreeScreenState();
@@ -32,9 +42,9 @@ class CreateTreeScreen extends StatefulWidget {
 
 class _CreateTreeScreenState extends State<CreateTreeScreen> {
 
-  // 🔑 1. CONTROLLERS ET ÉTATS POUR LA COLLECTE DES DONNÉES
   final _formKey = GlobalKey<FormState>();
 
+  // Contrôleurs de champs de texte
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _lieuNaissanceController = TextEditingController();
@@ -43,14 +53,74 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _biographieController = TextEditingController();
 
-  String _selectedRole = 'Membre'; // Rôle par défaut
-  String _selectedFileName = 'Télécharger la photo';
-  String? _photoFilePath; // Chemin local du fichier à envoyer
+  // 🔑 Variables d'état pour le sélecteur de Membres
+  List<Membre> _allMembres = [];
+  Membre? _selectedParent1; // Objet Membre sélectionné
+  Membre? _selectedParent2; // Objet Membre sélectionné
+  bool _isLoadingMembres = true;
 
-  bool _isSaving = false; // État de chargement pour le bouton
+  String _selectedRole = 'Membre';
+  String _selectedFileName = 'Télécharger la photo';
+  String? _photoFilePath;
+
+  bool _isSaving = false;
 
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
-  DateTime? _selectedDate; // Stocke la date réelle
+  DateTime? _selectedDate;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchMembresList(); // 🔑 Chargement des membres au démarrage
+  }
+
+  // 🔑 FONCTION: Récupérer la liste de tous les membres via fetchFamille
+  Future<void> _fetchMembresList() async {
+    if (widget.familyId == null) {
+      setState(() {
+        _isLoadingMembres = false;
+      });
+      return;
+    }
+    try {
+      // 🔑 1. Appel à fetchFamille pour obtenir l'objet Famille
+      final Famille famille = await _apiService.fetchFamille(familleId: widget.familyId!);
+
+      // 🔑 2. Extraction de la liste des Membres (confirmé par le modèle Famille)
+      final List<Membre> membres = famille.membres;
+
+      // Ajout du placeholder 'Non Spécifié'
+      membres.insert(0, _noneMemberPlaceholder);
+
+      Membre? initialParent1;
+
+      // Gérer l'ID de parent injecté (pré-sélection)
+      if (widget.parentId != null) {
+        initialParent1 = membres.firstWhere(
+              (m) => m.id == widget.parentId,
+          orElse: () => _noneMemberPlaceholder,
+        );
+      }
+
+      setState(() {
+        _allMembres = membres; // La liste complète est stockée
+        _isLoadingMembres = false;
+        // Définir la sélection initiale
+        _selectedParent1 = initialParent1 ?? _noneMemberPlaceholder;
+        _selectedParent2 = _noneMemberPlaceholder;
+      });
+    } catch (e) {
+      debugPrint('Erreur de chargement des membres via Famille: $e');
+      setState(() {
+        _isLoadingMembres = false;
+        _allMembres = [_noneMemberPlaceholder];
+        _selectedParent1 = _noneMemberPlaceholder;
+        _selectedParent2 = _noneMemberPlaceholder;
+        _showSnackBar('Erreur lors du chargement des membres existants.', Colors.red);
+      });
+    }
+  }
 
 
   @override
@@ -65,9 +135,8 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     super.dispose();
   }
 
-  // --- Fonctions d'interaction réelles ---
+  // --- Fonctions d'interaction ---
 
-  // 1. Ouvrir le sélecteur de date
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -77,7 +146,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            primaryColor: _mainAccentColor, // Couleur d'en-tête du sélecteur
+            primaryColor: _mainAccentColor,
             colorScheme: const ColorScheme.light(primary: _mainAccentColor),
             buttonTheme: const ButtonThemeData(textTheme: ButtonTextTheme.primary),
           ),
@@ -89,86 +158,29 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     if (pickedDate != null) {
       setState(() {
         _selectedDate = pickedDate;
-        // Met à jour l'UI et le contrôleur de texte
         _dateController.text = DateFormat('dd/MM/yyyy').format(pickedDate);
       });
     }
   }
 
-  // 2. Ouvrir le sélecteur de fichier
   Future<void> _selectFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image, // Limiter aux images
+      type: FileType.image,
       allowMultiple: false,
     );
 
     if (result != null && result.files.single.path != null) {
-      // Met à jour l'UI pour afficher le nom du fichier
       setState(() {
         _selectedFileName = result.files.single.name;
-        _photoFilePath = result.files.single.path; // 🔑 STOCKER LE CHEMIN POUR L'ENVOI API
+        _photoFilePath = result.files.single.path;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Photo sélectionnée: $_selectedFileName')),
       );
     } else {
-      // L'utilisateur a annulé la sélection
       setState(() {
         _selectedFileName = 'Télécharger la photo';
         _photoFilePath = null;
-      });
-    }
-  }
-
-  // 🔑 2. LOGIQUE DE SOUMISSION DU FORMULAIRE ET APPEL API
-  Future<void> _submitForm() async {
-    // Vérifier la validation du formulaire et la sélection de date
-    if (!_formKey.currentState!.validate() || _selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs obligatoires (Nom, Date et Lieu).')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      if (widget.familyId == null) {
-        throw Exception("L'ID de famille n'est pas fourni.");
-      }
-
-      // Format de date requis par le backend (YYYY-MM-DD)
-      final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-
-      await _apiService.createMembre(
-        idFamille: widget.familyId!, // ID de la famille injecté
-        nomComplet: _fullNameController.text.trim(),
-        dateNaissance: formattedDate,
-        lieuNaissance: _lieuNaissanceController.text.trim(),
-        relationFamiliale: _relationFamilialeController.text.trim().isEmpty
-            ? _selectedRole
-            : _relationFamilialeController.text.trim(),
-
-        // Champs optionnels
-        photoPath: _photoFilePath,
-        telephone: _telephoneController.text.trim().isNotEmpty ? _telephoneController.text.trim() : null,
-        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
-        biographie: _biographieController.text.trim().isNotEmpty ? _biographieController.text.trim() : null,
-      );
-
-      // Succès: afficher SnackBar et retourner true pour rafraîchir l'arbre
-      _showSnackBar('Membre ${_fullNameController.text} ajouté avec succès !', Colors.green);
-      // 🔑 SIGNALER À L'ÉCRAN PRÉCÉDENT DE RAFRAÎCHIR
-      Navigator.of(context).pop(true);
-
-    } catch (e) {
-      _showSnackBar('Erreur lors de l\'ajout du membre: ${e.toString()}', Colors.red);
-      debugPrint('Erreur d\'ajout membre: $e');
-    } finally {
-      setState(() {
-        _isSaving = false;
       });
     }
   }
@@ -181,6 +193,61 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  // 🔑 LOGIQUE DE SOUMISSION utilisant les IDs des objets Membre sélectionnés
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate() || _selectedDate == null) {
+      _showSnackBar('Veuillez remplir tous les champs obligatoires (Nom, Date et Lieu).', Colors.red);
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      if (widget.familyId == null) {
+        throw Exception("L'ID de famille n'est pas fourni.");
+      }
+
+      final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+
+      // 🔑 Conversion de l'objet Membre sélectionné en ID (null si placeholder id=0)
+      final int? parent1Id = _selectedParent1 != null && _selectedParent1!.id != 0 ? _selectedParent1!.id : null;
+      final int? parent2Id = _selectedParent2 != null && _selectedParent2!.id != 0 ? _selectedParent2!.id : null;
+
+
+      await _apiService.createMembre(
+        idFamille: widget.familyId!,
+        nomComplet: _fullNameController.text.trim(),
+        dateNaissance: formattedDate,
+        lieuNaissance: _lieuNaissanceController.text.trim(),
+        relationFamiliale: _relationFamilialeController.text.trim().isEmpty
+            ? _selectedRole
+            : _relationFamilialeController.text.trim(),
+
+        parent1Id: parent1Id,
+        parent2Id: parent2Id,
+
+        photoPath: _photoFilePath,
+        telephone: _telephoneController.text.trim().isNotEmpty ? _telephoneController.text.trim() : null,
+        email: _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : null,
+        biographie: _biographieController.text.trim().isNotEmpty ? _biographieController.text.trim() : null,
+      );
+
+      _showSnackBar('Membre ${_fullNameController.text} ajouté avec succès !', Colors.green);
+      // Retourne 'true' pour indiquer à l'écran précédent de rafraîchir
+      Navigator.of(context).pop(true);
+
+    } catch (e) {
+      _showSnackBar('Erreur lors de l\'ajout du membre: ${e.toString()}', Colors.red);
+      debugPrint('Erreur d\'ajout membre: $e');
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
 
@@ -200,7 +267,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
                 }
             ),
             const SizedBox(height: 20),
-            // 🔑 Enveloppement dans un Form
             Form(
               key: _formKey,
               child: _buildFormSection(context),
@@ -227,7 +293,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
             },
           ),
           const Text(
-            'Ajouter un Membre', // Titre mis à jour pour la clarté
+            'Ajouter un Membre',
             style: TextStyle(
               color: _cardTextColor,
               fontWeight: FontWeight.bold,
@@ -236,7 +302,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.grey, size: 24),
-            onPressed: () => Navigator.pop(context, false), // Retourne false si l'on ferme
+            onPressed: () => Navigator.pop(context, false),
           ),
         ],
       ),
@@ -249,7 +315,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Titres
           const Text(
             'Ajouter un Nouveau Membre',
             style: TextStyle(color: _cardTextColor, fontSize: 22, fontWeight: FontWeight.bold),
@@ -273,7 +338,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           // Ligne 2: Date de Naissance (*) & Lieu de Naissance (*)
           Row(
             children: [
-              // Champ Date de naissance (fonctionnel)
               Expanded(child: _buildDateInputField(context, label: 'Date de naissance (*)', hint: 'jj/mm/aaaa')),
               const SizedBox(width: 15),
               Expanded(child: _buildInputField('Lieu de naissance (*)', controller: _lieuNaissanceController, hint: 'Ex: Bamako', isRequired: true)),
@@ -283,8 +347,51 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           // Ligne 3: Relation Familiale
           _buildInputField('Relation familiale', controller: _relationFamilialeController, hint: 'Ex: Mère, Fils, Épouse...'),
 
-          // Télécharger la photo (fonctionnel)
+          // 🔑 SÉLECTEUR DE MEMBRES POUR PARENTS
+          const SizedBox(height: 20),
+          const Text(
+            'Sélection des parents (si applicable)',
+            style: TextStyle(color: _cardTextColor, fontSize: 16, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 10),
+          Row(
+            children: [
+              // 🔑 Parent 1 (Père ou Partenaire)
+              Expanded(child: _buildParentSelector(
+                label: 'Parent 1 (Père/Partenaire)',
+                selectedMember: _selectedParent1,
+                // Le parent 1 est désactivé s'il a été injecté
+                isDisabled: widget.parentId != null && _selectedParent1 != _noneMemberPlaceholder,
+                onChanged: (Membre? newValue) {
+                  setState(() {
+                    _selectedParent1 = newValue;
+                  });
+                },
+              )),
+              const SizedBox(width: 15),
+              // 🔑 Parent 2 (Mère ou Partenaire)
+              Expanded(child: _buildParentSelector(
+                label: 'Parent 2 (Mère/Partenaire)',
+                selectedMember: _selectedParent2,
+                onChanged: (Membre? newValue) {
+                  setState(() {
+                    _selectedParent2 = newValue;
+                  });
+                },
+              )),
+            ],
+          ),
+          // Note pour l'ID pré-rempli
+          if (widget.parentId != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 5.0, bottom: 15.0),
+              child: Text('Note: Le Parent 1 est automatiquement sélectionné (ID: ${widget.parentId}).',
+                style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 10),
+
+          // Télécharger la photo
           _buildPhotoUploadButton(context),
           const SizedBox(height: 20),
 
@@ -304,14 +411,13 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           // Bouton Enregistrer
           Center(
             child: ElevatedButton(
-              // 🔑 Appel de la fonction de soumission
-              onPressed: _isSaving ? null : _submitForm,
+              onPressed: (_isSaving || _isLoadingMembres) ? null : _submitForm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _buttonColor,
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
               ),
-              child: _isSaving
+              child: (_isSaving || _isLoadingMembres)
                   ? const SizedBox(
                 width: 20,
                 height: 20,
@@ -329,9 +435,86 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // --- Widgets de Formulaire (Mis à jour pour Form/Validation et Controllers) ---
+  // 🔑 WIDGET SÉLECTEUR DE MEMBRE (DROPDOWN)
+  Widget _buildParentSelector({
+    required String label,
+    required Membre? selectedMember,
+    required ValueChanged<Membre?> onChanged,
+    bool isDisabled = false,
+  }) {
+    // Affichage de chargement
+    if (_isLoadingMembres) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 15.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+            const SizedBox(height: 5),
+            Container(
+              height: 48,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: _searchBackground, borderRadius: BorderRadius.circular(5)),
+              child: const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(color: _mainAccentColor, strokeWidth: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
-  // Champ de texte standard avec controller et validation
+    // Affichage du sélecteur
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor)),
+          const SizedBox(height: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: isDisabled ? _searchBackground.withOpacity(0.5) : _searchBackground,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: DropdownButtonFormField<Membre>(
+              value: selectedMember,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
+              ),
+              onChanged: isDisabled ? null : onChanged, // Désactivé si `isDisabled` est true
+
+              items: _allMembres.map<DropdownMenuItem<Membre>>((Membre member) {
+                // Afficher le nom et l'ID
+                final display = member.id == 0 ? member.nomComplet : '${member.nomComplet} (ID: ${member.id})';
+                return DropdownMenuItem<Membre>(
+                  value: member,
+                  child: Text(
+                      display,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDisabled ? Colors.grey : _cardTextColor,
+                      ),
+                      overflow: TextOverflow.ellipsis
+                  ),
+                );
+              }).toList(),
+              icon: Icon(Icons.keyboard_arrow_down, color: isDisabled ? Colors.grey : _mainAccentColor),
+              style: TextStyle(color: isDisabled ? Colors.grey : _cardTextColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // WIDGET D'INPUT FIELD
   Widget _buildInputField(String label, {required TextEditingController controller, required String hint, bool isRequired = false, TextInputType keyboardType = TextInputType.text}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -370,7 +553,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // Champ Date de Naissance
   Widget _buildDateInputField(BuildContext context, {required String label, required String hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -409,7 +591,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // Widget pour le champ Rôle (Dropdown)
   Widget _buildRoleDropdown() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -452,7 +633,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // Widget pour le champ Bibliographie (multiligne)
   Widget _buildBibliographyField(String label, {required TextEditingController controller, required String hint}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -484,7 +664,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // Bouton de téléchargement de photo
   Widget _buildPhotoUploadButton(BuildContext context) {
     return Center(
       child: InkWell(
@@ -510,7 +689,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // Section Membres Ajoutés
   Widget _buildAddedMembersSection() {
     return Container(
       padding: const EdgeInsets.all(20),

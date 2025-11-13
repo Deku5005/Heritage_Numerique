@@ -1,3 +1,5 @@
+// Fichier : lib/screens/FamilyTreeScreen.dart
+
 import 'package:flutter/material.dart';
 import 'dart:math';
 
@@ -6,9 +8,11 @@ import '../model/FamilleModel.dart';
 import '../model/Membre.dart';
 import '../service/ArbreGenealogiqueService.dart';
 
-// 🔑 Assurez-vous d'avoir le bon chemin vers l'écran d'ajout de membre
+// 🔑 Assurez-vous d'avoir le bon chemin vers les écrans
 import 'CreateTreeScreen.dart';
 import 'AppDrawer.dart';
+// 🔑 NOUVEL IMPORTATION : Écran de détails du membre
+import 'MembresDetailsScreen.dart';
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -17,9 +21,7 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _lightCardColor = Color(0xFFF7F2E8);
 
 // 🔑 URL DE BASE POUR LES IMAGES
-// L'IP 10.0.2.2 est correcte pour l'émulateur Android.
 const String _baseUrl = "http://10.0.2.2:8080";
-
 
 // --- FamilyTreeScreen ---
 class FamilyTreeScreen extends StatefulWidget {
@@ -30,6 +32,12 @@ class FamilyTreeScreen extends StatefulWidget {
   @override
   State<FamilyTreeScreen> createState() => _FamilyTreeScreenState();
 }
+
+// 🔑 Définition du type de callback pour les cartes (accepte un ID optionnel)
+// NOTE : Ce type de callback n'est plus utilisé directement comme action,
+// mais il reste pour définir les paramètres dans la structure de l'arbre.
+typedef MemberTapCallback = void Function(int? memberId);
+
 
 class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   // --- Ajout de l'état pour les données et le chargement ---
@@ -52,30 +60,58 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     });
     try {
       final famille = await _apiService.fetchFamille(familleId: widget.familyId);
+      // Tri par ID pour une structure séquentielle simple
+      famille.membres.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
       setState(() {
         _familleData = famille;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Erreur de chargement de l\'arbre généalogique : $e';
+        _errorMessage = 'Erreur de chargement de l\'arbre généalogique : ${e.toString()}';
         _isLoading = false;
         debugPrint(_errorMessage);
       });
     }
   }
 
-  void _navigateToAddMember() async {
+  // 1. Gère l'ajout d'un nouveau membre (appelé par le FAB ou le Placeholder)
+  void _navigateToAddMember({int? parentId}) async {
     final bool? shouldRefresh = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CreateTreeScreen(familyId: widget.familyId),
+        builder: (context) => CreateTreeScreen(
+          familyId: widget.familyId,
+          parentId: parentId, // ID du parent passé
+        ),
       ),
     );
 
     if (shouldRefresh == true) {
-      _fetchFamilyTree();
+      // Pour forcer le rafraîchissement des données après l'ajout
+      await _fetchFamilyTree();
     }
   }
+
+  // 2. 🔑 Gère l'affichage des détails d'un membre (appelé par la carte du membre)
+  void _navigateToMemberDetail({required int memberId}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MembreDetailScreen(membreId: memberId),
+      ),
+    );
+  }
+
+  // 3. 🔑 Gestionnaire de clic UNIFIÉ pour les cartes
+  void _handleMemberCardTap({required int? memberId, bool isPlaceholder = false}) {
+    if (memberId == null || isPlaceholder) {
+      // Si l'ID est null (placeholder d'ajout)
+      _navigateToAddMember(parentId: memberId); // Si l'ID est null, ajoute un membre principal
+    } else {
+      // Si un ID est présent, affiche les détails
+      _navigateToMemberDetail(memberId: memberId);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +133,10 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           ],
         ),
       ),
+      // ✅ FloatingActionButton rétabli (pour ajouter un membre principal)
       floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddMember,
+        // L'action du FAB appelle la fonction d'ajout directe
+        onPressed: () => _navigateToAddMember(parentId: null),
         backgroundColor: _mainAccentColor,
         child: const Icon(Icons.person_add, color: Colors.white),
         tooltip: 'Ajouter un nouveau membre',
@@ -152,7 +190,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           _buildStats(),
           const SizedBox(height: 30),
 
-          // 🔑 Appel de la structure d'arbre dynamique par séquence
+          // Appel de la structure d'arbre dynamique par séquence
           _buildFamilyTreeLayoutBySequence(),
         ],
       );
@@ -161,54 +199,94 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     return const Center(child: Text("Aucune donnée disponible."));
   }
 // -------------------------------------------------------------------
-// --- WIDGETS DE L'ARBRE (Maintien de la Structure Fixe) ---
+// --- WIDGETS DE L'ARBRE (Structure 1 + 7x2 = 15 cartes) ---
 // -------------------------------------------------------------------
 
   // **Structure Statique de l'Arbre Remplie par Séquence**
   Widget _buildFamilyTreeLayoutBySequence() {
+    // Si aucun membre, affiche un placeholder cliquable
     if (_familleData == null || _familleData!.membres.isEmpty) {
-      return const Center(child: Text("Ajoutez le premier membre à votre arbre !"));
+      return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            // Le placeholder utilise le gestionnaire unifié
+            child: _buildMemberCardPlaceholder(onTap: (id) => _handleMemberCardTap(memberId: id, isPlaceholder: true)),
+          )
+      );
     }
 
     List<Membre> membres = _familleData!.membres;
-    int memberIndex = 0; // Le membre le plus âgé est à l'index 0
+    int memberIndex = 0;
 
     // Fonction utilitaire pour obtenir le prochain membre
     Membre? getNextMember() {
       if (memberIndex < membres.length) {
         return membres[memberIndex++];
       }
-      return null; // Retourne null si plus de membres disponibles
+      return null;
+    }
+
+    // 🔑 Le callback utilise maintenant la fonction unifiée
+    final MemberTapCallback cardTap = (id) => _handleMemberCardTap(memberId: id);
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    // Fonction pour construire une ligne de 2 cartes
+    Widget buildTwoMemberRow() {
+      return Column(
+        children: [
+          // Ligne de connexion horizontale entre les 2 membres
+          Container(
+            width: screenWidth * 0.7, // Ligne plus courte pour 2 cartes
+            height: 2,
+            color: Colors.grey.shade400,
+            margin: const EdgeInsets.only(bottom: 10),
+          ),
+          _buildHorizontalLevel([
+            _buildMemberCardDynamic(getNextMember(), onTap: cardTap),
+            _buildMemberCardDynamic(getNextMember(), onTap: cardTap),
+          ], maxWidth: screenWidth - 32),
+          _buildConnectionLine(isVertical: true, height: 20),
+        ],
+      );
     }
 
     return Center(
       child: Column(
         children: [
-          // Ligne 1 : Niveau supérieur (Membre le plus âgé - Index 0)
-          _buildMemberCardDynamic(getNextMember()),
+          // Ligne 1 : Niveau 1 (Index 0) - 1 carte
+          _buildMemberCardDynamic(getNextMember(), onTap: cardTap),
           _buildConnectionLine(),
 
-          // Ligne 2 : Niveau intermédiaire (Membre suivant - Index 1)
-          _buildMemberCardDynamic(getNextMember()),
-          _buildConnectionLine(),
+          // --- 7 Niveaux de 2 cartes pour un total de 14 cartes ---
+          buildTwoMemberRow(), // Niveau 2 (Index 1 & 2)
+          buildTwoMemberRow(), // Niveau 3 (Index 3 & 4)
+          buildTwoMemberRow(), // Niveau 4 (Index 5 & 6)
+          buildTwoMemberRow(), // Niveau 5 (Index 7 & 8)
+          buildTwoMemberRow(), // Niveau 6 (Index 9 & 10)
+          buildTwoMemberRow(), // Niveau 7 (Index 11 & 12)
 
-          // Ligne 3 : Niveau 3 (Membres suivants - Index 2 et 3)
-          _buildHorizontalLevel([
-            _buildMemberCardDynamic(getNextMember()), // Index 2
-            _buildMemberCardDynamic(getNextMember()), // Index 3
-          ], maxWidth: MediaQuery.of(context).size.width - 32), // 🔑 Utilise la largeur de l'écran
-          _buildConnectionLine(isVertical: true, height: 20),
+          // Niveau 8 (Index 13 & 14)
+          Column(
+            children: [
+              // Ligne de connexion horizontale entre les 2 membres
+              Container(
+                width: screenWidth * 0.7,
+                height: 2,
+                color: Colors.grey.shade400,
+                margin: const EdgeInsets.only(bottom: 10),
+              ),
+              _buildHorizontalLevel([
+                _buildMemberCardDynamic(getNextMember(), onTap: cardTap),
+                _buildMemberCardDynamic(getNextMember(), onTap: cardTap),
+              ], maxWidth: screenWidth - 32),
+              // Pas de ligne verticale après le dernier niveau d'arbre
+              const SizedBox(height: 20),
+            ],
+          ),
 
-          // Ligne 4 : Niveau 4 (Membres suivants - Index 4 et 5)
-          _buildHorizontalLevel([
-            _buildMemberCardDynamic(getNextMember()), // Index 4
-            _buildMemberCardDynamic(getNextMember()), // Index 5
-          ], maxWidth: MediaQuery.of(context).size.width - 32), // 🔑 Utilise la largeur de l'écran
-
-          // 🔑 GESTION DES MEMBRES RESTANTS (Plus de 6)
+          // 🔑 GESTION DES MEMBRES RESTANTS (Index 15 et suivants)
           if (memberIndex < membres.length)
             _buildRemainingMembersList(membres.sublist(memberIndex)),
-
         ],
       ),
     );
@@ -218,6 +296,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   Widget _buildRemainingMembersList(List<Membre> remainingMembers) {
     if (remainingMembers.isEmpty) return const SizedBox.shrink();
 
+    // 🔑 Callback pour la navigation : utilise le gestionnaire unifié
+    final MemberTapCallback cardTap = (id) => _handleMemberCardTap(memberId: id);
+
     return Padding(
       padding: const EdgeInsets.only(top: 30.0, left: 16.0, right: 16.0),
       child: Column(
@@ -226,16 +307,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              '${remainingMembers.length} autres Membres (membres les plus jeunes)',
+              '${remainingMembers.length} autres Membres (liste complète)',
               style: const TextStyle(fontWeight: FontWeight.bold, color: _cardTextColor, fontSize: 16),
             ),
           ),
 
-          // Liste simple des membres restants
+          // Liste simple des membres restants (sous forme de cartes)
           ...remainingMembers.map((membre) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
-              child: _buildMemberCardDynamic(membre), // Réutilise la carte corrigée
+              // 🔑 Passage de l'ID du membre pour l'action onTap
+              child: _buildMemberCardDynamic(membre, onTap: cardTap),
             );
           }).toList(),
         ],
@@ -244,21 +326,23 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   }
 
 
-  // **Carte de membre dynamique** (Correction du débordement)
-  Widget _buildMemberCardDynamic(Membre? membre) {
-    // Si le membre n'est pas trouvé (indice dépassé), affiche un placeholder
+  // **Carte de membre dynamique** (CORRIGÉ : Utilise le gestionnaire unifié via onTap)
+  Widget _buildMemberCardDynamic(Membre? membre, {required MemberTapCallback onTap}) {
+    // Si le membre n'est pas trouvé (indice dépassé), affiche un placeholder cliquable
     if (membre == null) {
-      return _buildMemberCardPlaceholder();
+      // Le placeholder utilise le gestionnaire unifié pour l'ajout
+      return _buildMemberCardPlaceholder(onTap: (id) => _handleMemberCardTap(memberId: id, isPlaceholder: true));
     }
 
     int birthYear = 0;
     try {
       if (membre.dateNaissance.contains('-')) {
+        // Le modèle Membre.dart mis à jour garantit que id n'est pas null ici (si la data est bien retournée)
         birthYear = int.tryParse(membre.dateNaissance.split('-').first) ?? 0;
       }
     } catch (_) { /* ignore */ }
 
-    const int contributions = 0;
+    const int contributions = 0; // Donnée statique pour l'instant
 
     // Construction de l'URL complète pour la photo
     final String fullPhotoUrl = (membre.photoUrl != null && membre.photoUrl!.isNotEmpty)
@@ -266,124 +350,126 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         : '';
     final bool hasPhoto = fullPhotoUrl.isNotEmpty;
 
-    return Container(
-      // 🔑 RETIRER width: 280
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image de profil (fixe)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 50,
-              height: 50,
-              color: Colors.grey.shade200,
-              child: hasPhoto
-                  ? Image.network(
-                fullPhotoUrl,
-                fit: BoxFit.cover,
-                // 🔑 Si Image.network échoue (URL incorrecte, serveur down), afficher l'icône.
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: Colors.grey, size: 30),
-              )
-              // 🔑 Si hasPhoto est false (pas d'URL), afficher l'icône.
-                  : const Icon(Icons.person, color: Colors.grey, size: 30),
+    return GestureDetector(
+      // 🔑 Le onTap final passe l'ID au gestionnaire unifié via le callback MemberTapCallback
+      onTap: () => onTap(membre.id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(width: 10),
-          // 🔑 Expanded pour prendre l'espace restant sans déborder
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  membre.nomComplet, // DYNAMIQUE
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor),
-                  overflow: TextOverflow.ellipsis, // 🔑 Empêche le débordement horizontal
-                ),
-                Text(
-                  membre.relationFamiliale, // DYNAMIQUE
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-                Text(
-                  birthYear > 0 ? 'Né en $birthYear' : 'Date de naissance inconnue', // DYNAMIQUE
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    const Icon(Icons.people_alt_outlined, size: 12, color: _mainAccentColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$contributions Contributions', // STATIQUE
-                      style: TextStyle(fontSize: 10, color: _mainAccentColor),
-                    ),
-                  ],
-                ),
-              ],
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image de profil (fixe)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 50,
+                height: 50,
+                color: Colors.grey.shade200,
+                child: hasPhoto
+                    ? Image.network(
+                  fullPhotoUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: Colors.grey, size: 30),
+                )
+                    : const Icon(Icons.person, color: Colors.grey, size: 30),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    membre.nomComplet, // DYNAMIQUE
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    membre.relationFamiliale, // DYNAMIQUE
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  Text(
+                    birthYear > 0 ? 'Né en $birthYear (ID: ${membre.id ?? '?'})' : 'Date de naissance inconnue', // DYNAMIQUE avec ID
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      const Icon(Icons.people_alt_outlined, size: 12, color: _mainAccentColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$contributions Contributions', // STATIQUE
+                        style: TextStyle(fontSize: 10, color: _mainAccentColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Carte de membre POUBELLE (si non trouvé dans l'API)
-  Widget _buildMemberCardPlaceholder() {
-    return Container(
-      // 🔑 RETIRER width: 280
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          // 🔑 Icône générique pour l'emplacement vide
-          const Icon(Icons.person, color: Colors.grey, size: 30),
-          const SizedBox(width: 10),
-          Expanded( // 🔑 Ajout d'Expanded
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Emplacement libre',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const Text(
-                  'Ajouter un membre pour remplir cette place.',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-              ],
+  // Carte de membre POUBELLE (Placeholder) (CORRIGÉ : Utilise le gestionnaire unifié)
+  Widget _buildMemberCardPlaceholder({required MemberTapCallback onTap}) {
+    return GestureDetector(
+      // 🔑 Le clic sur le placeholder passe null et l'indicateur isPlaceholder
+      onTap: () => _handleMemberCardTap(memberId: null, isPlaceholder: true),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _lightCardColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade400, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.add_circle_outline, color: _mainAccentColor, size: 30),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Ajouter un Membre',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _mainAccentColor),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Cliquez ici pour remplir cette place.',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
 // -------------------------------------------------------------------
-// --- WIDGETS DE STYLE ET UTILS (RÉTABLIS et CORRIGÉS) ---
+// --- WIDGETS DE STYLE ET UTILS (Inchangés) ---
 // -------------------------------------------------------------------
 
-  // Section des statistiques (Maintenant dynamique)
+  // Section des statistiques (inchangé)
   Widget _buildStats() {
     final famille = _familleData;
     if (famille == null) return const SizedBox.shrink();
@@ -391,8 +477,23 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     int? anneeDebut;
     if (famille.membres.isNotEmpty) {
       try {
-        if (famille.membres.first.dateNaissance.contains('-')) {
-          anneeDebut = int.tryParse(famille.membres.first.dateNaissance.split('-').first);
+        // CORRECTION : Fournir uniquement les arguments 'required' du constructeur Membre.
+        String date = famille.membres.firstWhere(
+              (m) => m.dateNaissance.isNotEmpty,
+          orElse: () => Membre(
+            id: 0,
+            nomComplet: '',
+            dateNaissance: '',
+            lieuNaissance: '',
+            relationFamiliale: '',
+            idFamille: 0,
+            nomFamille: '',
+            dateCreation: '',
+          ),
+        ).dateNaissance;
+
+        if (date.contains('-')) {
+          anneeDebut = int.tryParse(date.split('-').first);
         }
       } catch (_) {
         anneeDebut = null;
@@ -416,8 +517,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Les StatBox utilisent une largeur fixe, donc pas de débordement ici
-              _buildStatBox(label: 'Générations', value: 'N/A'),
+              _buildStatBox(label: 'Générations', value: 'N/A'), // La génération est complexe à calculer sans données structurées
               _buildStatBox(label: 'Membres', value: famille.nombreMembres.toString()),
               _buildStatBox(label: 'Depuis', value: anneeDebut?.toString() ?? '...'),
             ],
@@ -499,33 +599,27 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     );
   }
 
-  // Structure pour les niveaux horizontaux (frères/sœurs) (RÉTABLI et CORRIGÉ)
+  // Structure pour les niveaux horizontaux (frères/sœurs) (CORRIGÉ pour 2 cartes)
   Widget _buildHorizontalLevel(List<Widget> members, {required double maxWidth}) {
+    // Si toutes les cartes sont des placeholders vides, n'affiche pas la ligne.
+    // Cette vérification est complexe et pourrait être simplifiée si Membre.dart ne permet plus id=null pour les cartes affichées.
+    // Laissez-la telle quelle pour la robustesse des placeholders.
+    // if (members.every((w) => w is Flexible && w.child is Padding && (w.child as Padding).child is SizedBox)) return const SizedBox.shrink();
+
     // 🔑 Assurer que le conteneur horizontal ne dépasse pas la largeur de l'écran
     return SizedBox(
       width: maxWidth,
-      child: Column(
-        children: [
-          // Ligne horizontale pour connecter les frères/sœurs
-          Container(
-            width: maxWidth * 0.9, // Ligne un peu plus courte que la largeur totale
-            height: 2,
-            color: Colors.grey.shade400,
-            margin: const EdgeInsets.only(bottom: 10),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: members.map((memberCard) {
-              // 🔑 Chaque carte est enveloppée dans Flexible pour partager l'espace
-              return Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: memberCard,
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: members.map((memberCard) {
+          // Chaque carte est enveloppée dans Flexible pour partager l'espace (2 cartes seulement)
+          return Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: memberCard,
+            ),
+          );
+        }).toList(),
       ),
     );
   }

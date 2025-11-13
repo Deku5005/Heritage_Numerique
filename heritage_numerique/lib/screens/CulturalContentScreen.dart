@@ -253,35 +253,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
           ),
         ),
         const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: 'Tous types',
-              icon: const Icon(Icons.keyboard_arrow_down, color: _mainAccentColor),
-              items: <String>['Tous types', 'Récit', 'Musique', 'Artisanat', 'Proverbe']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.filter_list, color: _mainAccentColor, size: 18),
-                      const SizedBox(width: 5),
-                      Text(value, style: const TextStyle(color: _cardTextColor, fontSize: 14)),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                // Logique de filtrage ici
-              },
-            ),
-          ),
-        ),
+
       ],
     );
   }
