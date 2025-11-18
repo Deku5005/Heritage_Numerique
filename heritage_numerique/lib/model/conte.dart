@@ -1,6 +1,4 @@
-// lib/models/conte.dart (CORRIGÉ ET ROBUSTE)
-
-import 'quiz.dart';
+import 'quiz.dart'; // Assurez-vous que le chemin est correct pour Quiz
 
 class Conte {
   final int id;
@@ -15,6 +13,7 @@ class Conte {
   final String statut;
   final String urlFichier;
   final String urlPhoto;
+  final String contenuFichier;
   final String lieu;
   final String region;
   final int idFamille;
@@ -34,6 +33,7 @@ class Conte {
     required this.statut,
     required this.urlFichier,
     required this.urlPhoto,
+    required this.contenuFichier,
     required this.lieu,
     required this.region,
     required this.idFamille,
@@ -45,7 +45,6 @@ class Conte {
     final quizData = json['quiz'];
 
     return Conte(
-      // Utilisation de ?? pour gérer les valeurs nulles
       id: json['id'] as int? ?? 0,
       titre: json['titre'] as String? ?? 'Titre inconnu',
       description: json['description'] as String? ?? 'Description non fournie',
@@ -58,6 +57,8 @@ class Conte {
       statut: json['statut'] as String? ?? 'Inconnu',
       urlFichier: json['urlFichier'] as String? ?? '',
       urlPhoto: json['urlPhoto'] as String? ?? '',
+      //  Lecture du champ 'contenuFichier' de la réponse Swagger
+      contenuFichier: json['contenuFichier'] as String? ?? 'Contenu non disponible',
       lieu: json['lieu'] as String? ?? 'Non spécifié',
       region: json['region'] as String? ?? 'Non spécifiée',
       idFamille: json['idFamille'] as int? ?? 0,

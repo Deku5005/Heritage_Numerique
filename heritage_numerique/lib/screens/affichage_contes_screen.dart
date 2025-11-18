@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+// ⚠️ VÉRIFIEZ ET AJUSTEZ CES CHEMINS DANS VOTRE PROJET
+import '../model/conte.dart'; // Importez votre modèle de Conte (équivalent à Recit)
+import '../model/traduction_conte_model.dart'; // Importez le nouveau modèle de Traduction
+import '../Service/conteService.dart'; // Importez le service mis à jour
 import '../widgets/bottom_navigation_widget.dart';
-import '../model/conte.dart';
-import '../model/quiz.dart';
-import '../model/question.dart';
-import '../model/proposition.dart';
+import '../screens/quizscreenn.dart'; // Si vous avez un écran de quiz
 
-// *** AJOUT NÉCESSAIRE ***
-// Assurez-vous que le chemin ci-dessous correspond à l'emplacement réel de QuizScreen
-import '../screens/quizscreenn.dart';
+// --- Constantes de Couleurs Globales ---
+const Color _mainAccentColor = Color(0xFFAA7311);
+const Color _backgroundColor = Colors.white;
+const Color _cardTextColor = Color(0xFF2E2E2E);
+const Color _serviceErrorColor = Colors.red;
+const Color _quizButtonColor = Color(0xFF6A994E); // Vert amical
 
-/// Écran affichant les détails et le contenu d'un conte traditionnel Malien,
-/// y compris le quiz et les questions associées s'ils existent.
+// ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
+const String _imageHostUrl = "http://10.0.2.2:8080";
+
+// Renommé pour être plus cohérent avec votre structure de projet
 class AffichageContesScreen extends StatefulWidget {
+  final Conte conte; // Utilisation de votre modèle Conte
 
-  final Conte conte;
-
-  const AffichageContesScreen({
-    super.key,
-    required this.conte,
-  });
+  const AffichageContesScreen({super.key, required this.conte});
 
   @override
   State<AffichageContesScreen> createState() => _AffichageContesScreenState();
@@ -26,488 +28,386 @@ class AffichageContesScreen extends StatefulWidget {
 
 class _AffichageContesScreenState extends State<AffichageContesScreen> {
 
-  // COULEURS
-  static const Color _accentColor = Color(0xFFD69301);
-  static const Color _cardTextColor = Color(0xFF2E2E2E);
-  static const Color _actionColor = Color(0xFF9F9646);
+  // Liste des codes courts utilisés dans l'UI (fr, bm, en)
+  final List<String> _availableLangs = ['fr', 'bm', 'en'];
 
-  // URL de base pour charger les médias depuis l'API
-  static const String _apiBaseUrl = 'http://10.0.2.2:8080';
-
-  // Liste des langues disponibles (pour le sélecteur)
-  final List<String> _languages = const ['Français', 'Bambara', 'Anglais'];
-
-  // État actuel de la langue sélectionnée
-  late String _selectedLanguage;
-
-  // Dictionnaire pour traduire les libellés d'information
-  final Map<String, Map<String, String>> _infoLabels = const {
-    'Français': {
-      'section_title': 'Informations',
-      'narrator': 'Conteur',
-      'language': 'Langue sélectionnée',
-      'duration': 'Fichier/Durée',
-      'date': 'Date de publication',
-    },
-    'Bambara': {
-      'section_title': 'Kunnafoni',
-      'narrator': 'Jeli (Conteur)',
-      'language': 'Kan min bɛ sɔrɔ',
-      'duration': 'Loncɛ/Fasi',
-      'date': 'Tuma min na a bɔra',
-    },
-    'Anglais': {
-      'section_title': 'Information',
-      'narrator': 'Narrator',
-      'language': 'Selected Language',
-      'duration': 'File/Duration',
-      'date': 'Publication Date',
-    },
-  };
-
-  // Simulation des données multilingues
-  late Map<String, Map<String, String>> _simulatedAllContent;
+  // Langue par défaut pour le premier appel : le code court 'fr'
+  String _selectedLanguageCodeUI = 'fr';
+  // Utilisation du modèle et du service que nous avons définis
+  late Future<TraductionConteModel> _traductionFuture;
+  final ConteService _conteService = ConteService(); // Utilisation de ConteService
 
   @override
   void initState() {
     super.initState();
+    // 1. Initialise le chargement avec le code UI par défaut ('fr')
+    _traductionFuture = _fetchTranslation(_selectedLanguageCodeUI);
+  }
 
-    final String fullNarratorName = '${widget.conte.prenomAuteur} ${widget.conte.nomAuteur}';
+  /// 🎯 Mappe le code court de l'interface utilisateur (UI) vers le code long
+  /// utilisé comme clé dans la réponse JSON de l'API (ex: 'bam_Latn').
+  String _mapUiCodeToApiJsonKey(String uiCode) {
+    switch (uiCode) {
+    // Pour l'affichage, on cherche la clé correspondante dans le JSON
+      case 'fr': return 'fra_Latn';
+      case 'bm': return 'bam_Latn'; // Clé confirmée par votre réponse API
+      case 'en': return 'eng_Latn';
+      default: return uiCode; // Fallback
+    }
+  }
 
-    _simulatedAllContent = {
-      'Français': {
-        'title': widget.conte.titre,
-        'text': widget.conte.description,
-        'narrator': fullNarratorName,
-        'duration': widget.conte.urlFichier,
-      },
-      // Simuler des traductions pour que le sélecteur fonctionne
-      'Bambara': {
-        'title': 'Tige dɔ Mali kɔnɔ',
-        'text': 'A kɔrɔyɛlɛma kura...',
-        'narrator': 'Jeli',
-        'duration': 'Fasi Bamanankan',
-      },
-      'Anglais': {
-        'title': 'Tale from Mali',
-        'text': 'A new English translation...',
-        'narrator': 'Narrator',
-        'duration': 'English File Link',
-      },
-    };
-
-    _selectedLanguage = _simulatedAllContent.keys.firstWhere(
-          (lang) => _languages.contains(lang),
-      orElse: () => _languages.first,
+  // Méthode pour appeler le service avec une langue donnée
+  Future<TraductionConteModel> _fetchTranslation(String uiLanguageCode) {
+    // Appel au ConteService mis à jour
+    return _conteService.getConteTraduction(
+      conteId: widget.conte.id,
+      langCode: uiLanguageCode, // Le service attend le code court pour l'URL
     );
   }
 
-  // --- Fonctions Utilitaires ---
-
-  Map<String, String> _getCurrentTaleData() {
-    return _simulatedAllContent[_selectedLanguage] ?? _simulatedAllContent['Français']!;
+  // Méthode pour changer de langue et recharger le contenu
+  void _changeLanguageAndReload(String newLanguageCodeUI) {
+    if (newLanguageCodeUI != _selectedLanguageCodeUI) {
+      setState(() {
+        _selectedLanguageCodeUI = newLanguageCodeUI;
+        // Assigne un nouveau Future, provoquant le rechargement
+        _traductionFuture = _fetchTranslation(newLanguageCodeUI);
+      });
+    }
   }
 
-  Map<String, String> _getCurrentLabels() {
-    return _infoLabels[_selectedLanguage] ?? _infoLabels['Français']!;
+  // Mappage du code court UI pour l'affichage du nom de la langue
+  String _mapLanguageCodeToName(String code) {
+    switch(code) {
+      case 'fr': return 'Français';
+      case 'bm': return 'Bambara';
+      case 'en': return 'Anglais';
+      default: return code;
+    }
   }
 
 
   @override
   Widget build(BuildContext context) {
-    final currentData = _getCurrentTaleData();
-    final title = currentData['title']!;
-    final contentText = currentData['text']!;
-    final narrator = currentData['narrator']!;
-    final duration = currentData['duration']!;
-    final currentLabels = _getCurrentLabels();
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _backgroundColor,
+      // Ajout de la BottomNavigationBar
       bottomNavigationBar: const BottomNavigationWidget(currentPage: 'contes'),
-      appBar: _buildAppBar(context, title),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
+      appBar: AppBar(
+        // Hauteur de l'AppBar réduite car le titre sera centré
+        toolbarHeight: 60.0,
+        backgroundColor: _backgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: _cardTextColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        centerTitle: true,
+        // Titre dans l'AppBar classique
+        title: _buildAppBarTitle(),
+      ),
 
-              _buildLanguageSelector(context),
-              const SizedBox(height: 15),
+      // Le FutureBuilder englobe le contenu pour gérer l'état de chargement
+      body: FutureBuilder<TraductionConteModel>(
+        future: _traductionFuture,
+        builder: (context, snapshot) {
 
-              _buildAudioCard(context, title, narrator),
-              const SizedBox(height: 30),
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
+          }
 
-              // *** LOGIQUE D'AFFICHAGE DU QUIZ ET DES QUESTIONS ***
-              if (widget.conte.quiz != null)
-                _buildQuizSection(context, widget.conte.quiz!),
-              if (widget.conte.quiz != null)
-                const SizedBox(height: 30),
-              // *************************************************
-
-              // --- TEXTE DU CONTE ---
-              Text(
-                contentText,
-                style: const TextStyle(
-                  color: _cardTextColor,
-                  fontSize: 16,
-                  height: 1.5,
+          // Gère les erreurs
+          if (snapshot.hasError) {
+            // Affichage simple de l'erreur, le contenu par défaut sera utilisé pour le fallback
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  'Erreur de chargement de la traduction. Affichage du contenu original. Erreur: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _serviceErrorColor, fontSize: 14),
                 ),
-                textAlign: TextAlign.justify,
               ),
-              const SizedBox(height: 30),
+            );
+          }
 
-              // --- SECTION INFORMATIONS ---
-              _buildInformationSection(currentLabels, narrator, duration),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
+          // Les données sont soit présentes (snapshot.hasData), soit nulles/non chargées
+          final TraductionConteModel? data = snapshot.data;
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. SÉLECTEUR DE LANGUE (Modernisé)
+                _buildLanguageSelector(),
+                const SizedBox(height: 15),
+
+                // 2. Image et Lecteur Audio du Conte
+                _buildRecitImage(),
+                const SizedBox(height: 20),
+
+                // 3. Contenu du Récit (avec traduction si disponible)
+                _buildRecitContentSection(data),
+                const SizedBox(height: 20),
+
+                // 4. Section Quiz (avant les infos additionnelles)
+                if (widget.conte.quiz != null && widget.conte.quiz!.questions.isNotEmpty)
+                  _buildQuizButton(),
+                if (widget.conte.quiz != null && widget.conte.quiz!.questions.isNotEmpty)
+                  const SizedBox(height: 20),
+
+                // 5. Informations additionnelles
+                _buildAdditionalInfoSection(data),
+                const SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  // --- WIDGETS DE STRUCTURE ---
+  // --- WIDGETS DE CONSTRUCTION ---
 
-  AppBar _buildAppBar(BuildContext context, String title) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      leading: Padding(
-        padding: const EdgeInsets.only(left: 8.0),
-        child: Container(
-          decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ]
+  Widget _buildAppBarTitle() {
+    return FutureBuilder<TraductionConteModel>(
+      future: _traductionFuture,
+      builder: (context, snapshot) {
+        // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+        final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
+        // Fallback au titre original du Conte
+        final String title = snapshot.hasData && snapshot.data != null
+            ? snapshot.data!.traductionsTitre.traductions[jsonKey] ?? widget.conte.titre
+            : widget.conte.titre; // Utilise le titre du Conte par défaut
+
+        return Text(
+          title,
+          style: const TextStyle(
+            color: _cardTextColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: _accentColor),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-      ),
-      centerTitle: true,
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: _cardTextColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        ),
-      ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
     );
   }
 
-  Widget _buildLanguageSelector(BuildContext context) {
-    final availableLanguages = _languages.where((lang) => _simulatedAllContent.containsKey(lang)).toList();
+  Widget _buildLanguageSelector() {
+    final String selectedLanguageName = _mapLanguageCodeToName(_selectedLanguageCodeUI);
 
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 5,
-              ),
-            ]
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: _mainAccentColor, width: 1.5),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.flag, color: _accentColor, size: 16),
-            const SizedBox(width: 8),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedLanguageCodeUI,
+            icon: const Icon(Icons.arrow_drop_down, color: _mainAccentColor),
+            items: _availableLangs
+                .map<DropdownMenuItem<String>>((String code) {
+              final String displayName = _mapLanguageCodeToName(code);
+              return DropdownMenuItem<String>(
+                value: code,
+                child: Text(displayName, style: const TextStyle(color: _cardTextColor, fontSize: 14)),
+              );
+            }).toList(),
+            onChanged: (String? newCode) {
+              if (newCode != null) {
+                _changeLanguageAndReload(newCode);
+              }
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
-            DropdownButton<String>(
-              value: _selectedLanguage,
-              icon: const Icon(Icons.keyboard_arrow_down, color: _accentColor),
-              iconSize: 24,
-              elevation: 16,
-              style: const TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold),
-              underline: Container(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedLanguage = newValue;
-                  });
-                }
-              },
-              items: availableLanguages.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+  Widget _buildRecitImage() {
+    String imagePath = widget.conte.urlPhoto;
+    String finalUrl = imagePath;
+
+    // Logique pour construire l'URL complète
+    if (imagePath.isNotEmpty && !imagePath.startsWith('http')) {
+      // Assure que le chemin est bien formé (sans double slash)
+      final String sanitizedPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+      finalUrl = '$_imageHostUrl/$sanitizedPath';
+    }
+
+    return Container(
+      height: 220,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          finalUrl,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(
+              child: CircularProgressIndicator(
+                color: _mainAccentColor,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.broken_image, size: 50, color: _serviceErrorColor),
+                  const SizedBox(height: 8),
+                  const Text('Image introuvable', style: TextStyle(color: _serviceErrorColor, fontSize: 12)),
+                  Text('URL TENTÉE: $finalUrl',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecitContentSection(TraductionConteModel? data) {
+    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
+    // 1. Détermine le contenu à afficher
+    String content = widget.conte.contenuFichier; // Contenu d'origine (fallback)
+
+    // 2. Si les données de traduction sont présentes, tente de lire la traduction
+    if (data != null) {
+      // Utilisation de traductionsContenu qui contient le texte complet
+      content = data.traductionsContenu.traductions[jsonKey] ?? widget.conte.contenuFichier;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        content,
+        style: const TextStyle(
+          color: _cardTextColor,
+          fontSize: 16,
+          height: 1.5,
+        ),
+        textAlign: TextAlign.justify,
+      ),
+    );
+  }
+
+  Widget _buildQuizButton() {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: () {
+          // Naviguer vers l'écran du Quiz
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              // Assurez-vous que QuizScreen est correctement importé
+              builder: (context) => QuizScreen(quiz: widget.conte.quiz!),
             ),
+          );
+        },
+        icon: const Icon(Icons.school, size: 24),
+        label: const Text('Commencer le Quiz !', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _quizButtonColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          elevation: 5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdditionalInfoSection(TraductionConteModel? data) {
+    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
+    // Initialisation avec les valeurs originales (fallback)
+    String lieu = widget.conte.lieu;
+    String region = widget.conte.region;
+
+    // Si les données de traduction sont présentes, tente de lire la traduction
+    if (data != null) {
+      lieu = data.traductionsLieu.traductions[jsonKey] ?? widget.conte.lieu;
+      region = data.traductionsRegion.traductions[jsonKey] ?? widget.conte.region;
+    }
+
+    // Libellés d'information pour la section
+    final Map<String, String> labels = {
+      'fr': {'title': 'Informations sur le Conte', 'lieu': 'Lieu', 'region': 'Région'},
+      'bm': {'title': 'Kunnafoni', 'lieu': 'Yɔrɔ', 'region': 'Jamanan'},
+      'en': {'title': 'Tale Information', 'lieu': 'Location', 'region': 'Region'},
+    }[_selectedLanguageCodeUI] ?? {'title': 'Informations sur le Conte', 'lieu': 'Lieu', 'region': 'Région'};
+
+
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              labels['title']!,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _mainAccentColor),
+            ),
+            const Divider(height: 20, color: Colors.grey),
+            _buildInfoRow('Conteur', '${widget.conte.prenomAuteur} ${widget.conte.nomAuteur}'),
+            _buildInfoRow('Famille', widget.conte.nomFamille),
+            _buildInfoRow(labels['lieu']!, lieu),
+            _buildInfoRow(labels['region']!, region),
+            _buildInfoRow('Création', widget.conte.dateCreation.split('T').first),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAudioCard(BuildContext context, String title, String narrator) {
-    String imageUrl = widget.conte.urlPhoto;
-    if (imageUrl.isNotEmpty && !imageUrl.toLowerCase().startsWith('http')) {
-      final String sanitizedPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-      imageUrl = '$_apiBaseUrl/$sanitizedPath';
-    }
-    final String fullImageUrl = imageUrl;
-
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: _accentColor.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        children: [
-          // Image du conte (petit) - Chargée par réseau
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              fullImageUrl,
-              width: 80,
-              height: 60,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 80,
-                height: 60,
-                color: Colors.grey[300],
-                child: const Icon(Icons.headphones, color: _actionColor),
-              ),
-            ),
-          ),
-          const SizedBox(width: 15),
-          // Texte et conteur
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: _cardTextColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Narration par $narrator',
-                  style: TextStyle(
-                    color: _cardTextColor.withOpacity(0.7),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Bouton Play
-          Container(
-            decoration: const BoxDecoration(
-              color: _actionColor,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.play_arrow, color: Colors.white),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Démarrage de la lecture audio pour le fichier: ${widget.conte.urlFichier}'),
-                    backgroundColor: _actionColor,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Section pour afficher le Quiz, les Questions et les Propositions.
-  Widget _buildQuizSection(BuildContext context, Quiz quiz) {
-    // Vérifie si la liste de questions n'est pas vide
-    final bool hasQuestions = quiz.questions.isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // --- 1. CARTE RÉSUMÉ DU QUIZ ---
-        Card(
-          elevation: 4,
-          margin: const EdgeInsets.only(bottom: 20),
-          color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.quiz, color: Colors.green, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      'Testez vos connaissances !',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                    ),
-                  ],
-                ),
-                const Divider(color: Colors.grey, height: 20),
-                Text('Titre du Quiz: ${quiz.titre}'),
-                Text('Difficulté: ${quiz.difficulte}'),
-                Text('Nombre de questions: ${quiz.nombreQuestions}'),
-                const SizedBox(height: 15),
-                // Le bouton de démarrage n'est affiché que si le quiz a des questions
-                if (hasQuestions)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // *** LOGIQUE CORRIGÉE : NAVIGATION VERS QUIZSCREEN ***
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuizScreen(
-                            quiz: quiz, // Passe l'objet Quiz complet
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.start, size: 18),
-                    label: const Text('Commencer le Quiz'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  )
-                else
-                  const Text('Aucune question n\'est encore attachée à ce quiz.', style: TextStyle(fontStyle: FontStyle.italic)),
-              ],
-            ),
-          ),
-        ),
-
-        // --- 2. AFFICHAGE DES QUESTIONS ET PROPOSITIONS (Pour le débogage/visualisation) ---
-        if (hasQuestions)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Aperçu des Questions (À des fins de débogage/développement)',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _cardTextColor),
-              ),
-              const SizedBox(height: 10),
-
-              // Itération sur la liste des questions
-              ...quiz.questions.asMap().entries.map((entry) {
-                final int index = entry.key;
-                final Question question = entry.value;
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Titre de la Question
-                      Text(
-                        '${index + 1}. ${question.texteQuestion} (Points: ${question.points})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _accentColor),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Itération sur la liste des propositions
-                      ...question.propositions.map((proposition) {
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 10.0, bottom: 4.0),
-                          child: Row(
-                            children: [
-                              Icon(
-                                proposition.estCorrecte ? Icons.check_circle : Icons.radio_button_unchecked,
-                                color: proposition.estCorrecte ? Colors.green : Colors.grey,
-                                size: 14,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  proposition.texteProposition,
-                                  style: TextStyle(
-                                    color: proposition.estCorrecte ? Colors.green.shade800 : _cardTextColor,
-                                    fontStyle: proposition.estCorrecte ? FontStyle.italic : FontStyle.normal,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildInformationSection(Map<String, String> labels, String narrator, String urlFichier) {
-    final String date = widget.conte.dateCreation.split('T').first;
-
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            labels['section_title']!,
-            style: const TextStyle(
-              color: _cardTextColor,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 15),
-          _buildInfoRow(labels['narrator']!, narrator),
-          _buildInfoRow(labels['language']!, _selectedLanguage),
-          _buildInfoRow(labels['duration']!, urlFichier),
-          _buildInfoRow(labels['date']!, date),
-        ],
-      ),
-    );
-  }
-
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 100,
             child: Text(
-              label,
+              '$label:',
               style: const TextStyle(
-                color: _actionColor,
+                color: _cardTextColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

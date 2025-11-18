@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; // ← ajouté
 import 'screens/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
+
+
   runApp(const HeritageNumeriqueApp());
 }
 

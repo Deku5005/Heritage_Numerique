@@ -20,7 +20,6 @@ class _MusicScreenState extends State<MusicScreen> {
   static const Color _backgroundColor = Colors.white;
 
   // Déclaration des états et du service
-  // NOTE : Ceci est un mock pour la démonstration. Le service réel doit être implémenté.
   final DevinetteService1 _devinetteService = DevinetteService1();
   List<Devinette1> _devinettes = [];
   bool _isLoading = true;
@@ -37,6 +36,7 @@ class _MusicScreenState extends State<MusicScreen> {
     // Simulation du chargement et de la récupération de données
     await Future.delayed(const Duration(seconds: 1));
     try {
+      // NOTE: Assurez-vous que getDevinettes est asynchrone et renvoie List<Devinette1>
       final data = await _devinetteService.getDevinettes();
       setState(() {
         _devinettes = data;
@@ -68,16 +68,19 @@ class _MusicScreenState extends State<MusicScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24), // Espacement augmenté
                   // 2. BARRE DE RECHERCHE (Adaptée)
                   _buildSearchBar(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24), // Espacement augmenté
                 ],
               ),
             ),
           ),
           // 3. GRILLE DES DEVINETTES
-          _buildDevinettesGrid(),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: _buildDevinettesGrid(),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -87,8 +90,8 @@ class _MusicScreenState extends State<MusicScreen> {
   /// 1. Construction de l'en-tête (Grande carte et AppBar)
   Widget _buildHeader(BuildContext context) {
     return SliverAppBar(
-      automaticallyImplyLeading: false, // On gère le leading nous-mêmes
-      expandedHeight: 250,
+      automaticallyImplyLeading: false,
+      expandedHeight: 280, // Hauteur légèrement augmentée
       pinned: true,
       backgroundColor: _backgroundColor,
       elevation: 0,
@@ -99,18 +102,6 @@ class _MusicScreenState extends State<MusicScreen> {
           width: double.infinity,
           alignment: Alignment.center,
           padding: const EdgeInsets.only(bottom: 8.0, top: 40.0),
-          // Affichage du titre 'Devinettes' lorsque la barre est repliée
-          child: Opacity(
-            opacity: 1.0, // Simplification de l'effet de fade
-            child: Text(
-              'Devinettes',
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.light ? _cardTextColor : Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ),
         ),
         background: Stack(
           children: [
@@ -118,23 +109,24 @@ class _MusicScreenState extends State<MusicScreen> {
             Container(
               decoration: const BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)), // Rayon augmenté
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Image de fond (chemin simulé adapté)
+                    // Image de fond
                     Image.asset(
-                      'assets/images/riddle_theme.png', // Chemin mis à jour pour un thème de devinette
+                      'assets/images/three-african-brothers-adventure-forest.jpg',
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: _accentColor.withOpacity(0.6),
                         child: const Center(
                           child: Text(
                             'Jeu de Devinettes',
-                            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+                            // Taille augmentée
+                            style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -147,40 +139,36 @@ class _MusicScreenState extends State<MusicScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.4),
+                            Colors.black.withOpacity(0.5), // Plus d'ombre en bas
                           ],
                         ),
                       ),
                     ),
                     // Texte et Icône
                     Positioned(
-                      bottom: 20,
+                      bottom: 45, // Position légèrement ajustée
                       left: 20,
                       right: 20,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "Devinettes et Énigmes",
-                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                            // Taille augmentée
+                            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
                                 child: Text(
                                   'Testez votre esprit avec la sagesse ancestrale.',
-                                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, fontWeight: FontWeight.w500),
+                                  // Taille augmentée
+                                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 18, fontWeight: FontWeight.w500),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              // Icône de question, remplace l'icône de lecture
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: _accentColor.withOpacity(0.9), shape: BoxShape.circle),
-                                child: const Icon(Icons.quiz, color: Colors.white, size: 30),
                               ),
                             ],
                           ),
@@ -202,14 +190,13 @@ class _MusicScreenState extends State<MusicScreen> {
                 leading: Padding(
                   padding: const EdgeInsets.only(left: 8.0),
                   child: Container(
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(0.9)),
+                      icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(1)),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
                 ),
-                // Le titre est géré par la FlexibleSpaceBar pour l'effet de scroll
               ),
             ),
           ],
@@ -221,20 +208,21 @@ class _MusicScreenState extends State<MusicScreen> {
   /// 2. Construction de la barre de recherche.
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15), // Padding ajusté
       decoration: BoxDecoration(
         color: _accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20), // Rayon augmenté
         border: Border.all(color: _accentColor.withOpacity(0.5), width: 1.0),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))], // Ombre améliorée
       ),
       child: TextField(
+        style: const TextStyle(fontSize: 16), // Taille de la police augmentée
         decoration: InputDecoration(
-          icon: const Icon(Icons.search, color: _accentColor),
-          hintText: 'Rechercher des devinettes',
-          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.6)),
+          icon: const Icon(Icons.search, color: _accentColor, size: 24), // Taille de l'icône augmentée
+          hintText: 'Rechercher des devinettes ou énigmes',
+          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.7), fontSize: 16), // Taille de la police augmentée
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0), // Padding augmenté
         ),
       ),
     );
@@ -257,7 +245,7 @@ class _MusicScreenState extends State<MusicScreen> {
             child: Text(
               'Erreur de chargement: $_errorMessage',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
+              style: const TextStyle(color: Colors.red, fontSize: 18), // Taille de la police augmentée
             ),
           ),
         ),
@@ -267,16 +255,16 @@ class _MusicScreenState extends State<MusicScreen> {
     if (_devinettes.isEmpty) {
       return const SliverToBoxAdapter(child: Center(child: Padding(
         padding: EdgeInsets.all(40.0),
-        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 16, color: _cardTextColor)),
+        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 18, color: _cardTextColor)), // Taille de la police augmentée
       )));
     }
 
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.85, // Ratio adapté pour le contenu textuel
+        crossAxisSpacing: 16, // Espacement augmenté
+        mainAxisSpacing: 16, // Espacement augmenté
+        childAspectRatio: 0.82, // Ratio légèrement ajusté
       ),
       delegate: SliverChildBuilderDelegate(
             (context, index) {
@@ -284,7 +272,7 @@ class _MusicScreenState extends State<MusicScreen> {
 
           return GestureDetector(
             onTap: () {
-              // --- LOGIQUE DE NAVIGATION CORRIGÉE ---
+              // --- LOGIQUE DE NAVIGATION INCHANGÉE ---
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -293,9 +281,8 @@ class _MusicScreenState extends State<MusicScreen> {
                     devinette: devinette.devinette ?? 'Devinette non spécifiée',
                     reponse: devinette.reponse ?? 'Réponse non disponible',
                     conteur: '${devinette.prenomAuteur ?? ''} ${devinette.nomAuteur ?? 'Auteur inconnu'}'.trim(),
-                    imageUrl: 'assets/icons/riddle.png', // Placeholder (non utilisé mais requis)
+                    imageUrl: 'assets/icons/riddle.png',
                     details: {
-                      // Regrouper les infos non directes dans 'details'
                       'nom': devinette.titre ?? 'Énigme',
                       'langue':  'Inconnue',
                       'lieu': devinette.lieu ?? 'Inconnu',
@@ -304,6 +291,7 @@ class _MusicScreenState extends State<MusicScreen> {
                 ),
               );
             },
+            // Utilisation de la carte modernisée
             child: _buildDevinetteCard(
               devinette.titre ?? 'Énigme sans titre',
               devinette.devinette ?? 'Devinette non spécifiée',
@@ -316,94 +304,118 @@ class _MusicScreenState extends State<MusicScreen> {
     );
   }
 
-  /// 4. Construction d'une seule carte de Devinette.
+  /// 4. Construction d'une seule carte de Devinette (VERSION MODERNE avec plus grosses écritures).
   Widget _buildDevinetteCard(
       String title,
       String riddleText,
       String location,
       ) {
+    const Color modernCardColor = Color(0xFFF7F7F7);
+    const Color primaryAccent = _accentColor;
+
     return Container(
-      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: _accentColor.withOpacity(0.3)),
+        color: modernCardColor,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: primaryAccent.withOpacity(0.15),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: primaryAccent.withOpacity(0.4), width: 1.5),
       ),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icône de Devinette
-          const Icon(Icons.quiz_outlined, color: _accentColor, size: 28),
-          const SizedBox(height: 8),
-
-          // Titre
-          Text(
-            title,
-            style: const TextStyle(
-              color: _cardTextColor,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-
-          // Texte de la Devinette
-          Expanded(
-            child: Text(
-              riddleText,
-              style: TextStyle(
-                color: _cardTextColor.withOpacity(0.8),
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-              maxLines: 4, // Légèrement réduit pour laisser de la place
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Lieu
+          // Icône et Titre sur la même ligne
           Row(
             children: [
-              Icon(Icons.location_on, size: 12, color: Colors.grey.shade600),
-              const SizedBox(width: 4),
+              const Icon(Icons.psychology_outlined, color: primaryAccent, size: 28), // Taille icône augmentée
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  location,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
+                  title,
+                  style: const TextStyle(
+                    color: _cardTextColor,
+                    fontSize: 17, // Taille augmentée
+                    fontWeight: FontWeight.w800,
                   ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 10),
+
+          // Séparateur fin
+          Divider(color: primaryAccent.withOpacity(0.5), height: 1, thickness: 1),
+          const SizedBox(height: 10),
+
+          // Texte de la Devinette (mis en valeur)
+          Expanded(
+            child: Text(
+              riddleText,
+              style: TextStyle(
+                color: _cardTextColor.withOpacity(0.9),
+                fontSize: 14, // Taille augmentée
+                fontStyle: FontStyle.normal,
+                height: 1.4,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Lieu (utilisant un Chip pour le style)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Padding ajusté
+            decoration: BoxDecoration(
+              color: primaryAccent.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.map_outlined, size: 16, color: primaryAccent), // Taille icône augmentée
+                const SizedBox(width: 6),
+                Text(
+                  location,
+                  style: TextStyle(
+                    color: primaryAccent,
+                    fontSize: 12, // Taille augmentée
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10), // Espacement ajusté
 
           // Bouton Révéler / Jouer (Visuel)
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _accentColor,
-                borderRadius: BorderRadius.circular(8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // Rayon augmenté
+                ),
+                elevation: 4,
+                padding: const EdgeInsets.symmetric(vertical: 10), // Padding augmenté
               ),
               child: const Text(
-                'Révéler',
+                'Voir l\'Énigme',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 14, // Taille augmentée
                   fontWeight: FontWeight.bold,
                 ),
               ),

@@ -24,8 +24,9 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
   static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
 
   // Couleurs statiques
-  static const Color _accentColor = Color(0xFFD69301);
-  static const Color _cardTextColor = Color(0xFF2E2E2E);
+  static const Color _accentColor = Color(0xFFD69301); // Ocre
+  static const Color _cardTextColor = Color(0xFF2E2E2E); // Gris foncé
+  static const Color _modernBackground = Color(0xFFF9F9F9); // Fond très clair
 
   @override
   void initState() {
@@ -35,6 +36,8 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
 
   Future<void> _fetchArtisanats() async {
     try {
+      // Simulation d'un délai pour voir le chargement (optionnel)
+      await Future.delayed(const Duration(milliseconds: 500));
       final data = await _artisanatService.getArtisanats();
       setState(() {
         _artisanats = data;
@@ -55,14 +58,11 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     if (relativePath == null || relativePath.isEmpty) {
       return '';
     }
-    // Si l'URL est déjà complète (contient http), on la renvoie telle quelle.
     if (relativePath.toLowerCase().startsWith('http')) {
       return relativePath;
     }
 
-    // Supprime le '/' initial si présent (pour éviter //)
     final String sanitizedPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-
     return '$_apiBaseUrlForImages/$sanitizedPath';
   }
 
@@ -70,7 +70,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _modernBackground, // Utilisation du fond clair moderne
       bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 0),
@@ -78,14 +78,14 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
           children: [
             _buildHeader(context),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 18.0), // Padding légèrement augmenté
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25), // Espacement augmenté
                   _buildSearchBar(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 25), // Espacement augmenté
                   _buildCraftsGrid(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -95,28 +95,28 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  /// 1. Construction de l'en-tête (Méthode inchangée)
+  /// 1. Construction de l'en-tête (Mis à jour pour une meilleure lisibilité)
   Widget _buildHeader(BuildContext context) {
     return Stack(
       children: [
         Container(
-          height: 250,
+          height: 280, // Hauteur augmentée
           decoration: BoxDecoration(
             color: Colors.grey[200],
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)), // Rayon augmenté
           ),
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
             child: Stack(
               fit: StackFit.expand,
               children: [
                 // Image locale
                 Image.asset(
-                  'assets/images/mali_craftsman.jpg',
+                  'assets/images/artisanat.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: _accentColor.withOpacity(0.2),
-                    child: const Center(child: Text('Artisanat', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold))),
+                    child: const Center(child: Text('Artisanat', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold))), // Taille augmentée
                   ),
                 ),
                 Container(
@@ -124,20 +124,20 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.5)],
+                      colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.6)], // Opacité ajustée
                     ),
                   ),
                 ),
                 Positioned(
-                  bottom: 20,
+                  bottom: 30, // Position ajustée
                   left: 20,
                   child: Text(
                     "L'artisanat Malien",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      shadows: [Shadow(blurRadius: 10, color: Colors.black.withOpacity(0.8))],
+                      fontSize: 32, // Taille augmentée
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(blurRadius: 10, color: Colors.black.withOpacity(0.9))],
                     ),
                   ),
                 ),
@@ -156,11 +156,11 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
               padding: const EdgeInsets.only(left: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.3), // Fond plus opaque
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(0.9)),
+                  icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(1)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
@@ -168,7 +168,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
             centerTitle: true,
             title: const Text(
               'Artisanat',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
         ),
@@ -176,30 +176,32 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  /// 2. Construction de la barre de recherche. (Méthode inchangée)
+  /// 2. Construction de la barre de recherche. (Taille et style ajustés)
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
         color: _accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 2))],
+        borderRadius: BorderRadius.circular(25), // Rayon augmenté
+        border: Border.all(color: _accentColor.withOpacity(0.5), width: 1.0),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: TextField(
+        style: const TextStyle(fontSize: 16),
         decoration: InputDecoration(
-          icon: Icon(Icons.search, color: _accentColor),
-          hintText: 'Rechercher des artisans',
-          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.6)),
+          icon: const Icon(Icons.search, color: _accentColor, size: 24),
+          hintText: 'Rechercher des artisans ou des produits...',
+          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.7), fontSize: 16),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
         ),
       ),
     );
   }
 
-  /// 3. Construction de la grille d'artisanat. (Mis à jour pour l'état et l'URL)
+  /// 3. Construction de la grille d'artisanat.
   Widget _buildCraftsGrid() {
+    // ... (Logique de chargement et d'erreur inchangée)
     if (_isLoading) {
       return const Center(child: Padding(
         padding: EdgeInsets.all(40.0),
@@ -214,7 +216,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
           child: Text(
             'Erreur de chargement: $_errorMessage',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
+            style: const TextStyle(color: Colors.red, fontSize: 18),
           ),
         ),
       );
@@ -223,7 +225,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     if (_artisanats.isEmpty) {
       return const Center(child: Padding(
         padding: EdgeInsets.all(40.0),
-        child: Text('Aucun artisanat trouvé.', style: TextStyle(fontSize: 16, color: _cardTextColor)),
+        child: Text('Aucun artisanat trouvé.', style: TextStyle(fontSize: 18, color: _cardTextColor)),
       ));
     }
 
@@ -231,26 +233,20 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       itemCount: _artisanats.length,
-      // CHANGEMENT : childAspectRatio ajusté de 0.65 à 0.75
+      // Ratio ajusté pour le nouveau design
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 0.75, // Ajusté pour le retrait des deux cartes
+        crossAxisSpacing: 16, // Espacement augmenté
+        mainAxisSpacing: 16, // Espacement augmenté
+        childAspectRatio: 0.72, // Ratio légèrement réduit pour le contenu
       ),
       itemBuilder: (context, index) {
         final artisanat = _artisanats[index];
-
-        // --- CORRECTION NULL-SAFETY ---
-        // Liste sécurisée (utilise une liste vide si urlPhotos est null)
         final List<String> safeUrlPhotos = artisanat.urlPhotos ?? [];
-
-        // 1. Construction de l'URL principale
         final String primaryImagePath = safeUrlPhotos.isNotEmpty ? safeUrlPhotos.first : '';
         final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
 
-        // Les petites images ne sont plus nécessaires, mais on récupère l'URL complète
-        // pour passer l'objet complet à l'écran de détail
+        // Les URLs de petites images sont toujours calculées mais non utilisées dans la carte
         final List<String> smallImagePaths = safeUrlPhotos.skip(1).take(2).toList();
         final List<String> fullSmallImageUrls = smallImagePaths.map((path) => _getFullImageUrl(path)).toList();
 
@@ -259,7 +255,6 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
           fullPrimaryImageUrl,
           artisanat.description ?? 'Description non disponible',
           artisanat.titre ?? 'Artisanat sans titre',
-          // fullSmallImageUrls n'est plus utilisé par _buildCraftCard, mais on le garde en paramètre si besoin futur.
           fullSmallImageUrls,
           artisanat,
         );
@@ -267,48 +262,73 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  /// 4. Construction d'une seule carte d'artisanat.
+  /// 4. Construction d'une seule carte d'artisanat (VERSION MODERNE).
   Widget _buildCraftCard(
       BuildContext context,
       String primaryImageUrl,
       String description,
       String categoryTitle,
-      List<String> smallImageUrls, // Reste pour la compatibilité, mais non utilisé
+      List<String> smallImageUrls,
       Artisanat1 artisanat,
       ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(20), // Rayon augmenté
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.08), // Ombre plus douce
+              blurRadius: 10,
+              offset: const Offset(0, 5)
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 4.1. IMAGE PRINCIPALE
+          // 4.1. IMAGE PRINCIPALE (Flex: 6)
           Expanded(
             flex: 6,
             child: _buildPrimaryImage(primaryImageUrl, categoryTitle),
           ),
 
-          // 4.2. DESCRIPTION
+          // 4.2. DESCRIPTION ET TITRE
           Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
-            child: Text(
-              description,
-              style: TextStyle(
-                color: _cardTextColor.withOpacity(0.6),
-                fontSize: 10,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // TITRE DU PRODUIT
+                Text(
+                  categoryTitle,
+                  style: const TextStyle(
+                    color: _cardTextColor,
+                    fontSize: 16, // Taille augmentée
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+
+                // DESCRIPTION
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: _cardTextColor.withOpacity(0.7),
+                    fontSize: 12, // Taille augmentée
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12), // Espacement ajusté
+          const SizedBox(height: 5),
 
-          // 4.3. BOUTON DÉCOUVRIR
+          // 4.3. BOUTON DÉCOUVRIR (Flex: 1)
           Padding(
-            padding: const EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+            padding: const EdgeInsets.only(left: 10.0, right: 10.0, bottom: 10.0),
             child: _buildDiscoverButton(context, artisanat),
           ),
         ],
@@ -316,9 +336,9 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  /// Bouton DÉCOUVRIR pour la navigation.
+  /// Bouton DÉCOUVRIR (Modernisé).
   Widget _buildDiscoverButton(BuildContext context, Artisanat1 artisanat) {
-    return GestureDetector(
+    return InkWell( // Remplacer GestureDetector par InkWell pour un effet de ripple visuel
       onTap: () {
         Navigator.push(
           context,
@@ -331,21 +351,28 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
       },
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10), // Padding augmenté
         decoration: BoxDecoration(
           color: _accentColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(15), // Rayon plus grand
+          boxShadow: [
+            BoxShadow(
+              color: _accentColor.withOpacity(0.4),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.brush, size: 16, color: Colors.white),
+            Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white),
             SizedBox(width: 6),
             Text(
-              'Découvrir l\'artisan',
+              'Voir l\'artisan',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 13, // Taille ajustée
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -355,16 +382,16 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
     );
   }
 
-  /// Section d'image principale. (Utilise Image.network)
+  /// Section d'image principale. (Style de tag modernisé)
   Widget _buildPrimaryImage(String imageUrl, String categoryTitle) {
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), // Rayon correspondant au conteneur
       child: Container(
         color: Colors.grey[300],
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl.isNotEmpty) // Charger l'image depuis l'URL
+            if (imageUrl.isNotEmpty)
               Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
@@ -380,26 +407,27 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
                   );
                 },
                 errorBuilder: (context, error, stackTrace) => Center(
-                  child: Icon(Icons.image_not_supported, size: 40, color: _cardTextColor.withOpacity(0.5)),
+                  child: Icon(Icons.image_not_supported, size: 48, color: _cardTextColor.withOpacity(0.5)),
                 ),
               )
-            else // Afficher un placeholder si l'URL est vide
+            else
               Center(
-                child: Icon(Icons.brush, size: 40, color: _cardTextColor.withOpacity(0.5)),
+                child: Icon(Icons.brush, size: 48, color: _cardTextColor.withOpacity(0.5)),
               ),
-            // Tag "PRODUIT"
+            // Tag "PRODUIT" (Modernisé en forme de badge)
             Positioned(
-              top: 8,
-              right: 8,
+              top: 10,
+              left: 10,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: _accentColor.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.white.withOpacity(0.9), // Fond blanc semi-transparent
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _accentColor.withOpacity(0.5), width: 1),
                 ),
                 child: Text(
                   categoryTitle.toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: _accentColor, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
               ),
             ),
@@ -408,6 +436,4 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
       ),
     );
   }
-
-// Les méthodes _buildSmallImageRow et _buildSmallImageCard ont été retirées.
 }

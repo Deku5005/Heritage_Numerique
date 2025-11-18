@@ -12,11 +12,9 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _serviceErrorColor = Colors.red;
 
 // ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
-// Assurez-vous que cette adresse correspond à votre serveur (e.g., pour un émulateur)
 const String _imageHostUrl = "http://10.0.2.2:8080";
 
 class RecitDetailScreen extends StatefulWidget {
-  // L'objet Recit contient DÉJÀ urlPhoto et vient de l'écran précédent.
   final Recit recit;
 
   const RecitDetailScreen({super.key, required this.recit});
@@ -26,37 +24,53 @@ class RecitDetailScreen extends StatefulWidget {
 }
 
 class _RecitDetailScreenState extends State<RecitDetailScreen> {
-  // Langue par défaut pour le premier appel : le code source ('fr')
-  String _selectedLanguage = 'fr';
+  // Liste des codes courts utilisés dans l'UI (fr, bm, en)
+  final List<String> _availableLangs = ['fr', 'bm', 'en'];
+
+  // Langue par défaut pour le premier appel : le code court 'fr'
+  String _selectedLanguageCodeUI = 'fr';
   late Future<TraductionConte> _traductionFuture;
   final RecitService _recitService = RecitService();
 
-  // Liste des langues supportées (utilisée par le dropdown)
-  final List<String> _availableLangs = ['fr', 'bm', 'en'];
 
   @override
   void initState() {
     super.initState();
-    // 1. Initialise le chargement avec la langue par défaut ('fr')
-    _traductionFuture = _fetchTranslation('fr');
+    // 1. Initialise le chargement avec le code UI par défaut ('fr')
+    _traductionFuture = _fetchTranslation(_selectedLanguageCodeUI);
+  }
+
+  /// 🎯 Mappe le code court de l'interface utilisateur (UI) vers le code long
+  /// utilisé comme clé dans la réponse JSON de l'API (ex: 'bam_Latn').
+  String _mapUiCodeToApiJsonKey(String uiCode) {
+    switch (uiCode) {
+    // Pour l'affichage, on cherche la clé correspondante dans le JSON
+      case 'fr': return 'fra_Latn';
+      case 'bm': return 'bam_Latn'; // Clé confirmée par votre réponse API
+      case 'en': return 'eng_Latn';
+      default: return uiCode; // Fallback
+    }
   }
 
   // Méthode pour appeler le service avec une langue donnée
-  Future<TraductionConte> _fetchTranslation(String languageCode) {
+  Future<TraductionConte> _fetchTranslation(String uiLanguageCode) {
+    // 🎯 On utilise le code UI court (ex: 'bm') pour l'URL de l'endpoint
+    // car votre endpoint le demande (/api/traduction/conte/{conteId}/bm)
+
     return _recitService.fetchConteTraduction(
       conteId: widget.recit.id,
-      langueCode: languageCode,
+      // Le service attend le code court pour l'URL
+      langueCode: uiLanguageCode,
     );
   }
 
   // Méthode pour changer de langue et recharger le contenu
-  void _changeLanguageAndReload(String newLanguage) {
-    if (newLanguage != _selectedLanguage) {
-      // 2. setState() déclenche un nouveau build
+  void _changeLanguageAndReload(String newLanguageCodeUI) {
+    if (newLanguageCodeUI != _selectedLanguageCodeUI) {
       setState(() {
-        _selectedLanguage = newLanguage;
-        // 3. Assigne un nouveau Future au FutureBuilder, provoquant un rechargement
-        _traductionFuture = _fetchTranslation(newLanguage);
+        _selectedLanguageCodeUI = newLanguageCodeUI;
+        // Assigne un nouveau Future, provoquant le rechargement
+        _traductionFuture = _fetchTranslation(newLanguageCodeUI);
       });
     }
   }
@@ -66,17 +80,14 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        // AJUSTEMENT : Augmentation de la hauteur pour un meilleur dégagement
         toolbarHeight: 135.0,
         backgroundColor: _backgroundColor,
         elevation: 0,
-        // Bouton de retour par défaut (<-) : laissé pour la navigation.
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: _cardTextColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
 
-        // Le titre doit aussi être dynamique
         title: _buildAppBarTitle(),
         centerTitle: false,
         actions: [
@@ -84,7 +95,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
           _buildLanguageDropdown(),
           const SizedBox(width: 10),
 
-          // Bouton Quiz (si présent dans le récit)
+          // Bouton Quiz
           if (widget.recit.quiz != null)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -99,14 +110,14 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
               ),
             ),
 
-          // 2. BOUTON FERMER (ajoute une icône X pour fermer clairement la vue)
+          // 2. BOUTON FERMER
           IconButton(
             icon: const Icon(Icons.close, color: _cardTextColor),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),
-      // Le FutureBuilder englobe maintenant le contenu pour gérer l'état de chargement du récit.
+      // Le FutureBuilder englobe le contenu pour gérer l'état de chargement
       body: FutureBuilder<TraductionConte>(
         future: _traductionFuture,
         builder: (context, snapshot) {
@@ -117,7 +128,6 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
-                  // Afficher l'erreur pour le diagnostic
                   'Erreur de chargement du contenu : ${snapshot.error}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: _serviceErrorColor, fontSize: 16),
@@ -134,7 +144,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Image du Récit (plus de contournement PDF nécessaire)
+                  // 1. Image du Récit
                   _buildRecitImage(),
                   const SizedBox(height: 20),
 
@@ -160,10 +170,13 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     return FutureBuilder<TraductionConte>(
       future: _traductionFuture,
       builder: (context, snapshot) {
+        // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+        final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
         // Fallback au titre original du Recit si la traduction n'est pas chargée
         final String title = snapshot.hasData
-        // ✅ Utilise le titre traduit correspondant à la langue sélectionnée
-            ? snapshot.data!.traductionsTitre.traductions[_selectedLanguage] ?? widget.recit.titre
+        // ✅ Utilise la clé JSON mappée (ex: "bam_Latn")
+            ? snapshot.data!.traductionsTitre.traductions[jsonKey] ?? widget.recit.titre
             : widget.recit.titre;
 
         return Text(
@@ -183,7 +196,8 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   Widget _buildLanguageDropdown() {
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        value: _selectedLanguage,
+        // Utilise le code court UI pour l'affichage du Dropdown
+        value: _selectedLanguageCodeUI,
         icon: const Icon(Icons.keyboard_arrow_down, color: _mainAccentColor),
         items: _availableLangs
             .map<DropdownMenuItem<String>>((String value) {
@@ -195,7 +209,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
         }).toList(),
         onChanged: (String? newValue) {
           if (newValue != null) {
-            // ✅ C'EST ICI QUE LE RECHARGEMENT EST DÉCLENCHÉ !
+            // Le rechargement est déclenché ici
             _changeLanguageAndReload(newValue);
           }
         },
@@ -203,6 +217,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     );
   }
 
+  // Mappage du code court UI pour l'affichage du nom de la langue
   String _mapLanguageCodeToName(String code) {
     switch(code) {
       case 'fr': return 'Français';
@@ -212,7 +227,6 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     }
   }
 
-  // ✅ LOGIQUE DE CONSTRUCTION D'URL CORRIGÉE ET SIMPLIFIÉE
   Widget _buildRecitImage() {
     String imagePath = widget.recit.urlPhoto;
 
@@ -231,14 +245,11 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
       );
     }
 
-    // 1. DÉTERMINER L'URL COMPLÈTE
+    // DÉTERMINER L'URL COMPLÈTE
     String finalUrl = imagePath;
 
-    // Si le chemin n'est pas déjà une URL absolue (commence par "http"), on le préfixe.
+    // Si le chemin n'est pas déjà une URL absolue, on le préfixe.
     if (!imagePath.startsWith('http')) {
-
-      // Utiliser Uri.parse().resolve(imagePath).toString() est la méthode la plus sûre
-      // pour gérer si imagePath commence ou non par un slash.
       finalUrl = Uri.parse(_imageHostUrl).resolve(imagePath).toString();
     }
 
@@ -253,7 +264,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
-          finalUrl, // ✅ Utilise l'URL correcte
+          finalUrl,
           fit: BoxFit.cover,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -289,9 +300,12 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildRecitContentSection(TraductionConte data) {
-    // Utilise la traduction du contenu, ou la description originale si la traduction est manquante
-    final String content = data.traductionsContenu.traductions[_selectedLanguage] ??
-        data.descriptionOriginale;
+    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
+    // Utilise la traduction du contenu avec la clé JSON (ex: "bam_Latn")
+    final String content = data.traductionsContenu.traductions[jsonKey] ??
+        data.descriptionOriginale; // Fallback
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -313,10 +327,13 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildAdditionalInfoSection(TraductionConte data) {
+    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+
     // ✅ Utilise la traduction pour le Lieu
-    final String lieu = data.traductionsLieu.traductions[_selectedLanguage] ?? data.lieuOriginal;
+    final String lieu = data.traductionsLieu.traductions[jsonKey] ?? data.lieuOriginal;
     // ✅ Utilise la traduction pour la Région
-    final String region = data.traductionsRegion.traductions[_selectedLanguage] ?? data.regionOriginale;
+    final String region = data.traductionsRegion.traductions[jsonKey] ?? data.regionOriginale;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
