@@ -364,16 +364,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _cardTextColor),
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Admin : ', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                Text(
-                  isAdmin ? 'Oui' : 'Non',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isAdmin ? Colors.green.shade700 : Colors.orange.shade700),
-                ),
-              ],
-            ),
+
           ],
         ),
       ),

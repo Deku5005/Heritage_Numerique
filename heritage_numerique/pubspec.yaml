@@ -17,6 +17,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   cupertino_icons: ^1.0.8
   flutter_staggered_animations: ^1.1.1
+  graphview: ^1.2.0
 
 dev_dependencies:
   flutter_test:

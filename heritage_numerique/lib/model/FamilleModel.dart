@@ -1,41 +1,56 @@
-// lib/models/famille.dart
 import 'Membre.dart'; // Importation nécessaire pour le type List<Membre>
 
 class Famille {
+  // --- Champs Minimaux / Essentiels ---
   final int id;
-  final int idFamille;
-  final String nomFamille;
-  final String nom;
-  final String description;
-  final String dateCreation;
-  final List<Membre> membres; // Utilisation du modèle importé
-  final int nombreMembres;
+  final List<Membre> membres; // Mappe la clé 'racines' du JSON
+
+  // --- Champs Optionnels (String, int) ---
+  final int? idFamille;
+  final String? nomFamille;
+  final String? nom;
+  final String? description;
+  final String? dateCreation;
+  final int? nombreMembres;
 
   Famille({
     required this.id,
-    required this.idFamille,
-    required this.nomFamille,
-    required this.nom,
-    required this.description,
-    required this.dateCreation,
-    required this.membres,
-    required this.nombreMembres,
+    required this.membres, // La liste elle-même doit exister (même si vide)
+    this.idFamille,
+    this.nomFamille,
+    this.nom,
+    this.description,
+    this.dateCreation,
+    this.nombreMembres,
   });
 
   factory Famille.fromJson(Map<String, dynamic> json) {
-    // Conversion de la liste de JSON en liste d'objets Membre
-    var membresList = json['membres'] as List;
-    List<Membre> membresData = membresList.map((i) => Membre.fromJson(i)).toList();
+    // 🔑 Fonction utilitaire pour gérer la conversion double -> int?
+    // C'est la solution à l'erreur "type 'double' is not a subtype of type 'int?'"
+    int? safeInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is double) return value.round(); // Convertit le double en int (arrondi)
+      return null;
+    }
+
+    // 1. Gestion de la liste des membres (Racines)
+    final List<Membre> membresData = (json['racines'] as List?) // <-- CORRECTION: utilise 'racines'
+        ?.map((item) => Membre.fromJson(item as Map<String, dynamic>))
+        .toList()
+        ?? <Membre>[]; // Retourne une liste vide si 'racines' est null
 
     return Famille(
-      id: json['id'] as int,
-      idFamille: json['idFamille'] as int,
-      nomFamille: json['nomFamille'] as String,
-      nom: json['nom'] as String,
-      description: json['description'] as String,
-      dateCreation: json['dateCreation'] as String,
+      // 2. Mappage des champs int en utilisant safeInt
+      id: safeInt(json['id'])!, // id est obligatoire
       membres: membresData,
-      nombreMembres: json['nombreMembres'] as int,
+
+      idFamille: safeInt(json['idFamille']),
+      nomFamille: json['nomFamille'] as String?,
+      nom: json['nom'] as String?,
+      description: json['description'] as String?,
+      dateCreation: json['dateCreation'] as String?,
+      nombreMembres: safeInt(json['nombreMembres']), // <-- Correction appliquée ici
     );
   }
 }

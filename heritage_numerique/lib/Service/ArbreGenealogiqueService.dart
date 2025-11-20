@@ -5,15 +5,16 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
-// 💡 Assurez-vous que les chemins d'importation vers vos modèles sont corrects
+// 🔑 CORRECTION IMPORT 1: On suppose que le modèle de Famille est Famille.dart (ou FamillyModel.dart, à vérifier)
+// J'utilise Famille.dart pour uniformiser, mais si FamilleModel.dart est votre nom final, remettez-le.
 import '../model/FamilleModel.dart';
-import '../model/membre.dart';
-import '../model/MembreDetailsModel.dart'; // 🔑 NOUVEL IMPORTATION
+// 🔑 CORRECTION IMPORT 2: Changement de 'membre.dart' (minuscule) à 'Membre.dart' (Majuscule)
+import '../model/Membre.dart';
+import '../model/MembreDetailsModel.dart';
 import '../model/ContributionFamilleModel.dart';
 import 'Auth-service.dart';
 
 class ArbreGenealogiqueService {
-  // 🔑 REMPLACEZ PAR VOTRE URL DE BASE RÉELLE
   static const String _baseUrl = "http://10.0.2.2:8080";
 
   final AuthService _authService = AuthService();
@@ -31,14 +32,14 @@ class ArbreGenealogiqueService {
   }
 
   // -------------------------------------------------------------------
-  // --- 1. Récupération de l'Arbre Généalogique (GET /api/arbre-genealogique/famille/{familleId}) ---
+  // 🔑 --- 1. Récupération de l'Arbre Généalogique (GET /famille/{familleId}/hierarchique) ---
   // -------------------------------------------------------------------
 
-  /// Récupère l'arbre généalogique complet pour une famille donnée.
-  Future<Famille> fetchFamille({required int familleId}) async {
+  /// Récupère l'arbre généalogique complet et hiérarchisé pour une famille donnée.
+  Future<Famille> fetchArbreHierarchique({required int familleId}) async {
     final String? token = await _getAuthToken();
 
-    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/famille/$familleId');
+    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/famille/$familleId/hierarchique');
 
     final http.Response response = await http.get(
       uri,
@@ -48,13 +49,13 @@ class ArbreGenealogiqueService {
       },
     );
 
-    debugPrint('Réponse GET Famille (Status): ${response.statusCode}');
+    debugPrint('Réponse GET Arbre Hiérarchique (Status): ${response.statusCode}');
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonBody = json.decode(utf8.decode(response.bodyBytes));
       return Famille.fromJson(jsonBody);
     } else {
-      String errorMessage = "Échec du chargement de la famille (Statut: ${response.statusCode}).";
+      String errorMessage = "Échec du chargement de l'arbre (Statut: ${response.statusCode}).";
       try {
         final Map<String, dynamic> errorBody = json.decode(response.body);
         errorMessage = errorBody['message'] ?? errorMessage;
@@ -66,15 +67,12 @@ class ArbreGenealogiqueService {
   }
 
   // -------------------------------------------------------------------
-  // 🔑 --- NOUVELLE MÉTHODE : Récupération des détails d'un membre (GET /api/arbre-généalogique/membre/{membreId}) ---
+  // --- 2. Récupération des détails d'un membre (GET /membre/{membreId}/membres-lies) ---
   // -------------------------------------------------------------------
 
-  /// Récupère les détails complets d'un membre spécifique.
+  /// Récupère les détails complets d'un membre spécifique et ses liens.
   Future<List<MembreDetail>> fetchMembreDetail({required int membreId}) async {
     final String? token = await _getAuthToken();
-
-    // Utilisez le chemin d'accès correct, en supposant que l'erreur d'encodage 'é' a été corrigée
-    // Remplacer "généalogique" par "genealogique" est fortement conseillé.
     final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/membre/$membreId/membres-lies');
 
     final http.Response response = await http.get(
@@ -88,14 +86,10 @@ class ArbreGenealogiqueService {
     debugPrint('Réponse GET Membre Détail $membreId (Status): ${response.statusCode}');
 
     if (response.statusCode == 200) {
-      // 🔑 MODIFICATION CLÉ : Décodage comme une LISTE
       final List<dynamic> jsonList = json.decode(utf8.decode(response.bodyBytes));
-
-      // Mappage de chaque élément de la liste en MembreDetail
       return jsonList.map((json) => MembreDetail.fromJson(json as Map<String, dynamic>)).toList();
     } else {
       String errorMessage = "Échec du chargement des détails du membre $membreId (Statut: ${response.statusCode}).";
-      // ... (gestion des erreurs inchangée) ...
       try {
         final Map<String, dynamic> errorBody = json.decode(response.body);
         errorMessage = errorBody['message'] ?? errorMessage;
@@ -108,89 +102,97 @@ class ArbreGenealogiqueService {
 
 
   // -------------------------------------------------------------------
-  // 🔑 --- 2. Récupération de TOUS les membres (GET /api/arbre-genealogique/membres?familleId=...) ---
+  // 🔑 --- 3. Récupération de TOUS les membres (pour les menus déroulants) ---
   // -------------------------------------------------------------------
 
-  /// Récupère la liste de tous les membres pour la sélection des parents.
+  /// Utilise fetchArbreHierarchique pour obtenir la structure arborescente puis l'aplatit.
   Future<List<Membre>> fetchAllMembres({required int familleId}) async {
-    final String? token = await _getAuthToken();
+    // 1. Récupérer l'arbre complet avec la structure racines/enfants
+    final Famille famille = await fetchArbreHierarchique(familleId: familleId);
 
-    // 🔑 Construction de l'URI avec le paramètre de requête pour filtrer par famille
-    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/famille/$familleId');
+    // 2. Aplatir la structure arborescente en une liste unique
+    final List<Membre> allMembres = [];
 
-    final http.Response response = await http.get(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    debugPrint('Réponse GET All Membres (Status): ${response.statusCode}');
-
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonList = json.decode(utf8.decode(response.bodyBytes));
-      // 🔑 Mappage de la liste JSON en List<Membre>
-      return jsonList.map((json) => Membre.fromJson(json as Map<String, dynamic>)).toList();
-    } else {
-      String errorMessage = "Échec du chargement de la liste des membres (Statut: ${response.statusCode}).";
-      try {
-        final Map<String, dynamic> errorBody = json.decode(response.body);
-        errorMessage = errorBody['message'] ?? errorMessage;
-      } catch (_) {
-        errorMessage += " Réponse brute: ${response.body}";
+    // Fonction récursive utilitaire pour parcourir et ajouter les membres
+    void traverseAndAdd(List<Membre> membres) {
+      for (var membre in membres) {
+        allMembres.add(membre);
+        // La propriété enfants est dans le modèle Membre et est correcte
+        if (membre.enfants.isNotEmpty) {
+          traverseAndAdd(membre.enfants);
+        }
       }
-      throw Exception(errorMessage);
     }
+
+    // 3. Démarrer le parcours à partir des membres de haut niveau
+    // 🔑 CORRECTION ERREUR 3: On utilise 'famille.membres' pour le getter manquant 'racines'
+    traverseAndAdd(famille.membres);
+
+    // 4. Éliminer les doublons potentiels (si un membre apparaît plusieurs fois)
+    final uniqueMembres = <int, Membre>{};
+    for (var membre in allMembres) {
+      uniqueMembres[membre.id] = membre;
+    }
+
+    return uniqueMembres.values.toList();
   }
 
+
   // -------------------------------------------------------------------
-  // --- 3. Création d'un Nouveau Membre (POST /api/arbre-genealogique/ajouter-membre) ---
+  // --- 4. Création d'un Nouveau Membre (POST /ajouter-membre) ---
   // -------------------------------------------------------------------
 
   /// Crée un nouveau membre en utilisant un formulaire multipart/form-data.
   Future<void> createMembre({
     // Champs requis
     required String nomComplet,
-    required String dateNaissance, // Format YYYY-MM-DD
+    required String dateNaissance,
     required String lieuNaissance,
     required String relationFamiliale,
     required int idFamille,
     // Champs optionnels
-    String? photoPath, // Chemin local du fichier photo
+    String? photoPath,
     String? telephone,
     String? email,
     String? biographie,
-    int? parent1Id,
-    int? parent2Id,
+    // 🔑 CORRECTION: Utilisation de la nomenclature du modèle Membre
+    int? idPere,
+    int? idMere,
   }) async {
     final String? token = await _getAuthToken();
-    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/ajouter-membre');
 
+    // 1. Construction des paramètres de requête (Query Parameters)
+    final Map<String, dynamic> queryParams = {
+      'idFamille': idFamille.toString(),
+      'nomComplet': nomComplet,
+      'dateNaissance': dateNaissance,
+      'lieuNaissance': lieuNaissance,
+      'relationFamiliale': relationFamiliale,
+    };
+
+    // Ajout des IDs des parents et autres champs optionnels
+    if (telephone != null && telephone.isNotEmpty) queryParams['telephone'] = telephone;
+    if (email != null && email.isNotEmpty) queryParams['email'] = email;
+    if (biographie != null && biographie.isNotEmpty) queryParams['biographie'] = biographie;
+    // 🔑 CORRECTION: Utilisation de la nomenclature du modèle Membre
+    if (idPere != null) queryParams['idPere'] = idPere.toString();
+    if (idMere != null) queryParams['idMere'] = idMere.toString();
+
+
+    // 2. Construction de l'URI complète avec tous les query parameters
+    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/ajouter-membre')
+        .replace(queryParameters: queryParams.map((k, v) => MapEntry(k, v.toString())));
+
+    // 3. Création de la requête multipart
     final http.MultipartRequest request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token';
 
-    // Ajout des champs de texte requis
-    request.fields['nomComplet'] = nomComplet;
-    request.fields['dateNaissance'] = dateNaissance;
-    request.fields['lieuNaissance'] = lieuNaissance;
-    request.fields['relationFamiliale'] = relationFamiliale;
-    request.fields['idFamille'] = idFamille.toString();
-
-    // Ajout des champs de texte optionnels
-    if (telephone != null && telephone.isNotEmpty) request.fields['telephone'] = telephone;
-    if (email != null && email.isNotEmpty) request.fields['email'] = email;
-    if (biographie != null && biographie.isNotEmpty) request.fields['biographie'] = biographie;
-    // Les IDs parents sont des entiers optionnels, convertis en String
-    if (parent1Id != null) request.fields['parent1Id'] = parent1Id.toString();
-    if (parent2Id != null) request.fields['parent2Id'] = parent2Id.toString();
-
-    // Ajouter le fichier photo
+    // 4. Ajouter le fichier photo au corps de la requête
     if (photoPath != null && photoPath.isNotEmpty) {
       final File file = File(photoPath);
       if (await file.exists()) {
         request.files.add(await http.MultipartFile.fromPath(
-          'photo',
+          'photo', // Le nom du champ doit être 'photo'
           photoPath,
         ));
       } else {
@@ -198,6 +200,7 @@ class ArbreGenealogiqueService {
       }
     }
 
+    // 5. Envoi et gestion de la réponse
     final http.StreamedResponse streamedResponse = await request.send();
     final http.Response response = await http.Response.fromStream(streamedResponse);
 
@@ -219,7 +222,7 @@ class ArbreGenealogiqueService {
   }
 
   // -------------------------------------------------------------------
-  // --- 4. Récupération des Contributions (GET /api/contributions/famille/{familleId}) ---
+  // --- 5. Récupération des Contributions (GET /api/contributions/famille/{familleId}) ---
   // -------------------------------------------------------------------
 
   /// Récupère les statistiques de contributions pour une famille donnée.
