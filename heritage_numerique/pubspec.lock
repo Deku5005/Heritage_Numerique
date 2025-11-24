@@ -61,9 +61,10 @@ packages:
     dependency: transitive
     description:
       name: cross_file
-      sha256: "7caf6a750a0c04effbb52a676dce9a4a592e10ad35c34d6d2d0e4811160d5670"
+      sha256: "701dcfc06da0882883a2657c445103380e53e647060ad8d9dfb710c100996608"
       url: "https://pub.dev"
     source: hosted
+<<<<<<< HEAD
     version: "0.3.4+2"
   crypto:
     dependency: transitive
@@ -73,6 +74,9 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
+=======
+    version: "0.3.5+1"
+>>>>>>> 81ee29f11f02fdb06ddb1524eb7d70b8bafe6a1f
   csslib:
     dependency: transitive
     description:
@@ -117,9 +121,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: f2d9f173c2c14635cc0e9b14c143c49ef30b4934e8d1d274d6206fcb0086a06f
+      sha256: f8f4ea435f791ab1f817b4e338ed958cb3d04ba43d6736ffc39958d950754967
       url: "https://pub.dev"
     source: hosted
+<<<<<<< HEAD
     version: "10.3.3"
   fixnum:
     dependency: transitive
@@ -129,6 +134,9 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+=======
+    version: "10.3.6"
+>>>>>>> 81ee29f11f02fdb06ddb1524eb7d70b8bafe6a1f
   flutter:
     dependency: "direct main"
     description: flutter
@@ -224,6 +232,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  graphview:
+    dependency: "direct main"
+    description:
+      name: graphview
+      sha256: a683865b36172cc8c470f45f6d34bb901ba5b4e80fc345f6a0021abc57fa8f4c
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.5.1"
   html:
     dependency: transitive
     description:
@@ -364,18 +380,18 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: e122c5ea805bb6773bb12ce667611265980940145be920cd09a4b0ec0285cb16
+      sha256: "95c68a74d3cab950fd0ed8073d9fab15c1c06eb1f3eec68676e87aabc9ecee5a"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.20"
+    version: "2.2.21"
   path_provider_foundation:
     dependency: transitive
     description:
       name: path_provider_foundation
-      sha256: efaec349ddfc181528345c56f8eda9d6cccd71c177511b132c6a0ddaefaa2738
+      sha256: "97390a0719146c7c3e71b6866c34f1cde92685933165c1c671984390d2aca776"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.3"
+    version: "2.4.4"
   path_provider_linux:
     dependency: transitive
     description:
@@ -521,26 +537,26 @@ packages:
     dependency: "direct main"
     description:
       name: video_player
-      sha256: "0d55b1f1a31e5ad4c4967bfaa8ade0240b07d20ee4af1dfef5f531056512961a"
+      sha256: "096bc28ce10d131be80dfb00c223024eb0fba301315a406728ab43dd99c45bdf"
       url: "https://pub.dev"
     source: hosted
-    version: "2.10.0"
+    version: "2.10.1"
   video_player_android:
     dependency: transitive
     description:
       name: video_player_android
-      sha256: cf768d02924b91e333e2bc1ff928528f57d686445874f383bafab12d0bdfc340
+      sha256: "36913f94430b474c4a9033d59b7552b800e736a8521e7166e84895ddcedd0b03"
       url: "https://pub.dev"
     source: hosted
-    version: "2.8.17"
+    version: "2.8.19"
   video_player_avfoundation:
     dependency: transitive
     description:
       name: video_player_avfoundation
-      sha256: "19ed1162a7a5520e7d7791e0b7b73ba03161b6a69428b82e4689e435b325432d"
+      sha256: "6bced1739cf1f96f03058118adb8ac0dd6f96aa1a1a6e526424ab92fd2a6a77d"
       url: "https://pub.dev"
     source: hosted
-    version: "2.8.5"
+    version: "2.8.7"
   video_player_platform_interface:
     dependency: transitive
     description:

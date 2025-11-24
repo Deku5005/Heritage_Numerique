@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import '../model/FamilleModel.dart';
+// 💡 Assurez-vous d'avoir bien importé les modèles mis à jour
+import '../model/FamilleModel.dart'; // 🔑 CORRECTION: Utilisation de Famille.dart (pas FamilleModel.dart)
 import 'AppDrawer.dart';
 import '../service/ArbreGenealogiqueService.dart';
-import '../model/Membre.dart';
+import '../model/Membre.dart'; // 🔑 Importation correcte de Membre.dart
 
 import 'package:intl/intl.dart';
 
@@ -23,6 +24,13 @@ final Membre _noneMemberPlaceholder = Membre(
   nomComplet: 'Non Spécifié / Aucun',
   dateNaissance: '2000-01-01',
   lieuNaissance: 'N/A',
+  // Champs ajoutés pour le modèle Membre mis à jour
+  enfants: [],
+  nombreEnfants: 0,
+  niveau: 0,
+  positionX: 0,
+  positionY: 0,
+  // Anciens champs nécessaires
   relationFamiliale: 'Placeholder',
   idFamille: 0,
   nomFamille: 'N/A',
@@ -53,29 +61,30 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _biographieController = TextEditingController();
 
-  // 🔑 Variables d'état pour le sélecteur de Membres
+  // Variables d'état
   List<Membre> _allMembres = [];
   Membre? _selectedParent1; // Objet Membre sélectionné
   Membre? _selectedParent2; // Objet Membre sélectionné
   bool _isLoadingMembres = true;
-
   String _selectedRole = 'Membre';
   String _selectedFileName = 'Télécharger la photo';
   String? _photoFilePath;
-
   bool _isSaving = false;
+  DateTime? _selectedDate;
+
+  // 🔑 NOUVEAU: Pour masquer/afficher les champs optionnels
+  bool _showOptionalFields = false;
 
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
-  DateTime? _selectedDate;
 
 
   @override
   void initState() {
     super.initState();
-    _fetchMembresList(); // 🔑 Chargement des membres au démarrage
+    _fetchMembresList(); // Chargement des membres au démarrage
   }
 
-  // 🔑 FONCTION: Récupérer la liste de tous les membres via fetchFamille
+  // 🔑 FONCTION MISE À JOUR: Récupérer la liste de tous les membres (Liste plate)
   Future<void> _fetchMembresList() async {
     if (widget.familyId == null) {
       setState(() {
@@ -84,34 +93,34 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
       return;
     }
     try {
-      // 🔑 1. Appel à fetchFamille pour obtenir l'objet Famille
-      final Famille famille = await _apiService.fetchFamille(familleId: widget.familyId!);
+      // 🔑 1. Appel à fetchAllMembres pour obtenir la liste plate de Membres
+      final List<Membre> fetchedMembres = await _apiService.fetchAllMembres(familleId: widget.familyId!);
 
-      // 🔑 2. Extraction de la liste des Membres (confirmé par le modèle Famille)
-      final List<Membre> membres = famille.membres;
-
-      // Ajout du placeholder 'Non Spécifié'
-      membres.insert(0, _noneMemberPlaceholder);
+      // 2. Ajout du placeholder 'Non Spécifié' au début de la liste
+      final List<Membre> membresWithPlaceholder = [
+        _noneMemberPlaceholder,
+        ...fetchedMembres.where((m) => m.id != 0).toList(), // Filtrer si le placeholder était déjà là
+      ];
 
       Membre? initialParent1;
 
-      // Gérer l'ID de parent injecté (pré-sélection)
+      // 3. Gérer l'ID de parent injecté (pré-sélection)
       if (widget.parentId != null) {
-        initialParent1 = membres.firstWhere(
+        initialParent1 = membresWithPlaceholder.firstWhere(
               (m) => m.id == widget.parentId,
           orElse: () => _noneMemberPlaceholder,
         );
       }
 
       setState(() {
-        _allMembres = membres; // La liste complète est stockée
+        _allMembres = membresWithPlaceholder;
         _isLoadingMembres = false;
         // Définir la sélection initiale
         _selectedParent1 = initialParent1 ?? _noneMemberPlaceholder;
         _selectedParent2 = _noneMemberPlaceholder;
       });
     } catch (e) {
-      debugPrint('Erreur de chargement des membres via Famille: $e');
+      debugPrint('Erreur de chargement des membres: $e');
       setState(() {
         _isLoadingMembres = false;
         _allMembres = [_noneMemberPlaceholder];
@@ -195,7 +204,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // 🔑 LOGIQUE DE SOUMISSION utilisant les IDs des objets Membre sélectionnés
+  // 🔑 LOGIQUE DE SOUMISSION CORRIGÉE
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate() || _selectedDate == null) {
       _showSnackBar('Veuillez remplir tous les champs obligatoires (Nom, Date et Lieu).', Colors.red);
@@ -213,7 +222,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
 
       final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
 
-      // 🔑 Conversion de l'objet Membre sélectionné en ID (null si placeholder id=0)
+      // Conversion de l'objet Membre sélectionné en ID (null si placeholder id=0)
       final int? parent1Id = _selectedParent1 != null && _selectedParent1!.id != 0 ? _selectedParent1!.id : null;
       final int? parent2Id = _selectedParent2 != null && _selectedParent2!.id != 0 ? _selectedParent2!.id : null;
 
@@ -227,8 +236,9 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
             ? _selectedRole
             : _relationFamilialeController.text.trim(),
 
-        parent1Id: parent1Id,
-        parent2Id: parent2Id,
+        // 🔑 CORRECTION: Remplacement de parent1Id et parent2Id par idPere et idMere
+        idPere: parent1Id,
+        idMere: parent2Id,
 
         photoPath: _photoFilePath,
         telephone: _telephoneController.text.trim().isNotEmpty ? _telephoneController.text.trim() : null,
@@ -309,6 +319,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
+  // 🔑 LOGIQUE DES CHAMPS OPTIONNELS INTÉGRÉE ICI
   Widget _buildFormSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -347,7 +358,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           // Ligne 3: Relation Familiale
           _buildInputField('Relation familiale', controller: _relationFamilialeController, hint: 'Ex: Mère, Fils, Épouse...'),
 
-          // 🔑 SÉLECTEUR DE MEMBRES POUR PARENTS
+          // SÉLECTEUR DE MEMBRES POUR PARENTS
           const SizedBox(height: 20),
           const Text(
             'Sélection des parents (si applicable)',
@@ -356,7 +367,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              // 🔑 Parent 1 (Père ou Partenaire)
+              // Parent 1 (Père ou Partenaire)
               Expanded(child: _buildParentSelector(
                 label: 'Parent 1 (Père/Partenaire)',
                 selectedMember: _selectedParent1,
@@ -369,7 +380,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
                 },
               )),
               const SizedBox(width: 15),
-              // 🔑 Parent 2 (Mère ou Partenaire)
+              // Parent 2 (Mère ou Partenaire)
               Expanded(child: _buildParentSelector(
                 label: 'Parent 2 (Mère/Partenaire)',
                 selectedMember: _selectedParent2,
@@ -382,10 +393,10 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
             ],
           ),
           // Note pour l'ID pré-rempli
-          if (widget.parentId != null)
+          if (widget.parentId != null && _selectedParent1 != _noneMemberPlaceholder)
             Padding(
               padding: const EdgeInsets.only(top: 5.0, bottom: 15.0),
-              child: Text('Note: Le Parent 1 est automatiquement sélectionné (ID: ${widget.parentId}).',
+              child: Text('Note: Le Parent 1 est automatiquement sélectionné.',
                 style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
               ),
             ),
@@ -395,17 +406,58 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
           _buildPhotoUploadButton(context),
           const SizedBox(height: 20),
 
-          // Ligne 4: Téléphone & Email
-          Row(
-            children: [
-              Expanded(child: _buildInputField('Téléphone', controller: _telephoneController, hint: 'Ex: +223 XX XX XX XX', keyboardType: TextInputType.phone)),
-              const SizedBox(width: 15),
-              Expanded(child: _buildInputField('Email', controller: _emailController, hint: 'Ex: eccoseg@gmail.com', keyboardType: TextInputType.emailAddress)),
-            ],
-          ),
+          // 🔑 LOGIQUE D'AFFICHAGE DES CHAMPS OPTIONNELS
+          if (!_showOptionalFields)
+            TextButton.icon(
+              icon: const Icon(Icons.add_circle_outline, color: _mainAccentColor),
+              label: const Text('Ajouter plus de détails (Téléphone, Email, Bio)', style: TextStyle(color: _mainAccentColor, fontWeight: FontWeight.bold)),
+              onPressed: () {
+                setState(() {
+                  _showOptionalFields = true;
+                });
+              },
+            )
+          else
+          // AFFICHAGE DES CHAMPS OPTIONNELS
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Détails Optionnels',
+                    style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                // Ligne 4: Téléphone & Email
+                Row(
+                  children: [
+                    Expanded(child: _buildInputField('Téléphone', controller: _telephoneController, hint: 'Ex: +223 XX XX XX XX', keyboardType: TextInputType.phone)),
+                    const SizedBox(width: 15),
+                    Expanded(child: _buildInputField('Email', controller: _emailController, hint: 'Ex: eccoseg@gmail.com', keyboardType: TextInputType.emailAddress)),
+                  ],
+                ),
+                // Ligne 5: Bibliographie
+                _buildBibliographyField('Biographie', controller: _biographieController, hint: 'Parlez-nous un peu de cet membre...'),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _showOptionalFields = false;
+                        // Optionnel : Effacer les champs si l'utilisateur les cache
+                        _telephoneController.clear();
+                        _emailController.clear();
+                        _biographieController.clear();
+                      });
+                    },
+                    child: const Text('Masquer les détails', style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+              ],
+            ),
+          // 🔑 FIN LOGIQUE CHAMPS OPTIONNELS
 
-          // Ligne 5: Bibliographie
-          _buildBibliographyField('Biographie', controller: _biographieController, hint: 'Parlez-nous un peu de cet membre...'),
           const SizedBox(height: 30),
 
           // Bouton Enregistrer
@@ -435,15 +487,15 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // 🔑 WIDGET SÉLECTEUR DE MEMBRE (DROPDOWN)
+  // WIDGET SÉLECTEUR DE MEMBRE (DROPDOWN) - ID masqué pour l'UX
   Widget _buildParentSelector({
     required String label,
     required Membre? selectedMember,
     required ValueChanged<Membre?> onChanged,
     bool isDisabled = false,
   }) {
-    // Affichage de chargement
     if (_isLoadingMembres) {
+      // ... (Widget de chargement inchangé)
       return Padding(
         padding: const EdgeInsets.only(bottom: 15.0),
         child: Column(
@@ -468,7 +520,6 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
       );
     }
 
-    // Affichage du sélecteur
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
       child: Column(
@@ -488,11 +539,11 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
               ),
-              onChanged: isDisabled ? null : onChanged, // Désactivé si `isDisabled` est true
+              onChanged: isDisabled ? null : onChanged,
 
               items: _allMembres.map<DropdownMenuItem<Membre>>((Membre member) {
-                // Afficher le nom et l'ID
-                final display = member.id == 0 ? member.nomComplet : '${member.nomComplet} (ID: ${member.id})';
+                // 🔑 AFFICHAGE CLAIR (sans l'ID) pour l'utilisateur final
+                final display = member.nomComplet!;
                 return DropdownMenuItem<Membre>(
                   value: member,
                   child: Text(
