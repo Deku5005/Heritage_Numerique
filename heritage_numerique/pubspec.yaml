@@ -17,6 +17,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   cupertino_icons: ^1.0.8
   flutter_staggered_animations: ^1.1.1
+  just_audio: ^0.9.36
 
 dev_dependencies:
   flutter_test:

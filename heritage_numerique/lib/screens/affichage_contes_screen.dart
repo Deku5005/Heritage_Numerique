@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
-// ⚠️ VÉRIFIEZ ET AJUSTEZ CES CHEMINS DANS VOTRE PROJET
-import '../model/conte.dart'; // Importez votre modèle de Conte (équivalent à Recit)
-import '../model/traduction_conte_model.dart'; // Importez le nouveau modèle de Traduction
-import '../Service/conteService.dart'; // Importez le service mis à jour
+import 'package:just_audio/just_audio.dart';
+// import 'package:just_audio/just_audio.dart' show MediaItem; // RÉTIRÉ
+import 'dart:typed_data';
+import 'package:audio_session/audio_session.dart';
+
+// --- VÉRIFIEZ ET AJUSTEZ CES CHEMINS DANS VOTRE PROJET ---
+import '../model/conte.dart';
+import '../model/traduction_conte_model.dart';
+import '../Service/conteService.dart';
+import '../Service/LectureVocaleService.dart';
 import '../widgets/bottom_navigation_widget.dart';
-import '../screens/quizscreenn.dart'; // Si vous avez un écran de quiz
+import '../screens/quizscreenn.dart';
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _serviceErrorColor = Colors.red;
-const Color _quizButtonColor = Color(0xFF6A994E); // Vert amical
+const Color _quizButtonColor = Color(0xFF6A994E);
 
 // ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
 const String _imageHostUrl = "http://10.0.2.2:8080";
 
-// Renommé pour être plus cohérent avec votre structure de projet
+
 class AffichageContesScreen extends StatefulWidget {
-  final Conte conte; // Utilisation de votre modèle Conte
+  final Conte conte;
 
   const AffichageContesScreen({super.key, required this.conte});
 
@@ -28,55 +34,78 @@ class AffichageContesScreen extends StatefulWidget {
 
 class _AffichageContesScreenState extends State<AffichageContesScreen> {
 
-  // Liste des codes courts utilisés dans l'UI (fr, bm, en)
-  final List<String> _availableLangs = ['fr', 'bm', 'en'];
+  // --- Services ---
+  final ConteService _conteService = ConteService();
+  final LectureVocaleService _lectureVocaleService = LectureVocaleService();
 
-  // Langue par défaut pour le premier appel : le code court 'fr'
+  // --- Audio Player State ---
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isAudioLoading = false;
+  bool _isPlaying = false;
+
+  // --- Traduction State ---
+  final List<String> _availableLangs = ['fr', 'bm', 'en'];
   String _selectedLanguageCodeUI = 'fr';
-  // Utilisation du modèle et du service que nous avons définis
   late Future<TraductionConteModel> _traductionFuture;
-  final ConteService _conteService = ConteService(); // Utilisation de ConteService
+
 
   @override
   void initState() {
     super.initState();
-    // 1. Initialise le chargement avec le code UI par défaut ('fr')
+    _initAudioSession();
     _traductionFuture = _fetchTranslation(_selectedLanguageCodeUI);
+
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        setState(() {
+          _isPlaying = false;
+        });
+      }
+    });
   }
 
-  /// 🎯 Mappe le code court de l'interface utilisateur (UI) vers le code long
-  /// utilisé comme clé dans la réponse JSON de l'API (ex: 'bam_Latn').
+  Future<void> _initAudioSession() async {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.speech());
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  // ------------------------------------------------------------------
+  // --- LOGIQUE DE TRADUCTION ET DE LECTURE VOCALE ---
+  // ------------------------------------------------------------------
+
   String _mapUiCodeToApiJsonKey(String uiCode) {
     switch (uiCode) {
-    // Pour l'affichage, on cherche la clé correspondante dans le JSON
       case 'fr': return 'fra_Latn';
-      case 'bm': return 'bam_Latn'; // Clé confirmée par votre réponse API
+      case 'bm': return 'bam_Latn';
       case 'en': return 'eng_Latn';
-      default: return uiCode; // Fallback
+      default: return uiCode;
     }
   }
 
-  // Méthode pour appeler le service avec une langue donnée
   Future<TraductionConteModel> _fetchTranslation(String uiLanguageCode) {
-    // Appel au ConteService mis à jour
     return _conteService.getConteTraduction(
       conteId: widget.conte.id,
-      langCode: uiLanguageCode, // Le service attend le code court pour l'URL
+      langCode: uiLanguageCode,
     );
   }
 
-  // Méthode pour changer de langue et recharger le contenu
   void _changeLanguageAndReload(String newLanguageCodeUI) {
     if (newLanguageCodeUI != _selectedLanguageCodeUI) {
+      _stopAudio();
+
       setState(() {
         _selectedLanguageCodeUI = newLanguageCodeUI;
-        // Assigne un nouveau Future, provoquant le rechargement
         _traductionFuture = _fetchTranslation(newLanguageCodeUI);
       });
     }
   }
 
-  // Mappage du code court UI pour l'affichage du nom de la langue
   String _mapLanguageCodeToName(String code) {
     switch(code) {
       case 'fr': return 'Français';
@@ -86,15 +115,78 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     }
   }
 
+  // --- MÉTHODES AUDIO ---
+
+  void _toggleAudioPlayback() async {
+    if (_isPlaying) {
+      _stopAudio();
+    } else {
+      await _playAudio();
+    }
+  }
+
+  void _stopAudio() async {
+    if (_audioPlayer.processingState != ProcessingState.idle) {
+      await _audioPlayer.stop();
+    }
+    setState(() {
+      _isPlaying = false;
+      _isAudioLoading = false;
+    });
+  }
+
+  Future<void> _playAudio() async {
+    final String currentLang = _selectedLanguageCodeUI;
+
+    if (_isAudioLoading || _isPlaying) return;
+
+    setState(() {
+      _isAudioLoading = true;
+    });
+
+    try {
+      final List<int> audioBytes = await _lectureVocaleService.telechargerLectureVocale(
+        widget.conte.id,
+        currentLang,
+      );
+
+      final Uint8List uint8Bytes = Uint8List.fromList(audioBytes);
+
+      await _audioPlayer.setAudioSource(
+        AudioByteStream(uint8Bytes),
+      );
+
+      await _audioPlayer.play();
+
+      setState(() {
+        _isPlaying = true;
+        _isAudioLoading = false;
+      });
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur de lecture vocale pour la langue $currentLang. ${e.toString().split(':').last.trim()}'),
+          backgroundColor: _serviceErrorColor,
+        ),
+      );
+      setState(() {
+        _isAudioLoading = false;
+        _isPlaying = false;
+      });
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // --- WIDGETS DE CONSTRUCTION ---
+  // ------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      // Ajout de la BottomNavigationBar
       bottomNavigationBar: const BottomNavigationWidget(currentPage: 'contes'),
       appBar: AppBar(
-        // Hauteur de l'AppBar réduite car le titre sera centré
         toolbarHeight: 60.0,
         backgroundColor: _backgroundColor,
         elevation: 0,
@@ -103,11 +195,9 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         centerTitle: true,
-        // Titre dans l'AppBar classique
         title: _buildAppBarTitle(),
       ),
 
-      // Le FutureBuilder englobe le contenu pour gérer l'état de chargement
       body: FutureBuilder<TraductionConteModel>(
         future: _traductionFuture,
         builder: (context, snapshot) {
@@ -116,9 +206,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
             return const Center(child: CircularProgressIndicator(color: _mainAccentColor));
           }
 
-          // Gère les erreurs
           if (snapshot.hasError) {
-            // Affichage simple de l'erreur, le contenu par défaut sera utilisé pour le fallback
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -131,7 +219,6 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
             );
           }
 
-          // Les données sont soit présentes (snapshot.hasData), soit nulles/non chargées
           final TraductionConteModel? data = snapshot.data;
 
           return SingleChildScrollView(
@@ -139,25 +226,20 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. SÉLECTEUR DE LANGUE (Modernisé)
                 _buildLanguageSelector(),
                 const SizedBox(height: 15),
 
-                // 2. Image et Lecteur Audio du Conte
                 _buildRecitImage(),
                 const SizedBox(height: 20),
 
-                // 3. Contenu du Récit (avec traduction si disponible)
                 _buildRecitContentSection(data),
                 const SizedBox(height: 20),
 
-                // 4. Section Quiz (avant les infos additionnelles)
                 if (widget.conte.quiz != null && widget.conte.quiz!.questions.isNotEmpty)
                   _buildQuizButton(),
                 if (widget.conte.quiz != null && widget.conte.quiz!.questions.isNotEmpty)
                   const SizedBox(height: 20),
 
-                // 5. Informations additionnelles
                 _buildAdditionalInfoSection(data),
                 const SizedBox(height: 20),
               ],
@@ -168,19 +250,14 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     );
   }
 
-  // --- WIDGETS DE CONSTRUCTION ---
-
   Widget _buildAppBarTitle() {
     return FutureBuilder<TraductionConteModel>(
       future: _traductionFuture,
       builder: (context, snapshot) {
-        // 🎯 On utilise le code long (clé JSON) pour lire la traduction
         final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
-
-        // Fallback au titre original du Conte
         final String title = snapshot.hasData && snapshot.data != null
             ? snapshot.data!.traductionsTitre.traductions[jsonKey] ?? widget.conte.titre
-            : widget.conte.titre; // Utilise le titre du Conte par défaut
+            : widget.conte.titre;
 
         return Text(
           title,
@@ -197,8 +274,6 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
   }
 
   Widget _buildLanguageSelector() {
-    final String selectedLanguageName = _mapLanguageCodeToName(_selectedLanguageCodeUI);
-
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -234,9 +309,7 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     String imagePath = widget.conte.urlPhoto;
     String finalUrl = imagePath;
 
-    // Logique pour construire l'URL complète
     if (imagePath.isNotEmpty && !imagePath.startsWith('http')) {
-      // Assure que le chemin est bien formé (sans double slash)
       final String sanitizedPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
       finalUrl = '$_imageHostUrl/$sanitizedPath';
     }
@@ -279,9 +352,6 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
                   const Icon(Icons.broken_image, size: 50, color: _serviceErrorColor),
                   const SizedBox(height: 8),
                   const Text('Image introuvable', style: TextStyle(color: _serviceErrorColor, fontSize: 12)),
-                  Text('URL TENTÉE: $finalUrl',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontSize: 10)),
                 ],
               ),
             );
@@ -292,34 +362,67 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
   }
 
   Widget _buildRecitContentSection(TraductionConteModel? data) {
-    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
     final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
+    String content = widget.conte.contenuFichier;
 
-    // 1. Détermine le contenu à afficher
-    String content = widget.conte.contenuFichier; // Contenu d'origine (fallback)
-
-    // 2. Si les données de traduction sont présentes, tente de lire la traduction
     if (data != null) {
-      // Utilisation de traductionsContenu qui contient le texte complet
       content = data.traductionsContenu.traductions[jsonKey] ?? widget.conte.contenuFichier;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Text(
-        content,
-        style: const TextStyle(
-          color: _cardTextColor,
-          fontSize: 16,
-          height: 1.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Récit - ${_mapLanguageCodeToName(_selectedLanguageCodeUI)}',
+              style: const TextStyle(
+                color: _cardTextColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const Spacer(),
+
+            IconButton(
+              icon: _isAudioLoading
+                  ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: _mainAccentColor,
+                ),
+              )
+                  : Icon(
+                _isPlaying ? Icons.pause_circle_filled : Icons.volume_up,
+                color: _mainAccentColor,
+                size: 30,
+              ),
+              onPressed: _toggleAudioPlayback,
+            ),
+          ],
         ),
-        textAlign: TextAlign.justify,
-      ),
+        const SizedBox(height: 10),
+
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Text(
+            content,
+            style: const TextStyle(
+              color: _cardTextColor,
+              fontSize: 16,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.justify,
+          ),
+        ),
+      ],
     );
   }
 
@@ -327,11 +430,9 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
     return Center(
       child: ElevatedButton.icon(
         onPressed: () {
-          // Naviguer vers l'écran du Quiz
           Navigator.push(
             context,
             MaterialPageRoute(
-              // Assurez-vous que QuizScreen est correctement importé
               builder: (context) => QuizScreen(quiz: widget.conte.quiz!),
             ),
           );
@@ -350,20 +451,15 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
   }
 
   Widget _buildAdditionalInfoSection(TraductionConteModel? data) {
-    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
     final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
-
-    // Initialisation avec les valeurs originales (fallback)
     String lieu = widget.conte.lieu;
     String region = widget.conte.region;
 
-    // Si les données de traduction sont présentes, tente de lire la traduction
     if (data != null) {
       lieu = data.traductionsLieu.traductions[jsonKey] ?? widget.conte.lieu;
       region = data.traductionsRegion.traductions[jsonKey] ?? widget.conte.region;
     }
 
-    // Libellés d'information pour la section
     final Map<String, String> labels = {
       'fr': {'title': 'Informations sur le Conte', 'lieu': 'Lieu', 'region': 'Région'},
       'bm': {'title': 'Kunnafoni', 'lieu': 'Yɔrɔ', 'region': 'Jamanan'},
@@ -424,6 +520,38 @@ class _AffichageContesScreenState extends State<AffichageContesScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+// ------------------------------------------------------------------
+// --- CLASSE D'AIDE CORRIGÉE (MediaItem retiré pour compilation) ---
+// ------------------------------------------------------------------
+
+class AudioByteStream extends StreamAudioSource {
+  final Uint8List bytes;
+
+  AudioByteStream(this.bytes) : super(tag: 'AudioFromBytes');
+
+  @override
+  Future<StreamAudioResponse> request([int? start, int? end]) async {
+    final int effectiveStart = start ?? 0;
+    final int effectiveEnd = end ?? bytes.length;
+    final int effectiveLength = effectiveEnd - effectiveStart;
+
+    final sublist = bytes.sublist(effectiveStart, effectiveEnd);
+
+    // ⚠️ MediaItem a été retiré pour corriger l'erreur de compilation, car
+    // l'import n'est pas résolu dans cette version ou configuration.
+    // L'instanciation de MediaItem est maintenant inutile et retirée.
+
+    return StreamAudioResponse(
+      sourceLength: bytes.length,
+      contentLength: effectiveLength,
+      offset: effectiveStart,
+      contentType: 'audio/mpeg',
+      stream: Stream.value(sublist),
     );
   }
 }
