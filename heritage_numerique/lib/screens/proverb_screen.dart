@@ -32,6 +32,7 @@ class _ProverbScreenState extends State<ProverbScreen> {
 
   Future<void> _fetchProverbs() async {
     try {
+      // Assurez-vous que l'importation de ProverbeService1 est correcte (Service vs services)
       final data = await _proverbeService.getProverbes();
       setState(() {
         _proverbes = data;
@@ -248,14 +249,15 @@ class _ProverbScreenState extends State<ProverbScreen> {
       itemBuilder: (context, index) {
         final proverbe = _proverbes[index];
 
-        // **CORRECTION: Suppression de 'proverbeData' et passage des quatre String requis**
         return GestureDetector(
           onTap: () {
+            // 💡 CORRECTION APPLIQUÉE ICI: Passage de l'ID requis
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => ProverbDetailScreen(
-                  // Les paramètres String requis par le nouvel écran de détail
+                  // Passer l'ID du proverbe pour les appels API de traduction/vocal
+                  proverbeId: proverbe.id ?? 0,
                   proverbText: proverbe.proverbe ?? 'Proverbe non spécifié',
                   source: proverbe.origine ?? 'Source inconnue',
                   conteur: '${proverbe.prenomAuteur ?? ''} ${proverbe.nomAuteur ?? 'Auteur inconnu'}'.trim(),
@@ -332,6 +334,7 @@ class _ProverbScreenState extends State<ProverbScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Bouton 'Lire' qui devrait idéalement naviguer vers le détail
                 _buildActionButton(context, 'Lire', Icons.book, _accentColor),
                 _buildActionButton(context, 'Soutenir', Icons.favorite, _actionColor),
               ],
@@ -347,7 +350,8 @@ class _ProverbScreenState extends State<ProverbScreen> {
   Widget _buildActionButton(BuildContext context, String text, IconData icon, Color color) {
     return GestureDetector(
       onTap: () {
-        // L'action réelle (navigation) est sur la carte entière, ici c'est un feedback visuel
+        // L'action réelle (navigation) est gérée par le `GestureDetector` parent.
+        // Ici, on affiche juste un feedback pour les boutons de la carte.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Action : $text'),

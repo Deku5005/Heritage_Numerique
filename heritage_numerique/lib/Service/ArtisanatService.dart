@@ -1,12 +1,13 @@
-// Fichier: lib/service/ArtisanatService.dart
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
-import '../model/ArtisanatModel.dart'; // Import du modèle mis à jour
-import 'Auth-service.dart'; // Import du service d'authentification
+import '../model/ArtisanatModel.dart';
+import 'Auth-service.dart';
 import '../model/DemandePublication.dart';
+// 💡 NOUVEL IMPORTATION REQUISE
+import '../model/ArtisanatTraductionModel.dart';
+
 
 class ArtisanatService {
   // BASE URL : Adresse du serveur local
@@ -14,7 +15,7 @@ class ArtisanatService {
 
   final AuthService _authService = AuthService();
 
-  // --- Méthode d'utilitaire pour les appels API ---
+  // --- Méthode d'utilitaire pour les appels API PRINCIPAUX ---
   Future<String?> _getAuthToken() async {
     final String? token = await _authService.getAuthToken();
     if (token == null) {
@@ -24,17 +25,64 @@ class ArtisanatService {
     return token;
   }
 
+  // 💡 NOUVELLE MÉTHODE AJOUTÉE : Pour récupérer le token pour les requêtes d'images.
+  Future<String?> getAuthTokenForImages() async {
+    try {
+      return await _authService.getAuthToken();
+    } catch (e) {
+      print("Erreur lors de la récupération du token pour le chargement d'image: $e");
+      return null;
+    }
+  }
+
   // -------------------------------------------------------------------
-  // --- 1. Récupération de la liste des Contenus Artisanat (MIS À JOUR) ---
+  // --- 6. Récupération des Traductions (NOUVELLE MÉTHODE) ---
   // -------------------------------------------------------------------
 
-  /// Récupère la liste des contenus Artisanat associés à un ID de famille spécifique.
+  Future<ArtisanatTraduction> fetchArtisanatTranslation({
+    required int artisanatId,
+    required String targetLanguageCode, // Ex: 'fr' ou 'en'
+  }) async {
+    final String? token = await _getAuthToken();
+
+    final String path = '/api/traduction/artisanat/$artisanatId/$targetLanguageCode';
+    final Uri uri = Uri.parse(_baseUrl).resolve(path);
+
+    print('DEBUG ARTISANAT SERVICE: Tentative de récupération traduction pour Contenu ID $artisanatId : $uri');
+
+    final http.Response response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Désérialisation via la fonction d'aide du modèle
+      return artisanatTraductionFromJson(response.body);
+    } else {
+      String errorMessage = "Échec du chargement des traductions (Statut: ${response.statusCode}).";
+      try {
+        final Map<String, dynamic> errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? errorMessage;
+      } catch (_) {
+        errorMessage += " Réponse brute: ${response.body}";
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
+
+  // -------------------------------------------------------------------
+  // --- 1. Récupération de la liste des Contenus Artisanat ---
+  // -------------------------------------------------------------------
+
   Future<List<Artisanat>> fetchArtisanatByFamilleId({
     required int familleId,
   }) async {
     final String? token = await _getAuthToken();
 
-    // 💡 NOUVEL ENDPOINT : /api/artisanats/famille/{familleId}
     final Uri uri = Uri.parse(_baseUrl).resolve('/api/artisanats/famille/$familleId');
 
     final http.Response response = await http.get(
@@ -46,7 +94,6 @@ class ArtisanatService {
     );
 
     if (response.statusCode == 200) {
-      // Utilisation du désérialiseur mis à jour dans ArtisanatModel.dart
       return artisanatsFromJson(response.body);
     } else {
       String errorMessage = "Échec du chargement des contenus Artisanat (Statut: ${response.statusCode}).";
@@ -62,23 +109,22 @@ class ArtisanatService {
   }
 
   // -------------------------------------------------------------------
-  // --- 2. Création d'un Nouveau Contenu Artisanat (POST vers /api/contenus/artisanat) ---
+  // --- 2. Création d'un Nouveau Contenu Artisanat ---
   // -------------------------------------------------------------------
 
-  /// Crée un nouveau contenu Artisanat en utilisant un formulaire multipart.
   Future<void> createArtisanat({
     required int idFamille,
     required int idCategorie,
     required String titre,
     required String description,
-    String? photoPath,      // Chemin local du fichier photo
-    String? videoPath,      // Chemin local du fichier vidéo
+    String? photoPath,
+    String? videoPath,
     String? lieu,
     String? region,
   }) async {
     await _sendArtisanatRequest(
       method: 'POST',
-      uriPath: '/api/contenus/artisanat', // Endpoint POST
+      uriPath: '/api/contenus/artisanat',
       idFamille: idFamille,
       idCategorie: idCategorie,
       titre: titre,
@@ -94,7 +140,6 @@ class ArtisanatService {
   // --- 3. Mise à Jour d'un Contenu Artisanat (PUT) ---
   // -------------------------------------------------------------------
 
-  /// Met à jour un contenu Artisanat existant par son ID en utilisant un formulaire multipart.
   Future<void> updateArtisanat({
     required int artisanatId,
     required int idFamille,
@@ -108,7 +153,7 @@ class ArtisanatService {
   }) async {
     await _sendArtisanatRequest(
       method: 'PUT',
-      uriPath: '/api/contenus/artisanat/$artisanatId', // Endpoint PUT
+      uriPath: '/api/contenus/artisanat/$artisanatId',
       idFamille: idFamille,
       idCategorie: idCategorie,
       titre: titre,
@@ -154,7 +199,7 @@ class ArtisanatService {
       final File file = File(photoPath);
       if (await file.exists()) {
         request.files.add(await http.MultipartFile.fromPath(
-          'photoArtisanat', // NOM DU CHAMP CÔTÉ SERVEUR (Multipart)
+          'photoArtisanat',
           photoPath,
         ));
       }
@@ -164,7 +209,7 @@ class ArtisanatService {
       final File file = File(videoPath);
       if (await file.exists()) {
         request.files.add(await http.MultipartFile.fromPath(
-          'videoArtisanat', // NOM DU CHAMP CÔTÉ SERVEUR (Multipart)
+          'videoArtisanat',
           videoPath,
         ));
       }
@@ -193,7 +238,6 @@ class ArtisanatService {
   // --- 4. Suppression d'un Contenu Artisanat ---
   // -------------------------------------------------------------------
 
-  /// Supprime un contenu Artisanat en utilisant l'ID.
   Future<void> deleteArtisanat({
     required int artisanatId,
   }) async {
@@ -221,11 +265,9 @@ class ArtisanatService {
   }
 
   // -------------------------------------------------------------------
-// --- 5. NOUVELLE MÉTHODE : Demande de Publication (POST) [CORRIGÉE] ---
-// -------------------------------------------------------------------
+  // --- 5. Demande de Publication (POST) ---
+  // -------------------------------------------------------------------
 
-  /// Envoie une demande de publication pour un contenu spécifique et retourne le statut de la demande.
-// Signature modifiée pour retourner une Map contenant l'ID du contenu et le nouveau statut.
   Future<Map<String, dynamic>> requestPublication({required int contenuId}) async {
     final String? token = await _getAuthToken();
 
@@ -249,17 +291,14 @@ class ArtisanatService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> responseBody = json.decode(response.body);
 
-        // Désérialiser la réponse
         final demande = DemandePublication.fromJson(responseBody);
 
-        // Retourner une Map contenant l'ID du contenu et le statut de la DEMANDE
         return {
           'contenuId': demande.idContenu,
-          'newStatus': demande.statut, // Ex: "EN_ATTENTE"
+          'newStatus': demande.statut,
         };
 
       } else {
-        // Gérer les erreurs
         String errorMessage = "Échec de la demande de publication (Statut: ${response.statusCode}).";
         try {
           final Map<String, dynamic> errorBody = json.decode(response.body);

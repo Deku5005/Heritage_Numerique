@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_widget.dart'; // Assurez-vous que ce widget existe
+import '../widgets/bottom_navigation_widget.dart';
 import '../model/Devinette1.dart'; // Importation du modèle Devinette
 import '../Service/DevinetteService1.dart'; // Importation du service Devinette
 import 'Music_detail_screen.dart'; // Écran de détail adapté aux Devinettes
 
 /// Écran affichant la liste des Devinettes.
-/// La classe garde le nom 'MusicScreen' mais est adaptée aux Devinettes.
 class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
 
@@ -36,7 +35,6 @@ class _MusicScreenState extends State<MusicScreen> {
     // Simulation du chargement et de la récupération de données
     await Future.delayed(const Duration(seconds: 1));
     try {
-      // NOTE: Assurez-vous que getDevinettes est asynchrone et renvoie List<Devinette1>
       final data = await _devinetteService.getDevinettes();
       setState(() {
         _devinettes = data;
@@ -57,21 +55,20 @@ class _MusicScreenState extends State<MusicScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      // Adapté pour la navigation des devinettes
       bottomNavigationBar: const BottomNavigationWidget(currentPage: 'devinette'),
       body: CustomScrollView(
         slivers: [
-          // 1. EN-TÊTE ET BARRE D'APPLICATION (Adaptée)
+          // 1. EN-TÊTE ET BARRE D'APPLICATION
           _buildHeader(context),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 24), // Espacement augmenté
-                  // 2. BARRE DE RECHERCHE (Adaptée)
+                  const SizedBox(height: 24),
+                  // 2. BARRE DE RECHERCHE
                   _buildSearchBar(),
-                  const SizedBox(height: 24), // Espacement augmenté
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -87,11 +84,15 @@ class _MusicScreenState extends State<MusicScreen> {
     );
   }
 
-  /// 1. Construction de l'en-tête (Grande carte et AppBar)
+  // -------------------------------------------------------------------
+  // --- WIDGETS DE CONSTRUCTION ---
+  // -------------------------------------------------------------------
+
+  /// 1. Construction de l'en-tête
   Widget _buildHeader(BuildContext context) {
     return SliverAppBar(
       automaticallyImplyLeading: false,
-      expandedHeight: 280, // Hauteur légèrement augmentée
+      expandedHeight: 280,
       pinned: true,
       backgroundColor: _backgroundColor,
       elevation: 0,
@@ -109,7 +110,7 @@ class _MusicScreenState extends State<MusicScreen> {
             Container(
               decoration: const BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)), // Rayon augmenté
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)),
               ),
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
@@ -125,7 +126,6 @@ class _MusicScreenState extends State<MusicScreen> {
                         child: const Center(
                           child: Text(
                             'Jeu de Devinettes',
-                            // Taille augmentée
                             style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -139,22 +139,21 @@ class _MusicScreenState extends State<MusicScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.5), // Plus d'ombre en bas
+                            Colors.black.withOpacity(0.5),
                           ],
                         ),
                       ),
                     ),
                     // Texte et Icône
                     Positioned(
-                      bottom: 45, // Position légèrement ajustée
+                      bottom: 45,
                       left: 20,
                       right: 20,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             "Devinettes et Énigmes",
-                            // Taille augmentée
                             style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 12),
@@ -164,7 +163,6 @@ class _MusicScreenState extends State<MusicScreen> {
                               Expanded(
                                 child: Text(
                                   'Testez votre esprit avec la sagesse ancestrale.',
-                                  // Taille augmentée
                                   style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 18, fontWeight: FontWeight.w500),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -208,21 +206,21 @@ class _MusicScreenState extends State<MusicScreen> {
   /// 2. Construction de la barre de recherche.
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15), // Padding ajusté
+      padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
         color: _accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20), // Rayon augmenté
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withOpacity(0.5), width: 1.0),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))], // Ombre améliorée
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: TextField(
-        style: const TextStyle(fontSize: 16), // Taille de la police augmentée
+        style: const TextStyle(fontSize: 16),
         decoration: InputDecoration(
-          icon: const Icon(Icons.search, color: _accentColor, size: 24), // Taille de l'icône augmentée
+          icon: const Icon(Icons.search, color: _accentColor, size: 24),
           hintText: 'Rechercher des devinettes ou énigmes',
-          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.7), fontSize: 16), // Taille de la police augmentée
+          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.7), fontSize: 16),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0), // Padding augmenté
+          contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
         ),
       ),
     );
@@ -245,7 +243,7 @@ class _MusicScreenState extends State<MusicScreen> {
             child: Text(
               'Erreur de chargement: $_errorMessage',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red, fontSize: 18), // Taille de la police augmentée
+              style: const TextStyle(color: Colors.red, fontSize: 18),
             ),
           ),
         ),
@@ -255,16 +253,16 @@ class _MusicScreenState extends State<MusicScreen> {
     if (_devinettes.isEmpty) {
       return const SliverToBoxAdapter(child: Center(child: Padding(
         padding: EdgeInsets.all(40.0),
-        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 18, color: _cardTextColor)), // Taille de la police augmentée
+        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 18, color: _cardTextColor)),
       )));
     }
 
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 16, // Espacement augmenté
-        mainAxisSpacing: 16, // Espacement augmenté
-        childAspectRatio: 0.82, // Ratio légèrement ajusté
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.82,
       ),
       delegate: SliverChildBuilderDelegate(
             (context, index) {
@@ -272,7 +270,7 @@ class _MusicScreenState extends State<MusicScreen> {
 
           return GestureDetector(
             onTap: () {
-              // --- LOGIQUE DE NAVIGATION INCHANGÉE ---
+              // --- LOGIQUE DE NAVIGATION CORRIGÉE ---
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -283,6 +281,8 @@ class _MusicScreenState extends State<MusicScreen> {
                     conteur: '${devinette.prenomAuteur ?? ''} ${devinette.nomAuteur ?? 'Auteur inconnu'}'.trim(),
                     imageUrl: 'assets/icons/riddle.png',
                     details: {
+                      // 💡 CORRECTION : Utilisation de 'id' qui est le nom du champ dans Devinette1
+                      'idDevinette': devinette.id,
                       'nom': devinette.titre ?? 'Énigme',
                       'langue':  'Inconnue',
                       'lieu': devinette.lieu ?? 'Inconnu',
@@ -304,7 +304,7 @@ class _MusicScreenState extends State<MusicScreen> {
     );
   }
 
-  /// 4. Construction d'une seule carte de Devinette (VERSION MODERNE avec plus grosses écritures).
+  /// 4. Construction d'une seule carte de Devinette.
   Widget _buildDevinetteCard(
       String title,
       String riddleText,
@@ -334,14 +334,14 @@ class _MusicScreenState extends State<MusicScreen> {
           // Icône et Titre sur la même ligne
           Row(
             children: [
-              const Icon(Icons.psychology_outlined, color: primaryAccent, size: 28), // Taille icône augmentée
+              const Icon(Icons.psychology_outlined, color: primaryAccent, size: 28),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
                     color: _cardTextColor,
-                    fontSize: 17, // Taille augmentée
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
                   maxLines: 1,
@@ -362,7 +362,7 @@ class _MusicScreenState extends State<MusicScreen> {
               riddleText,
               style: TextStyle(
                 color: _cardTextColor.withOpacity(0.9),
-                fontSize: 14, // Taille augmentée
+                fontSize: 14,
                 fontStyle: FontStyle.normal,
                 height: 1.4,
               ),
@@ -374,7 +374,7 @@ class _MusicScreenState extends State<MusicScreen> {
 
           // Lieu (utilisant un Chip pour le style)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // Padding ajusté
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: primaryAccent.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
@@ -382,13 +382,13 @@ class _MusicScreenState extends State<MusicScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.map_outlined, size: 16, color: primaryAccent), // Taille icône augmentée
+                const Icon(Icons.map_outlined, size: 16, color: primaryAccent),
                 const SizedBox(width: 6),
                 Text(
                   location,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: primaryAccent,
-                    fontSize: 12, // Taille augmentée
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -396,7 +396,7 @@ class _MusicScreenState extends State<MusicScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 10), // Espacement ajusté
+          const SizedBox(height: 10),
 
           // Bouton Révéler / Jouer (Visuel)
           SizedBox(
@@ -407,15 +407,15 @@ class _MusicScreenState extends State<MusicScreen> {
                 backgroundColor: primaryAccent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12), // Rayon augmenté
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 4,
-                padding: const EdgeInsets.symmetric(vertical: 10), // Padding augmenté
+                padding: const EdgeInsets.symmetric(vertical: 10),
               ),
               child: const Text(
                 'Voir l\'Énigme',
                 style: TextStyle(
-                  fontSize: 14, // Taille augmentée
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),

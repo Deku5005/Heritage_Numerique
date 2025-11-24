@@ -1,7 +1,10 @@
-// Fichier: lib/model/ArtisanatModel.dart
+// Fichier: lib/model/ArtisanatModel.dart (CORRIGÉ pour la normalisation d'URL)
 
 import 'dart:io';
 import 'dart:convert';
+
+// ⚠️ Définition de la BASE URL pour la désérialisation si l'API renvoie des chemins relatifs
+const String _baseUrl = "http://10.0.2.2:8080";
 
 // --- Désérialisation de la liste (utilitaire) ---
 List<Artisanat> artisanatsFromJson(String str) =>
@@ -47,6 +50,19 @@ class Artisanat {
 
   // Méthode de désérialisation (Factory fromJson)
   factory Artisanat.fromJson(Map<String, dynamic> json) {
+
+    // Fonction utilitaire locale pour nettoyer et normaliser l'URL
+    String _normalizeUrl(String url) {
+      if (url.startsWith('http')) {
+        // Nettoie l'erreur de double barre oblique si elle existe dans l'URL complète
+        return url.replaceAll('//uploads', '/uploads');
+      } else {
+        // Résout le chemin relatif pour obtenir l'URL complète
+        final Uri fullUri = Uri.parse(_baseUrl).resolve(url);
+        return fullUri.toString();
+      }
+    }
+
     return Artisanat(
       id: json['id'] as int,
       titre: json['titre'] as String,
@@ -58,21 +74,20 @@ class Artisanat {
       lienParenteAuteur: json['lienParenteAuteur'] as String?,
       dateCreation: DateTime.parse(json['dateCreation'] as String),
       statut: json['statut'] as String,
-      // Gère l'URL de la vidéo (peut être null ou une chaîne vide)
       urlVideo: json['urlVideo'] as String?,
       lieu: json['lieu'] as String?,
       region: json['region'] as String?,
       idFamille: json['idFamille'] as int,
       nomFamille: json['nomFamille'] as String,
-      // 💡 Gère la liste d'URL, garantissant qu'elle est une liste de chaînes
+      // Gère la liste d'URL et normalise chaque élément
       urlPhotos: (json['urlPhotos'] as List<dynamic>?)
-          ?.map((e) => e.toString())
+          ?.map((e) => _normalizeUrl(e.toString()))
           .toList() ?? [],
     );
   }
 }
 
-// 💡 Modèle de charge utile pour la CRÉATION (inchangé, basé sur les exigences POST)
+// 💡 Modèle de charge utile pour la CRÉATION (inchangé)
 class ArtisanatCreationPayload {
   final int idFamille;
   final int idCategorie;

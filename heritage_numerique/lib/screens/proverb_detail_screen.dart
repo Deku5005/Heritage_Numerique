@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:typed_data';
+
+// --- Imports des Services et Modèles API ---
+import '../Service/proverbeservice1.dart'; // Vérifier le chemin (Service vs services)
+import '../service/LectureVocaleService.dart';
+import '../model/ProverbeTraduction.dart';
 
 // Constantes de Couleurs
 const Color _accentColor = Color(0xFFD69301); // Ocre Vif
@@ -6,13 +13,19 @@ const Color _cardTextColor = Color(0xFF2E2E2E); // Gris foncé
 const Color _backgroundColor = Colors.white;
 
 class ProverbDetailScreen extends StatefulWidget {
+  // Les données source sont cruciales
+
+  // CORRECTION CLÉ : Le champ est bien nommé 'proverbeId' (avec 'e')
+  final int proverbeId;
   final String proverbText;
   final String source;
   final String conteur;
-  final String langue;
+  final String langue; // Langue source (ex: Français)
 
   const ProverbDetailScreen({
     super.key,
+    // CORRECTION CLÉ : Le paramètre du constructeur est bien 'proverbeId' (avec 'e')
+    required this.proverbeId,
     required this.proverbText,
     required this.source,
     required this.conteur,
@@ -24,133 +37,328 @@ class ProverbDetailScreen extends StatefulWidget {
 }
 
 class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
-  // Langues disponibles
-  final List<String> availableLanguages = const ['Français', 'Anglais', 'Bambara'];
-  String? _selectedLanguage;
+  // --- Propriétés de la Traduction ---
+  final ProverbeService1 _proverbeService = ProverbeService1();
+  ProverbeTraduction? _currentTranslation;
 
-  // Données simulées pour la traduction (En situation réelle, vous feriez un appel API)
-  late final Map<String, Map<String, String>> _proverbTranslations;
+  // Codes de langue : 'fr', 'en', 'bm'
+  String _selectedLanguageCode = 'fr';
+  List<String> _availableLanguages = ['fr', 'bm', 'en']; // Langues par défaut
+
+  bool _isLoadingTranslation = false;
+  String? _translationError;
+
+  // --- Propriétés de la Lecture Vocale ---
+  final LectureVocaleService _lectureVocaleService = LectureVocaleService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isAudioLoading = false;
+  bool _isPlaying = false;
+  String? _audioError;
+
 
   @override
   void initState() {
     super.initState();
-    // Utiliser la langue du proverbe comme sélection initiale, si elle est dans la liste
-    _selectedLanguage = availableLanguages.contains(widget.langue) ? widget.langue : 'Français';
+    // 1. Initialiser la traduction avec le contenu source
+    _currentTranslation = _createSourceTranslation();
+    // 2. Lancer la récupération des langues disponibles
+    _fetchAvailableLanguages();
 
-    // Initialisation des traductions simulées basées sur le proverbe original
-    _proverbTranslations = {
-      'Français': {
-        'text': widget.proverbText,
-        'conteur': widget.conteur,
-        'nom_langue': 'Français',
-      },
-      'Anglais': {
-        'text': 'The proverb: ${widget.proverbText} has been translated. (Translation in English)',
-        'conteur': widget.conteur,
-        'nom_langue': 'English',
-      },
-      'Bambara': {
-        'text': 'Sègè kòrò ni jòn ba. Traduction simulée en Bambara du proverbe original. (Translation in Bambara)',
-        'conteur': widget.conteur,
-        'nom_langue': 'Bambara',
-      },
-    };
+    // Écouter les changements d'état du lecteur audio
+    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state == PlayerState.playing;
+        });
+      }
+    });
   }
-
-  // Fonction pour obtenir le texte du proverbe dans la langue sélectionnée
-  String _getTranslatedProverb() {
-    return _proverbTranslations[_selectedLanguage]?['text'] ?? widget.proverbText;
-  }
-
-  // Fonction pour obtenir le nom de la langue à afficher
-  String _getDisplayName() {
-    return _proverbTranslations[_selectedLanguage]?['nom_langue'] ?? widget.langue;
-  }
-
-  // Fonction pour obtenir le drapeau (simulé)
-  Widget _getFlag() {
-    String flag = '🇫🇷';
-    if (_selectedLanguage == 'Anglais') {
-      flag = '🇬🇧';
-    } else if (_selectedLanguage == 'Bambara') {
-      flag = '🇲🇱';
-    }
-    return Text(flag, style: const TextStyle(fontSize: 24));
-  }
-
 
   @override
-  Widget build(BuildContext context) {
-    final currentProverbText = _getTranslatedProverb();
-    final currentLanguageDisplay = _getDisplayName();
+  void dispose() {
+    // S'assurer que les services sont correctement disposés
+    _lectureVocaleService.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
 
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- 1. EN-TÊTE et Titre (Inclut le sélecteur de langue) ---
-            _buildHeader(context),
+  // -------------------------------------------------------------------
+  // --- LOGIQUE DE TRADUCTION ---
+  // -------------------------------------------------------------------
 
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- 2. Bloc du Proverbe ---
-                  _buildProverbBlock(currentProverbText),
-                  const SizedBox(height: 30),
-
-                  // --- 3. Bloc d'Informations ---
-                  _buildInformationCard(widget.conteur, currentLanguageDisplay),
-
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  // Crée l'objet de traduction pour le contenu source (Français)
+  ProverbeTraduction _createSourceTranslation() {
+    return ProverbeTraduction(
+      idContenu: widget.proverbeId,
+      titreOriginal: widget.proverbText,
+      descriptionOriginale: widget.proverbText,
+      lieuOriginal: widget.source,
+      regionOriginale: widget.source,
+      traductionsTitre: {'fr': widget.proverbText},
+      traductionsContenu: {'fr': widget.proverbText},
+      traductionsDescription: {'fr': widget.proverbText},
+      traductionsLieu: {'fr': widget.source},
+      traductionsRegion: {'fr': widget.source},
+      traductionsCompletes: {'fr': widget.proverbText},
+      languesDisponibles: const [],
+      langueSource: 'fra_Latn',
+      statutTraduction: 'SOURCE',
     );
   }
 
-  // --- Widgets de Construction ---
+  Future<void> _fetchAvailableLanguages() async {
+    if (widget.proverbeId <= 0) return;
+
+    try {
+      // Appel à 'bm' pour potentiellement récupérer la liste complète des langues
+      final translation = await _proverbeService.fetchProverbeTranslationPublic(
+        proverbeId: widget.proverbeId,
+        targetLanguageCode: 'bm',
+      );
+
+      if (mounted) {
+        // Convertir les codes longs de l'API (bam_Latn, eng_Latn) en codes courts (bm, en)
+        final List<String> apiLangs = translation.languesDisponibles
+            .map((code) => code == 'bam_Latn' ? 'bm' : code == 'eng_Latn' ? 'en' : code)
+            .toList();
+
+        setState(() {
+          // Maintien des langues connues + ajout des langues de l'API
+          _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Erreur lors de la récupération initiale des langues: $e");
+    }
+  }
+
+  Future<void> _fetchTranslation(String langCode) async {
+    if (_isLoadingTranslation || langCode == _selectedLanguageCode) return;
+
+    // Arrêter l'audio si on change de langue
+    _audioPlayer.stop();
+
+    if (langCode == 'fr') {
+      setState(() {
+        _currentTranslation = _createSourceTranslation();
+        _selectedLanguageCode = 'fr';
+        _translationError = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingTranslation = true;
+      _translationError = null;
+      _selectedLanguageCode = langCode;
+    });
+
+    if (widget.proverbeId <= 0) {
+      if (mounted) {
+        setState(() {
+          _translationError = "Impossible de traduire : ID de proverbe invalide.";
+          _isLoadingTranslation = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final translation = await _proverbeService.fetchProverbeTranslationPublic(
+        proverbeId: widget.proverbeId,
+        targetLanguageCode: langCode,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentTranslation = translation;
+          final List<String> apiLangs = translation.languesDisponibles
+              .map((code) => code == 'bam_Latn' ? 'bm' : code == 'eng_Latn' ? 'en' : code)
+              .toList();
+
+          _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          // Simplifier le message d'erreur pour l'utilisateur
+          _translationError = 'Erreur de traduction: ${e.toString().replaceFirst('Exception: ', '')}';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingTranslation = false;
+        });
+      }
+    }
+  }
+
+  // --- Fonctions d'accès au contenu traduit ---
+
+  String _getTranslatedText(String? originalText, Map<String, String> translationsMap, String langCode) {
+    if (langCode == 'fr') return originalText ?? '';
+
+    String? translated = translationsMap[langCode];
+    if (translated != null && translated.isNotEmpty) return translated;
+
+    // Vérification des codes longs d'API (fallback)
+    if (langCode == 'bm') {
+      translated = translationsMap['bam_Latn'];
+      if (translated != null && translated.isNotEmpty) return translated;
+    }
+    if (langCode == 'en') {
+      translated = translationsMap['eng_Latn'];
+      if (translated != null && translated.isNotEmpty) return translated;
+    }
+
+    // Retourne le texte original si la traduction est introuvable
+    return originalText ?? 'Traduction non disponible.';
+  }
+
+  String _getProverbText() {
+    // On utilise `traductionsDescription` car c'est généralement là que le texte principal se trouve
+    return _getTranslatedText(
+        widget.proverbText,
+        _currentTranslation?.traductionsDescription ?? {},
+        _selectedLanguageCode
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // --- LOGIQUE DE LECTURE VOCALE ---
+  // -------------------------------------------------------------------
+
+  Future<void> _playTranslatedContent() async {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+      return;
+    }
+
+    if (_isAudioLoading) return;
+
+    if (widget.proverbeId <= 0) {
+      setState(() => _audioError = "ID proverbe invalide pour la lecture.");
+      return;
+    }
+
+    setState(() {
+      _isAudioLoading = true;
+      _audioError = null;
+    });
+
+    try {
+      final Uint8List audioData = await _lectureVocaleService.telechargerLectureVocale(
+          widget.proverbeId,
+          _selectedLanguageCode,
+          usePublicApi: true
+      );
+
+      await _audioPlayer.play(BytesSource(audioData));
+
+      setState(() {
+        _isAudioLoading = false;
+      });
+
+    } catch (e) {
+      debugPrint("Erreur de lecture vocale: $e");
+      if (mounted) {
+        setState(() {
+          _isAudioLoading = false;
+          _audioError = 'Échec de la lecture vocale. (Veuillez vérifier la connexion ou l\'existence du fichier)';
+        });
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // --- WIDGETS DE CONSTRUCTION ---
+  // -------------------------------------------------------------------
+
+  // Retourne le nom de la langue à partir du code
+  String _getLanguageDisplayName(String code) {
+    switch (code) {
+      case 'fr': return 'Français';
+      case 'en': return 'Anglais';
+      case 'bm': return 'Bambara';
+      default: return code.toUpperCase();
+    }
+  }
+
+  // Retourne l'icône ou le drapeau (simplifié)
+  Widget _getIconForLanguage(String code) {
+    String icon;
+    if (code == 'en') {
+      icon = '🇬🇧';
+    } else if (code == 'bm') {
+      icon = '🇲🇱';
+    } else {
+      icon = '🇫🇷';
+    }
+    return Text(icon, style: const TextStyle(fontSize: 20));
+  }
 
   /// Construit l'en-tête (AppBar transparente, titre et sélecteur de langue).
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top, bottom: 20),
       color: _backgroundColor,
-      child: Stack(
-        alignment: Alignment.topCenter, // Centre les enfants par défaut
+      child: Column(
         children: [
-          // Flèche de retour à gauche (positionné)
-          Positioned(
-            left: 0,
-            child: IconButton(
-              icon: Icon(Icons.arrow_back, color: _accentColor), // Couleur Ocre pour la flèche
-              onPressed: () => Navigator.pop(context),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Flèche de retour à gauche
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: _accentColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+
+                // Titre "Proverbe"
+                const Text(
+                  'Proverbe',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+
+                // Espacement pour alignement
+                const SizedBox(width: 48),
+              ],
             ),
           ),
+          const SizedBox(height: 10),
 
-          // Titre et Sélecteur de Langue (Centré verticalement)
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          // 💡 Sélecteur de langue et Bouton de Lecture
+          _buildLanguageAndPlayBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageAndPlayBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildPlayButton(),
+
+          Row(
             children: [
-              const SizedBox(height: 15.0), // Espace sous l'StatusBar
-
-              // Titre "Proverbe"
-              const Text(
-                'Proverbe',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+              if (_isLoadingTranslation)
+                const Padding(
+                  padding: EdgeInsets.only(right: 10.0),
+                  child: SizedBox(
+                      width: 15, height: 15,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _accentColor)
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10), // Espace entre le titre et le sélecteur
-
               // Sélecteur de langue
               _buildLanguageDropdown(),
             ],
@@ -171,26 +379,110 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedLanguage,
+          value: _selectedLanguageCode,
           icon: const Icon(Icons.keyboard_arrow_down, color: _accentColor),
           style: const TextStyle(fontSize: 14, color: _cardTextColor),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedLanguage = newValue;
-            });
+          onChanged: (String? newCode) {
+            if (newCode != null) {
+              _fetchTranslation(newCode);
+            }
           },
-          items: availableLanguages.map<DropdownMenuItem<String>>((String value) {
+          items: _availableLanguages.map<DropdownMenuItem<String>>((String code) {
             return DropdownMenuItem<String>(
-              value: value,
+              value: code,
               child: Row(
                 children: [
-                  _getFlag(),
+                  _getIconForLanguage(code),
                   const SizedBox(width: 8),
-                  Text(value),
+                  Text(_getLanguageDisplayName(code)),
                 ],
               ),
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlayButton() {
+    IconData icon;
+    String label;
+    Color color;
+
+    if (_isAudioLoading) {
+      icon = Icons.hourglass_empty;
+      label = "Chargement...";
+      color = Colors.grey;
+    } else if (_isPlaying) {
+      icon = Icons.pause;
+      label = "Pause";
+      color = Colors.red.shade700;
+    } else {
+      icon = Icons.play_arrow;
+      label = "Écouter";
+      color = _accentColor;
+    }
+
+    return ElevatedButton.icon(
+      onPressed: (_isAudioLoading || _isLoadingTranslation) ? null : _playTranslatedContent,
+      icon: Icon(icon, color: Colors.white),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 3,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 💡 Récupération du proverbe traduit
+    final currentProverbText = _getProverbText();
+    final currentLanguageDisplay = _getLanguageDisplayName(_selectedLanguageCode);
+
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // --- 1. EN-TÊTE et Titre (Inclut le sélecteur de langue) ---
+            _buildHeader(context),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Affichage des erreurs ---
+                  if (_translationError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(_translationError!, style: const TextStyle(color: Colors.red)),
+                    ),
+                  if (_audioError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 14)),
+                    ),
+
+                  // --- 2. Bloc du Proverbe ---
+                  _buildProverbBlock(currentProverbText),
+                  const SizedBox(height: 30),
+
+                  // --- 3. Bloc d'Informations ---
+                  _buildInformationCard(widget.conteur, currentLanguageDisplay),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -201,7 +493,7 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0EAE0), // Beige clair comme sur l'image
+        color: const Color(0xFFF0EAE0),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
@@ -249,7 +541,7 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
           const Divider(color: Colors.grey, height: 20),
 
           _buildDetailRow('Conteur', conteur),
-          _buildDetailRow('Langue', langue),
+          _buildDetailRow('Langue Actuelle', langue), // Étiquette mise à jour
         ],
       ),
     );
@@ -263,8 +555,8 @@ class _ProverbDetailScreenState extends State<ProverbDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _accentColor),
+            '$label :',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _accentColor),
           ),
           Text(
             value,

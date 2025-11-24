@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../model/PrvebeModel.dart'; // Import du modèle Proverbe
 import 'Auth-service.dart'; // Import du service d'authentification
 import '../model/DemandePublication.dart'; // 💡 AJOUT DE L'IMPORT DU MODÈLE DE DEMANDE
+import '../model/TraductionProverbe.dart';
 
 class ProverbeService {
   // BASE URL : Adresse du serveur local
@@ -129,7 +130,47 @@ class ProverbeService {
   }
 
   // -------------------------------------------------------------------
-  // --- 3. NOUVELLE MÉTHODE : Demande de Publication (POST) ---
+  // --- 3. Récupération de la Traduction du Proverbe (GET) ---
+  // -------------------------------------------------------------------
+
+  /// Récupère la traduction d'un proverbe pour une langue donnée.
+  Future<TraductionProverbe> fetchProverbeTraduction({
+    required int proverbeId,
+    required String langueCode,
+  }) async {
+    final String? token = await _getAuthToken();
+
+    // Endpoint: /api/traduction/proverbe/{proverbeId}/{langueCode}
+    final Uri uri = Uri.parse(_baseUrl).resolve('/api/traduction/proverbe/$proverbeId/$langueCode');
+
+    print('DEBUG PROVERBE SERVICE: Récupération traduction proverbe: $uri');
+
+    final http.Response response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Utilisation du désérialiseur créé dans TraductionProverbe.dart
+      return traductionProverbeFromJson(response.body);
+    } else {
+      String errorMessage = "Échec du chargement de la traduction du proverbe (Statut: ${response.statusCode}).";
+      try {
+        final Map<String, dynamic> errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? errorMessage;
+      } catch (_) {
+        print("Réponse du serveur brute en cas d'échec (fetchProverbeTraduction): ${response.body}");
+        errorMessage += " Réponse brute: ${response.body}";
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // --- 4. NOUVELLE MÉTHODE : Demande de Publication (POST) ---
   // -------------------------------------------------------------------
 
   /// Envoie une demande de publication pour un contenu spécifique.

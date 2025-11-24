@@ -6,6 +6,7 @@ import 'package:heritage_numerique/model/DemandePublication.dart';
 import 'package:http/http.dart' as http;
 import '../model/DevinetteModel.dart'; // Import du modèle créé
 import 'Auth-service.dart'; // 💡 AJOUT : Import du service d'authentification
+import '../model/TraductionDevinette.dart';
 
 // Base URL de votre API (inspirée de l'exemple Proverbe)
 const String _baseUrl = 'http://10.0.2.2:8080';
@@ -131,7 +132,47 @@ class DevinetteApiService {
   }
 
   // -------------------------------------------------------------------
-  // --- 3. NOUVELLE MÉTHODE : Demande de Publication (POST) ---
+  // --- 3. NOUVELLE MÉTHODE : Récupération de la Traduction (GET) ---
+  // -------------------------------------------------------------------
+
+  /// Récupère la traduction d'une devinette pour une langue donnée.
+  Future<TraductionDevinette> fetchDevinetteTraduction({
+    required int devinetteId,
+    required String langueCode,
+  }) async {
+    final String? token = await _getAuthToken();
+
+    // Endpoint: /api/traduction/devinette/{devinetteId}/{langueCode}
+    final Uri uri = Uri.parse(_baseUrl).resolve('/api/traduction/devinette/$devinetteId/$langueCode');
+
+    print('DEBUG DEVINETTE SERVICE: Récupération traduction devinette: $uri');
+
+    final http.Response response = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // 💡 Utilisation du désérialiseur créé dans TraductionDevinette.dart
+      return traductionDevinetteFromJson(response.body);
+    } else {
+      String errorMessage = "Échec du chargement de la traduction de la devinette (Statut: ${response.statusCode}).";
+      try {
+        final Map<String, dynamic> errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? errorMessage;
+      } catch (_) {
+        print("Réponse du serveur brute en cas d'échec (fetchDevinetteTraduction): ${response.body}");
+        errorMessage += " Réponse brute: ${response.body}";
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
+  // -------------------------------------------------------------------
+  // --- 4. NOUVELLE MÉTHODE : Demande de Publication (POST) ---
   // -------------------------------------------------------------------
 
   /// Envoie une demande de publication pour un contenu spécifique.

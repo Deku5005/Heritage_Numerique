@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart'; // <-- AJOUTER L'IMPORT JUST_AUDIO
+
 // ⚠️ VÉRIFIEZ ET AJUSTEZ CES CHEMINS SI NÉCESSAIRE
 import 'package:heritage_numerique/model/Recits_model.dart';
 import 'package:heritage_numerique/model/Traduction-conte-model.dart';
 import 'package:heritage_numerique/service/RecitService.dart';
-
+import 'package:heritage_numerique/service/LectureVocaleService.dart'; // <-- AJOUTER L'IMPORT DU SERVICE AUDIO
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -32,34 +34,58 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   late Future<TraductionConte> _traductionFuture;
   final RecitService _recitService = RecitService();
 
+  // 🎙️ SERVICES ET VARIABLES D'ÉTAT POUR L'AUDIO
+  final LectureVocaleService _lectureVocaleService = LectureVocaleService(); // <-- NOUVEAU SERVICE
+  late AudioPlayer _audioPlayer; // <-- NOUVEAU LECTEUR
+  bool _isPlaying = false;
+  bool _isLoadingAudio = false;
 
   @override
   void initState() {
     super.initState();
     // 1. Initialise le chargement avec le code UI par défaut ('fr')
     _traductionFuture = _fetchTranslation(_selectedLanguageCodeUI);
+
+    // 2. Initialise le lecteur audio
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.playing != _isPlaying) {
+        setState(() {
+          _isPlaying = state.playing;
+        });
+      }
+      // Réinitialiser l'état de chargement lorsque la lecture est terminée
+      if (state.processingState == ProcessingState.completed) {
+        setState(() {
+          _isLoadingAudio = false;
+        });
+      }
+    });
+  }
+
+  // 🗑️ DISPOSE : FERMER LES RESSOURCES
+  @override
+  void dispose() {
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
+    _lectureVocaleService.dispose();
+    super.dispose();
   }
 
   /// 🎯 Mappe le code court de l'interface utilisateur (UI) vers le code long
-  /// utilisé comme clé dans la réponse JSON de l'API (ex: 'bam_Latn').
   String _mapUiCodeToApiJsonKey(String uiCode) {
     switch (uiCode) {
-    // Pour l'affichage, on cherche la clé correspondante dans le JSON
       case 'fr': return 'fra_Latn';
-      case 'bm': return 'bam_Latn'; // Clé confirmée par votre réponse API
+      case 'bm': return 'bam_Latn';
       case 'en': return 'eng_Latn';
-      default: return uiCode; // Fallback
+      default: return uiCode;
     }
   }
 
   // Méthode pour appeler le service avec une langue donnée
   Future<TraductionConte> _fetchTranslation(String uiLanguageCode) {
-    // 🎯 On utilise le code UI court (ex: 'bm') pour l'URL de l'endpoint
-    // car votre endpoint le demande (/api/traduction/conte/{conteId}/bm)
-
     return _recitService.fetchConteTraduction(
       conteId: widget.recit.id,
-      // Le service attend le code court pour l'URL
       langueCode: uiLanguageCode,
     );
   }
@@ -67,19 +93,76 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   // Méthode pour changer de langue et recharger le contenu
   void _changeLanguageAndReload(String newLanguageCodeUI) {
     if (newLanguageCodeUI != _selectedLanguageCodeUI) {
+      // ⚠️ Arrête la lecture audio si la langue change
+      _audioPlayer.stop();
       setState(() {
         _selectedLanguageCodeUI = newLanguageCodeUI;
-        // Assigne un nouveau Future, provoquant le rechargement
         _traductionFuture = _fetchTranslation(newLanguageCodeUI);
       });
     }
   }
+
+  // 🎙️ NOUVELLE LOGIQUE : GÉRER LA LECTURE AUDIO
+  Future<void> _toggleAudioPlayback() async {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+      return;
+    }
+
+    // Si la lecture est déjà chargée et n'est pas en cours (mise en pause), la reprendre
+    if (_audioPlayer.processingState != ProcessingState.idle) {
+      await _audioPlayer.play();
+      return;
+    }
+
+    // 1. Démarrer l'état de chargement
+    setState(() {
+      _isLoadingAudio = true;
+    });
+
+    try {
+      // 2. Télécharger les octets audio pour la langue actuellement sélectionnée
+      final List<int> audioBytes = await _lectureVocaleService.telechargerLectureVocale(
+        widget.recit.id,
+        _selectedLanguageCodeUI, // Utilise le code court UI (fr, bm, en) pour l'URL
+      );
+
+      // 3. Charger les octets dans le lecteur Just Audio
+      final audioSource = AudioSource.uri(
+        Uri.dataFromBytes(
+          audioBytes,
+          mimeType: 'audio/mpeg', // Assurez-vous que le mimeType correspond au format de votre serveur
+        ),
+      );
+
+      await _audioPlayer.setAudioSource(audioSource);
+
+      // 4. Lancer la lecture
+      await _audioPlayer.play();
+
+    } catch (e) {
+      print('Erreur lecture vocale: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Échec du chargement de l'audio: ${e.toString()}"),
+          backgroundColor: _serviceErrorColor,
+        ),
+      );
+    } finally {
+      // 5. Arrêter l'état de chargement
+      setState(() {
+        _isLoadingAudio = false;
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
+        // ... (Le reste de votre AppBar)
         toolbarHeight: 135.0,
         backgroundColor: _backgroundColor,
         elevation: 0,
@@ -94,6 +177,9 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
           // 1. MENU DÉROULANT LANGUE
           _buildLanguageDropdown(),
           const SizedBox(width: 10),
+
+          // 🎙️ NOUVEAU BOUTON PLAY/PAUSE
+          _buildAudioPlaybackButton(), // <-- NOUVEAU WIDGET
 
           // Bouton Quiz
           if (widget.recit.quiz != null)
@@ -119,6 +205,7 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
       ),
       // Le FutureBuilder englobe le contenu pour gérer l'état de chargement
       body: FutureBuilder<TraductionConte>(
+        // ... (Le reste du FutureBuilder reste inchangé)
         future: _traductionFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -164,18 +251,39 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     );
   }
 
-  // --- WIDGETS DE CONSTRUCTION ---
+  // 🎙️ NOUVEAU WIDGET : Bouton Lecture
+  Widget _buildAudioPlaybackButton() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: IconButton(
+        icon: _isLoadingAudio
+            ? const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            color: _mainAccentColor,
+            strokeWidth: 2,
+          ),
+        )
+            : Icon(
+          _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+          color: _mainAccentColor,
+          size: 32,
+        ),
+        onPressed: _isLoadingAudio ? null : _toggleAudioPlayback,
+      ),
+    );
+  }
+
+  // --- WIDGETS DE CONSTRUCTION (Restants inchangés) ---
 
   Widget _buildAppBarTitle() {
+    // ... (Logique inchangée)
     return FutureBuilder<TraductionConte>(
       future: _traductionFuture,
       builder: (context, snapshot) {
-        // 🎯 On utilise le code long (clé JSON) pour lire la traduction
         final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
-
-        // Fallback au titre original du Recit si la traduction n'est pas chargée
         final String title = snapshot.hasData
-        // ✅ Utilise la clé JSON mappée (ex: "bam_Latn")
             ? snapshot.data!.traductionsTitre.traductions[jsonKey] ?? widget.recit.titre
             : widget.recit.titre;
 
@@ -194,9 +302,9 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildLanguageDropdown() {
+    // ... (Logique inchangée)
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
-        // Utilise le code court UI pour l'affichage du Dropdown
         value: _selectedLanguageCodeUI,
         icon: const Icon(Icons.keyboard_arrow_down, color: _mainAccentColor),
         items: _availableLangs
@@ -209,7 +317,6 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
         }).toList(),
         onChanged: (String? newValue) {
           if (newValue != null) {
-            // Le rechargement est déclenché ici
             _changeLanguageAndReload(newValue);
           }
         },
@@ -217,8 +324,8 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
     );
   }
 
-  // Mappage du code court UI pour l'affichage du nom de la langue
   String _mapLanguageCodeToName(String code) {
+    // ... (Logique inchangée)
     switch(code) {
       case 'fr': return 'Français';
       case 'bm': return 'Bambara';
@@ -228,9 +335,8 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildRecitImage() {
+    // ... (Logique inchangée)
     String imagePath = widget.recit.urlPhoto;
-
-    // Si le chemin d'image reçu est vide, on affiche le placeholder
     if (imagePath.isEmpty) {
       return Container(
         height: 220,
@@ -245,15 +351,11 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
       );
     }
 
-    // DÉTERMINER L'URL COMPLÈTE
     String finalUrl = imagePath;
-
-    // Si le chemin n'est pas déjà une URL absolue, on le préfixe.
     if (!imagePath.startsWith('http')) {
       finalUrl = Uri.parse(_imageHostUrl).resolve(imagePath).toString();
     }
 
-    // Afficher l'image en utilisant l'URL COMPLÈTE
     return Container(
       height: 220,
       width: double.infinity,
@@ -278,7 +380,6 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
             );
           },
           errorBuilder: (context, error, stackTrace) {
-            // Affichage de l'erreur pour le diagnostic
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -286,7 +387,6 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
                   const Icon(Icons.broken_image, size: 50, color: _serviceErrorColor),
                   const SizedBox(height: 8),
                   const Text('Image introuvable', style: TextStyle(color: _serviceErrorColor, fontSize: 12)),
-                  // 🚨 Diagnostic : Affiche l'URL exacte TENTÉE
                   Text('URL TENTÉE: $finalUrl',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey, fontSize: 10)),
@@ -300,12 +400,10 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildRecitContentSection(TraductionConte data) {
-    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    // ... (Logique inchangée)
     final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
-
-    // Utilise la traduction du contenu avec la clé JSON (ex: "bam_Latn")
     final String content = data.traductionsContenu.traductions[jsonKey] ??
-        data.descriptionOriginale; // Fallback
+        data.descriptionOriginale;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -327,12 +425,9 @@ class _RecitDetailScreenState extends State<RecitDetailScreen> {
   }
 
   Widget _buildAdditionalInfoSection(TraductionConte data) {
-    // 🎯 On utilise le code long (clé JSON) pour lire la traduction
+    // ... (Logique inchangée)
     final String jsonKey = _mapUiCodeToApiJsonKey(_selectedLanguageCodeUI);
-
-    // ✅ Utilise la traduction pour le Lieu
     final String lieu = data.traductionsLieu.traductions[jsonKey] ?? data.lieuOriginal;
-    // ✅ Utilise la traduction pour la Région
     final String region = data.traductionsRegion.traductions[jsonKey] ?? data.regionOriginale;
 
     return Column(

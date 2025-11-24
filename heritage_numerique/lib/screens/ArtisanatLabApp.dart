@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'dart:async';
+// 💡 Import de la bibliothèque nécessaire pour l'authentification des images
+import 'package:cached_network_image/cached_network_image.dart';
 
 // Importations de vos fichiers locaux :
 import 'package:heritage_numerique/screens/AppDrawer.dart';
@@ -10,7 +12,8 @@ import 'package:heritage_numerique/model/ArtisanatModel.dart';
 import 'package:heritage_numerique/screens/ArtisanatDetailsPage.dart';
 
 
-// --- Constantes de Couleurs Globales ---
+// --- Constantes Globales ---
+const String _BASE_URL = "http://10.0.2.2:8080"; // 💡 Ajout de la BASE URL
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
@@ -21,6 +24,7 @@ const Color _tagArtisanatColor = Color(0xFFC0A272);
 const Color _pendingColor = Colors.orange;
 const Color _publishedColor = Colors.green;
 const Color _rejectedColor = Color(0xFFD32F2E);
+const Color _tagColor = Color(0xFF808080);
 
 // ----------------------------------------------
 // CLASSE WRAPPER : ArtisanatLabApp (Inchangé)
@@ -508,7 +512,7 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
 }
 
 // -------------------------------------------------------------
-// WIDGET : ContentContainer (CORRIGÉ : Overflow, Taille Badge et Bouton)
+// WIDGET : ContentContainer (CORRIGÉ : Gestion d'image avec Authentification et URL robuste)
 // -------------------------------------------------------------
 class ContentContainer extends StatefulWidget {
   final Artisanat artisanat;
@@ -528,14 +532,12 @@ class ContentContainer extends StatefulWidget {
 
 class _ContentContainerState extends State<ContentContainer> {
 
-  // Status que nous gérons LOCAUX (en priorité)
   late String _currentApiStatus;
   bool _isRequesting = false;
 
   @override
   void initState() {
     super.initState();
-    // Utilisation du statut du contenu comme base
     _currentApiStatus = widget.artisanat.statut.toUpperCase();
   }
 
@@ -543,7 +545,6 @@ class _ContentContainerState extends State<ContentContainer> {
   void didUpdateWidget(covariant ContentContainer oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Réinitialisation de l'état local avec le statut de l'Artisanat (BROUILLON, PUBLIE)
     if (oldWidget.artisanat.statut != widget.artisanat.statut) {
       _currentApiStatus = widget.artisanat.statut.toUpperCase();
     }
@@ -625,7 +626,6 @@ class _ContentContainerState extends State<ContentContainer> {
     }
   }
 
-  // Logique de construction du badge (MODIFIÉ POUR ÊTRE PLUS PETIT)
   Widget _buildStatusBadge(String status) {
     Color color;
     String text;
@@ -661,7 +661,6 @@ class _ContentContainerState extends State<ContentContainer> {
     }
 
     return Container(
-      // Réduction du padding
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
@@ -671,12 +670,10 @@ class _ContentContainerState extends State<ContentContainer> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Réduction de l'icône
           Icon(icon, size: 10, color: color),
           const SizedBox(width: 3),
           Text(
             text,
-            // Réduction de la taille de police
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color),
           ),
         ],
@@ -684,17 +681,44 @@ class _ContentContainerState extends State<ContentContainer> {
     );
   }
 
+  // 💡 MÉTHODE CORRIGÉE : Normalisation et construction de l'URL
+  String _normalizeImageUrl(String? path) {
+    if (path == null || path.isEmpty) {
+      return '';
+    }
+
+    // 1. Retire la barre oblique initiale si elle est présente pour assurer une bonne résolution relative
+    final String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+    // 2. Utilise Uri.resolve pour assembler la BASE_URL et le chemin de manière sécurisée
+    final Uri fullUri = Uri.parse(_BASE_URL).resolve(cleanPath);
+
+    // 3. Retourne l'URL complète
+    return fullUri.toString();
+  }
+
+  // 💡 NOUVELLE MÉTHODE : Récupérer les en-têtes d'authentification
+  Future<Map<String, String>> _getAuthHeaders() async {
+    // Récupère le token via le service (méthode qui ne lève pas d'exception pour les images)
+    final String? token = await widget.artisanatService.getAuthTokenForImages();
+
+    if (token != null) {
+      return {'Authorization': 'Bearer $token'};
+    }
+    return {};
+  }
+
 
   @override
   Widget build(BuildContext context) {
     String displayStatus = _currentApiStatus;
-
     final bool showPublicationButton = displayStatus == 'BROUILLON';
 
-
-    final String imageUrl = (widget.artisanat.urlPhotos.isNotEmpty)
+    final String? photoPath = widget.artisanat.urlPhotos.isNotEmpty
         ? widget.artisanat.urlPhotos.first
-        : 'assets/images/Tapis.png';
+        : null;
+
+    final String photoUrl = _normalizeImageUrl(photoPath);
 
     final String auteurInitiales = (widget.artisanat.prenomAuteur.isNotEmpty && widget.artisanat.nomAuteur.isNotEmpty)
         ? '${widget.artisanat.prenomAuteur[0]}${widget.artisanat.nomAuteur[0]}'
@@ -741,19 +765,32 @@ class _ContentContainerState extends State<ContentContainer> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(8.0)),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey.shade300,
-                    alignment: Alignment.center,
-                    child: Image.asset('assets/images/Tapis.png', fit: BoxFit.cover),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(color: Colors.grey.shade200);
+                // 💡 Utilisation de FutureBuilder pour injecter les headers dans CachedNetworkImage
+                child: photoUrl.isNotEmpty
+                    ? FutureBuilder<Map<String, String>>(
+                  future: _getAuthHeaders(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Container(color: Colors.grey.shade200);
+                    }
+
+                    // Utilisation de CachedNetworkImage avec les en-têtes
+                    return CachedNetworkImage(
+                      imageUrl: photoUrl,
+                      httpHeaders: snapshot.data ?? {}, // Passage de l'en-tête d'authentification
+                      fit: BoxFit.cover,
+                      // Placeholder de chargement
+                      placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                      // Gestion des erreurs (y compris 403 Forbidden)
+                      errorWidget: (context, url, error) {
+                        // Fallback sur l'image locale en cas d'échec
+                        return Image.asset('assets/images/Tapis.png', fit: BoxFit.cover);
+                      },
+                    );
                   },
-                ),
+                )
+                // Fallback direct si aucune URL n'est fournie/construite
+                    : Image.asset('assets/images/Tapis.png', fit: BoxFit.cover),
               ),
             ),
             Padding(
@@ -816,7 +853,7 @@ class _ContentContainerState extends State<ContentContainer> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Espace pour le badge ET le bouton (CORRIGÉ POUR ÉVITER L'OVERFLOW)
+                  // Espace pour le badge ET le bouton
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -824,7 +861,7 @@ class _ContentContainerState extends State<ContentContainer> {
                       // Badge de statut (toujours affiché)
                       _buildStatusBadge(displayStatus),
 
-                      const Spacer(), // Ajout d'un Spacer pour prendre l'espace restant et repousser le bouton
+                      const Spacer(),
 
                       // Bouton de publication (conditionnellement affiché UNIQUEMENT pour BROUILLON)
                       if (showPublicationButton)
@@ -832,22 +869,18 @@ class _ContentContainerState extends State<ContentContainer> {
                           padding: const EdgeInsets.only(left: 8.0),
                           child: ElevatedButton.icon(
                             onPressed: _isRequesting ? null : _requestPublication,
-                            // Réduction de la taille de l'icône
                             icon: _isRequesting
                                 ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.5))
                                 : const Icon(Icons.send, size: 10, color: Colors.white),
                             label: Text(
                                 _isRequesting ? 'Envoi...' : 'Publier',
-                                // Réduction de la taille de police
                                 style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold)
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _isRequesting ? Colors.blue.shade300 : Colors.blue.shade700,
-                              // Réduction du padding
                               padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                               elevation: 0,
-                              // Réduction de la taille minimale
                               minimumSize: const Size(60, 20),
                             ),
                           ),
