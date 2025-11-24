@@ -61,10 +61,9 @@ packages:
     dependency: transitive
     description:
       name: cross_file
-      sha256: "701dcfc06da0882883a2657c445103380e53e647060ad8d9dfb710c100996608"
+      sha256: "7caf6a750a0c04effbb52a676dce9a4a592e10ad35c34d6d2d0e4811160d5670"
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
     version: "0.3.4+2"
   crypto:
     dependency: transitive
@@ -74,9 +73,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-=======
-    version: "0.3.5+1"
->>>>>>> 81ee29f11f02fdb06ddb1524eb7d70b8bafe6a1f
   csslib:
     dependency: transitive
     description:
@@ -121,10 +117,9 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: f8f4ea435f791ab1f817b4e338ed958cb3d04ba43d6736ffc39958d950754967
+      sha256: f2d9f173c2c14635cc0e9b14c143c49ef30b4934e8d1d274d6206fcb0086a06f
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
     version: "10.3.3"
   fixnum:
     dependency: transitive
@@ -134,9 +129,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-=======
-    version: "10.3.6"
->>>>>>> 81ee29f11f02fdb06ddb1524eb7d70b8bafe6a1f
   flutter:
     dependency: "direct main"
     description: flutter
