@@ -30,10 +30,14 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   String? _errorMessage;
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
   final TransformationController _transformationController = TransformationController();
+  
+  Membre? _selectedMember; // Membre au centre de la vue pedigree
 
-  // Dimensions des cartes
-  final double _nodeWidth = 180.0;
-  final double _nodeHeight = 240.0;
+  // Dimensions des cartes (plus compactes pour layout horizontal)
+  final double _nodeWidth = 160.0;
+  final double _nodeHeight = 200.0;
+  final double _horizontalSpacing = 100.0;
+  final double _verticalSpacing = 30.0;
 
   @override
   void initState() {
@@ -58,10 +62,13 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
       setState(() {
         _familleData = famille;
+        // Sélectionner le premier membre racine par défaut
+        if (famille.membres.isNotEmpty) {
+          _selectedMember = famille.membres.first;
+        }
         _isLoading = false;
       });
       
-      // Centrer l'arbre après chargement
       WidgetsBinding.instance.addPostFrameCallback((_) => _centerTree());
     } catch (e) {
       setState(() {
@@ -74,8 +81,105 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   void _centerTree() {
     final size = MediaQuery.of(context).size;
     _transformationController.value = Matrix4.identity()
-      ..translate(size.width / 2 - 100, 50.0)
-      ..scale(0.8);
+      ..translate(100.0, size.height / 2 - 100)
+      ..scale(0.9);
+  }
+
+  void _selectMember(Membre membre) {
+    setState(() {
+      _selectedMember = membre;
+    });
+    _centerTree();
+  }
+
+  // ==================== CONSTRUCTION DE L'ARBRE HORIZONTAL ====================
+  Widget _buildHorizontalPedigree() {
+    if (_selectedMember == null) return const SizedBox.shrink();
+
+    // Construire les générations d'ancêtres
+    final generations = <int, List<Membre>>{};
+    _buildGenerations(_selectedMember!, 0, generations);
+
+    // Calculer la hauteur totale nécessaire
+    int maxMembersInGeneration = 0;
+    for (var members in generations.values) {
+      if (members.length > maxMembersInGeneration) {
+        maxMembersInGeneration = members.length;
+      }
+    }
+
+    final totalHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
+
+    return SizedBox(
+      height: totalHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(generations.length, (genIndex) {
+          final members = generations[genIndex] ?? [];
+          return _buildGenerationColumn(members, genIndex, totalHeight);
+        }),
+      ),
+    );
+  }
+
+  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations) {
+    if (!generations.containsKey(generation)) {
+      generations[generation] = [];
+    }
+    generations[generation]!.add(membre);
+
+    // Ajouter les parents (génération suivante)
+    final allMembers = _getAllMembers(_familleData!.membres);
+    final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere, orElse: () => Membre(id: -1));
+    final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere, orElse: () => Membre(id: -1));
+
+    if (parent1.id != -1) {
+      _buildGenerations(parent1, generation + 1, generations);
+    }
+    if (parent2.id != -1) {
+      _buildGenerations(parent2, generation + 1, generations);
+    }
+  }
+
+  List<Membre> _getAllMembers(List<Membre> racines) {
+    final allMembers = <Membre>[];
+    void addRecursively(Membre m) {
+      allMembers.add(m);
+      for (var enfant in m.enfants) {
+        addRecursively(enfant);
+      }
+    }
+    for (var racine in racines) {
+      addRecursively(racine);
+    }
+    return allMembers;
+  }
+
+  Widget _buildGenerationColumn(List<Membre> members, int generation, double totalHeight) {
+    return Row(
+      children: [
+        // Colonne de membres
+        SizedBox(
+          width: _nodeWidth,
+          height: totalHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: members.map((membre) => _buildMemberCard(membre)).toList(),
+          ),
+        ),
+        // Lignes de connexion vers la génération suivante
+        if (generation < 3) // Limiter à 4 générations
+          CustomPaint(
+            size: Size(_horizontalSpacing, totalHeight),
+            painter: _ConnectionLinePainter(
+              color: _brownDark.withOpacity(0.6),
+              members: members,
+              nodeHeight: _nodeHeight,
+              verticalSpacing: _verticalSpacing,
+            ),
+          ),
+      ],
+    );
   }
 
   // ==================== NAVIGATION ====================
@@ -127,7 +231,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             child: FloatingActionButton.extended(
               backgroundColor: _goldPrimary,
               icon: const Icon(Icons.person_add, color: Colors.white),
-              label: const Text("Ajouter un membre", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              label: const Text("Ajouter", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               onPressed: () => _navigateToAddMember(parentId: null),
               elevation: 4,
             ),
@@ -192,11 +296,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           ),
           Column(
             children: [
+<<<<<<< HEAD
               const Text("Arbre Généalogique", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
               if (_familleData != null)
 
                 Text(_familleData!.nomFamille ?? "Famille", style: const TextStyle(fontSize: 14, color: _goldPrimary, fontStyle: FontStyle.italic)),
 
+=======
+              const Text("Vue Pedigree", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
+              if (_selectedMember != null)
+                Text(_selectedMember!.nomComplet ?? "Membre", style: const TextStyle(fontSize: 12, color: _goldPrimary, fontStyle: FontStyle.italic)),
+>>>>>>> c5d3cde26d19450fb7c8a2d68017fd655aa7cc71
             ],
           ),
           IconButton(
@@ -216,7 +326,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           children: [
             const Icon(Icons.account_tree_outlined, size: 80, color: Colors.grey),
             const SizedBox(height: 20),
-            const Text("Votre arbre est vide pour le moment.", style: TextStyle(fontSize: 18, color: Colors.grey)),
+            const Text("Votre arbre est vide.", style: TextStyle(fontSize: 18, color: Colors.grey)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => _navigateToAddMember(parentId: null),
@@ -239,63 +349,10 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           scrollDirection: Axis.vertical,
           child: Padding(
             padding: const EdgeInsets.all(50),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: _familleData!.membres.map((racine) => _buildMemberTree(racine)).toList(),
-            ),
+            child: _buildHorizontalPedigree(),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildMemberTree(Membre membre) {
-    return Column(
-      children: [
-        _buildMemberCard(membre),
-        if (membre.enfants.isNotEmpty) ...[
-          // Ligne verticale
-          Container(
-            width: 2,
-            height: 40,
-            color: _brownDark.withOpacity(0.6),
-          ),
-          // Ligne horizontale pour connecter les enfants
-          if (membre.enfants.length > 1)
-            SizedBox(
-              height: 2,
-              width: (membre.enfants.length * (_nodeWidth + 40)) - 40,
-              child: CustomPaint(
-                painter: _HorizontalLinePainter(
-                  color: _brownDark.withOpacity(0.6),
-                  childCount: membre.enfants.length,
-                  nodeWidth: _nodeWidth + 40,
-                ),
-              ),
-            ),
-          // Enfants
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: membre.enfants.map((enfant) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    if (membre.enfants.length > 1)
-                      Container(
-                        width: 2,
-                        height: 40,
-                        color: _brownDark.withOpacity(0.6),
-                      ),
-                    _buildMemberTree(enfant),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ],
     );
   }
 
@@ -309,36 +366,41 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         ? membre.dateNaissance!.split('-').first
         : '????';
 
+    final bool isSelected = _selectedMember?.id == membre.id;
+
     return GestureDetector(
       onTap: () => _showMemberOptions(membre),
       child: Container(
         width: _nodeWidth,
         height: _nodeHeight,
-        margin: const EdgeInsets.all(10),
+        margin: const EdgeInsets.all(5),
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
             // Carte principale
             Positioned(
-              top: 40,
+              top: 30,
               left: 0,
               right: 0,
               bottom: 0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: _cardBackground,
-                  borderRadius: BorderRadius.circular(16),
+                  color: isSelected ? _goldPrimary.withOpacity(0.1) : _cardBackground,
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
-                  border: Border.all(color: _goldPrimary.withOpacity(0.3), width: 1),
+                  border: Border.all(
+                    color: isSelected ? _goldPrimary : _goldPrimary.withOpacity(0.3), 
+                    width: isSelected ? 2 : 1
+                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 50, left: 10, right: 10, bottom: 10),
+                  padding: const EdgeInsets.only(top: 40, left: 8, right: 8, bottom: 8),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -347,32 +409,32 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 12,
                           color: _textDark,
                           fontFamily: 'Serif',
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Container(height: 1, width: 40, color: _goldPrimary.withOpacity(0.5)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
+                      Container(height: 1, width: 30, color: _goldPrimary.withOpacity(0.5)),
+                      const SizedBox(height: 3),
                       Text(
                         membre.relationFamiliale ?? 'Membre',
-                        style: const TextStyle(fontSize: 12, color: _brownDark, fontStyle: FontStyle.italic),
+                        style: const TextStyle(fontSize: 10, color: _brownDark, fontStyle: FontStyle.italic),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
                           color: _creamBackground,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           birthYear,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
                         ),
                       ),
                     ],
@@ -385,17 +447,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             Positioned(
               top: 0,
               child: Container(
-                width: 80,
-                height: 80,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
-                  border: Border.all(color: _goldPrimary, width: 3),
+                  border: Border.all(color: _goldPrimary, width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -419,7 +481,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   Widget _buildPlaceholderAvatar() {
     return Container(
       color: _creamBackground,
-      child: const Icon(Icons.person, size: 40, color: _goldPrimary),
+      child: const Icon(Icons.person, size: 30, color: _goldPrimary),
     );
   }
 
@@ -453,7 +515,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(membre.nomComplet ?? "Inconnu", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text(membre.relationFamiliale ?? "Membre de la famille", style: const TextStyle(color: Colors.grey)),
+                      Text(membre.relationFamiliale ?? "Membre", style: const TextStyle(color: Colors.grey)),
                     ],
                   ),
                 ),
@@ -461,8 +523,16 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             ),
             const Divider(height: 30),
             ListTile(
+              leading: const Icon(Icons.center_focus_strong, color: _goldPrimary),
+              title: const Text("Centrer sur cette personne"),
+              onTap: () {
+                Navigator.pop(context);
+                _selectMember(membre);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.info_outline, color: _brownDark),
-              title: const Text("Voir les détails complets"),
+              title: const Text("Voir les détails"),
               onTap: () {
                 Navigator.pop(context);
                 _navigateToMemberDetail(membre.id);
@@ -483,16 +553,18 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   }
 }
 
-// Custom painter pour les lignes horizontales
-class _HorizontalLinePainter extends CustomPainter {
+// Custom painter pour les lignes de connexion horizontales
+class _ConnectionLinePainter extends CustomPainter {
   final Color color;
-  final int childCount;
-  final double nodeWidth;
+  final List<Membre> members;
+  final double nodeHeight;
+  final double verticalSpacing;
 
-  _HorizontalLinePainter({
+  _ConnectionLinePainter({
     required this.color,
-    required this.childCount,
-    required this.nodeWidth,
+    required this.members,
+    required this.nodeHeight,
+    required this.verticalSpacing,
   });
 
   @override
@@ -502,19 +574,14 @@ class _HorizontalLinePainter extends CustomPainter {
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
-    // Ligne horizontale principale
-    canvas.drawLine(
-      Offset(0, size.height / 2),
-      Offset(size.width, size.height / 2),
-      paint,
-    );
-
-    // Lignes verticales pour chaque enfant
-    for (int i = 0; i < childCount; i++) {
-      final x = (i * nodeWidth) + (nodeWidth / 2);
+    // Dessiner une ligne horizontale pour chaque membre vers la droite
+    final spacing = size.height / (members.length + 1);
+    for (int i = 0; i < members.length; i++) {
+      final y = spacing * (i + 1);
+      // Ligne horizontale
       canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
+        Offset(0, y),
+        Offset(size.width, y),
         paint,
       );
     }
