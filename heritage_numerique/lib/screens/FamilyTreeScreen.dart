@@ -118,18 +118,33 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     final totalHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
     final safeHeight = totalHeight > 0 ? totalHeight : _nodeHeight + _verticalSpacing;
+    
+    // Obtenir les générations triées
+    final sortedGenerations = generations.keys.toList()..sort();
+    
+    if (sortedGenerations.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    // Calculer la largeur totale nécessaire
+    // Pour chaque génération : nodeWidth + horizontalSpacing (sauf la dernière)
+    final totalWidth = sortedGenerations.length * _nodeWidth + 
+                      (sortedGenerations.length > 1 ? (sortedGenerations.length - 1) * _horizontalSpacing : 0);
 
     return SizedBox(
+      width: totalWidth,
       height: safeHeight,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(generations.length, (genIndex) {
+        mainAxisSize: MainAxisSize.min,
+        children: sortedGenerations.map((genIndex) {
           final members = generations[genIndex] ?? [];
-          final nextGenMembers = genIndex < generations.length - 1 
-              ? generations[genIndex + 1] ?? []
+          final nextGenIndex = sortedGenerations.indexOf(genIndex) + 1;
+          final nextGenMembers = nextGenIndex < sortedGenerations.length
+              ? generations[sortedGenerations[nextGenIndex]] ?? []
               : <Membre>[];
           return _buildGenerationColumn(members, genIndex, safeHeight, nextGenMembers, memberPositions);
-        }),
+        }).toList(),
       ),
     );
   }
@@ -243,6 +258,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     Map<int, Map<int, double>> memberPositions,
   ) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Colonne de membres avec positions absolues
         SizedBox(
@@ -261,16 +277,19 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         ),
         // Lignes de connexion vers la génération suivante (style MyHeritage)
         if (members.isNotEmpty && nextGenMembers.isNotEmpty)
-          CustomPaint(
-            size: Size(_horizontalSpacing, totalHeight),
-            painter: _ConnectionLinePainter(
-              color: _brownDark.withOpacity(0.5),
-              parentMembers: members,
-              childMembers: nextGenMembers,
-              nodeHeight: _nodeHeight,
-              nodeWidth: _nodeWidth,
-              parentPositions: memberPositions[generation] ?? {},
-              childPositions: memberPositions[generation + 1] ?? {},
+          SizedBox(
+            width: _horizontalSpacing,
+            height: totalHeight,
+            child: CustomPaint(
+              painter: _ConnectionLinePainter(
+                color: _brownDark.withOpacity(0.5),
+                parentMembers: members,
+                childMembers: nextGenMembers,
+                nodeHeight: _nodeHeight,
+                nodeWidth: _nodeWidth,
+                parentPositions: memberPositions[generation] ?? {},
+                childPositions: memberPositions[generation + 1] ?? {},
+              ),
             ),
           ),
       ],
@@ -433,15 +452,19 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       boundaryMargin: const EdgeInsets.all(2000),
       minScale: 0.1,
       maxScale: 4.0,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(80),
-            child: _buildHorizontalTree(),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: Padding(
+                padding: const EdgeInsets.all(80),
+                child: _buildHorizontalTree(),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
