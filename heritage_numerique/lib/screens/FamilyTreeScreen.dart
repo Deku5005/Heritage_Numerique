@@ -31,16 +31,13 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
   final TransformationController _transformationController = TransformationController();
   
-  Membre? _selectedMember; // Membre au centre de la vue pedigree
+  Membre? _selectedMember; // Membre au centre de la vue (Racine de l'arbre descendant)
 
   // Dimensions des cartes (plus compactes pour layout horizontal)
   final double _nodeWidth = 160.0;
   final double _nodeHeight = 200.0;
   final double _horizontalSpacing = 100.0;
   final double _verticalSpacing = 30.0;
-
-  // Map pour stocker les parents de chaque membre (déduit de la structure hiérarchique)
-  final Map<int, List<Membre>> _parentsOfMember = {};
 
   @override
   void initState() {
@@ -65,8 +62,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
       setState(() {
         _familleData = famille;
-        _preprocessFamilyData(); // Prétraitement pour trouver les parents
-        
         // Sélectionner le premier membre racine par défaut
         if (famille.membres.isNotEmpty) {
           _selectedMember = famille.membres.first;
@@ -83,32 +78,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
   }
 
-  void _preprocessFamilyData() {
-    _parentsOfMember.clear();
-    if (_familleData == null) return;
-
-    // Fonction récursive pour parcourir l'arbre et associer les parents aux enfants
-    void traverse(Membre parent) {
-      for (var enfant in parent.enfants) {
-        if (!_parentsOfMember.containsKey(enfant.id)) {
-          _parentsOfMember[enfant.id] = [];
-        }
-        // Ajouter le parent à la liste des parents de l'enfant
-        // On évite les doublons si l'arbre a des cycles ou références multiples
-        if (!_parentsOfMember[enfant.id]!.any((p) => p.id == parent.id)) {
-          _parentsOfMember[enfant.id]!.add(parent);
-        }
-        
-        traverse(enfant);
-      }
-    }
-
-    for (var racine in _familleData!.membres) {
-      traverse(racine);
-    }
-    print("Prétraitement terminé. Relations parents trouvées pour ${_parentsOfMember.length} membres.");
-  }
-
   void _centerTree() {
     final size = MediaQuery.of(context).size;
     _transformationController.value = Matrix4.identity()
@@ -123,13 +92,13 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     _centerTree();
   }
 
-  // ==================== CONSTRUCTION DE L'ARBRE HORIZONTAL ====================
-  Widget _buildHorizontalPedigree() {
+  // ==================== CONSTRUCTION DE L'ARBRE DESCENDANT (Enfants vers la droite) ====================
+  Widget _buildHorizontalTree() {
     if (_selectedMember == null) return const SizedBox.shrink();
 
-    // Construire les générations d'ancêtres
+    // Construire les générations de descendants
     final generations = <int, List<Membre>>{};
-    _buildGenerations(_selectedMember!, 0, generations);
+    _buildDescendants(_selectedMember!, 0, generations);
 
     // Calculer la hauteur totale nécessaire
     int maxMembersInGeneration = 0;
@@ -140,7 +109,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     final totalHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
-    // S'assurer que la hauteur est au moins suffisante pour une carte
     final safeHeight = totalHeight > 0 ? totalHeight : _nodeHeight + _verticalSpacing;
 
     return SizedBox(
@@ -155,42 +123,26 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     );
   }
 
-  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations) {
-    print("Traitement membre: ${membre.nomComplet} (ID: ${membre.id}) - Génération: $generation");
+  void _buildDescendants(Membre membre, int generation, Map<int, List<Membre>> generations) {
+    print("Traitement descendant: ${membre.nomComplet} (ID: ${membre.id}) - Génération: $generation");
     
     if (!generations.containsKey(generation)) {
       generations[generation] = [];
     }
     
-    // Éviter les doublons visuels dans la même génération
+    // Éviter les doublons visuels
     if (!generations[generation]!.any((m) => m.id == membre.id)) {
       generations[generation]!.add(membre);
     }
 
-    // Ajouter les parents (génération suivante)
-    // On utilise d'abord les champs explicites idPere/idMere s'ils sont valides et trouvables
-    // Sinon on utilise la map déduite _parentsOfMember
-    
-    final List<Membre> parentsToProcess = [];
-    
-    // 1. Essayer via la map de prétraitement (plus fiable si hiérarchie descendante)
-    if (_parentsOfMember.containsKey(membre.id)) {
-      parentsToProcess.addAll(_parentsOfMember[membre.id]!);
-    }
-    
-    // 2. Si la map est vide, essayer via les IDs explicites (si non déjà ajoutés)
-    // Cela sert de fallback si le prétraitement a raté quelque chose ou si l'arbre n'est pas complet
-    // (Note: _getAllMembers n'est plus nécessaire ici car on a _parentsOfMember, 
-    // mais on pourrait le garder si besoin. Pour l'instant on simplifie).
-    
-    if (parentsToProcess.isEmpty) {
-       print("  -> Aucun parent trouvé pour ${membre.nomComplet} (ni dans map, ni IDs)");
+    // Ajouter les enfants (génération suivante)
+    if (membre.enfants.isNotEmpty) {
+      print("  -> ${membre.enfants.length} enfants trouvés pour ${membre.nomComplet}");
+      for (var enfant in membre.enfants) {
+        _buildDescendants(enfant, generation + 1, generations);
+      }
     } else {
-       print("  -> ${parentsToProcess.length} parents trouvés pour ${membre.nomComplet}");
-    }
-
-    for (var parent in parentsToProcess) {
-      _buildGenerations(parent, generation + 1, generations);
+      print("  -> Pas d'enfants pour ${membre.nomComplet}");
     }
   }
 
@@ -338,7 +290,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           ),
           Column(
             children: [
-              const Text("Vue Pedigree", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
+              const Text("Arbre Familial", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
               if (_selectedMember != null)
                 Text(_selectedMember!.nomComplet ?? "Membre", style: const TextStyle(fontSize: 12, color: _goldPrimary, fontStyle: FontStyle.italic)),
             ],
@@ -383,7 +335,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           scrollDirection: Axis.vertical,
           child: Padding(
             padding: const EdgeInsets.all(50),
-            child: _buildHorizontalPedigree(),
+            child: _buildHorizontalTree(),
           ),
         ),
       ),
@@ -558,7 +510,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             const Divider(height: 30),
             ListTile(
               leading: const Icon(Icons.center_focus_strong, color: _goldPrimary),
-              title: const Text("Centrer sur cette personne"),
+              title: const Text("Définir comme racine"),
               onTap: () {
                 Navigator.pop(context);
                 _selectMember(membre);
