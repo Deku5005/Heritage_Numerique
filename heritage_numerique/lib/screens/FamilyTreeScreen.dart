@@ -217,20 +217,21 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     
     print("Largeur totale calculée: $totalWidth (${sortedLevels.length} niveaux)");
 
-    return Container(
-      width: totalWidth,
+    return SizedBox(
       height: safeHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: sortedLevels.map((levelIndex) {
-          final members = levels[levelIndex] ?? [];
-          final nextLevelIndex = sortedLevels.indexOf(levelIndex) + 1;
-          final nextLevelMembers = nextLevelIndex < sortedLevels.length
-              ? levels[sortedLevels[nextLevelIndex]] ?? []
-              : <Membre>[];
-          return _buildLevelColumn(members, levelIndex, safeHeight, nextLevelMembers, memberPositions);
-        }).toList(),
+      child: IntrinsicWidth(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: sortedLevels.map((levelIndex) {
+            final members = levels[levelIndex] ?? [];
+            final nextLevelIndex = sortedLevels.indexOf(levelIndex) + 1;
+            final nextLevelMembers = nextLevelIndex < sortedLevels.length
+                ? levels[sortedLevels[nextLevelIndex]] ?? []
+                : <Membre>[];
+            return _buildLevelColumn(members, levelIndex, safeHeight, nextLevelMembers, memberPositions);
+          }).toList(),
+        ),
       ),
     );
   }
@@ -563,12 +564,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       boundaryMargin: const EdgeInsets.all(2000),
       minScale: 0.1,
       maxScale: 4.0,
-      child: UnconstrainedBox(
-        constrainedAxis: Axis.vertical,
-        child: Padding(
-          padding: const EdgeInsets.all(80),
-          child: _buildHorizontalTree(),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(80),
+        child: _buildHorizontalTree(),
       ),
     );
   }
