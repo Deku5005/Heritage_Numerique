@@ -128,6 +128,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   }
 
   void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations, List<Membre> allMembers) {
+    print("Traitement membre: ${membre.nomComplet} (ID: ${membre.id}) - Génération: $generation");
+    
     if (!generations.containsKey(generation)) {
       generations[generation] = [];
     }
@@ -142,34 +144,48 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     if (membre.idPere != null) {
       try {
         final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere);
+        print("  -> Père trouvé: ${parent1.nomComplet} (ID: ${parent1.id})");
         _buildGenerations(parent1, generation + 1, generations, allMembers);
       } catch (e) {
-        // Père non trouvé dans les données chargées
+        print("  -> Père (ID: ${membre.idPere}) non trouvé dans la liste des membres");
       }
+    } else {
+      print("  -> Pas d'ID père pour ${membre.nomComplet}");
     }
 
     // Recherche de la mère
     if (membre.idMere != null) {
       try {
         final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere);
+        print("  -> Mère trouvée: ${parent2.nomComplet} (ID: ${parent2.id})");
         _buildGenerations(parent2, generation + 1, generations, allMembers);
       } catch (e) {
-        // Mère non trouvée dans les données chargées
+        print("  -> Mère (ID: ${membre.idMere}) non trouvée dans la liste des membres");
       }
+    } else {
+      print("  -> Pas d'ID mère pour ${membre.nomComplet}");
     }
   }
 
   List<Membre> _getAllMembers(List<Membre> racines) {
     final allMembers = <Membre>[];
+    final Set<int> visitedIds = {};
+
     void addRecursively(Membre m) {
+      if (visitedIds.contains(m.id)) return;
+      visitedIds.add(m.id);
       allMembers.add(m);
+      
       for (var enfant in m.enfants) {
         addRecursively(enfant);
       }
     }
+
     for (var racine in racines) {
       addRecursively(racine);
     }
+    
+    print("Total membres trouvés dans l'arbre: ${allMembers.length}");
     return allMembers;
   }
 
