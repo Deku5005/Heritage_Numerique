@@ -33,11 +33,11 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   
   Membre? _selectedMember; // Membre au centre de la vue (Racine de l'arbre descendant)
 
-  // Dimensions des cartes (plus compactes pour layout horizontal)
-  final double _nodeWidth = 160.0;
-  final double _nodeHeight = 200.0;
-  final double _horizontalSpacing = 100.0;
-  final double _verticalSpacing = 30.0;
+  // Dimensions des cartes (style MyHeritage)
+  final double _nodeWidth = 140.0;
+  final double _nodeHeight = 180.0;
+  final double _horizontalSpacing = 120.0;
+  final double _verticalSpacing = 40.0;
 
   @override
   void initState() {
@@ -79,10 +79,14 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   }
 
   void _centerTree() {
+    if (_selectedMember == null) return;
+    
     final size = MediaQuery.of(context).size;
+    // Centrer sur le membre sélectionné (première génération à gauche)
+    // Le membre sélectionné est à la position x=0, donc on centre l'écran sur lui
     _transformationController.value = Matrix4.identity()
-      ..translate(100.0, size.height / 2 - 100)
-      ..scale(0.9);
+      ..translate(size.width / 2 - _nodeWidth / 2 - 50, size.height / 2 - _nodeHeight / 2)
+      ..scale(0.85);
   }
 
   void _selectMember(Membre membre) {
@@ -92,13 +96,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     _centerTree();
   }
 
-  // ==================== CONSTRUCTION DE L'ARBRE DESCENDANT (Enfants vers la droite) ====================
+  // ==================== CONSTRUCTION DE L'ARBRE DESCENDANT (Style MyHeritage) ====================
   Widget _buildHorizontalTree() {
     if (_selectedMember == null) return const SizedBox.shrink();
 
-    // Construire les générations de descendants
+    // Étape 1: Construire les générations
     final generations = <int, List<Membre>>{};
     _buildDescendants(_selectedMember!, 0, generations);
+
+    // Étape 2: Calculer les positions verticales pour chaque génération
+    final memberPositions = <int, Map<int, double>>{};
+    _calculatePositions(generations, memberPositions);
 
     // Calculer la hauteur totale nécessaire
     int maxMembersInGeneration = 0;
@@ -114,18 +122,20 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     return SizedBox(
       height: safeHeight,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: List.generate(generations.length, (genIndex) {
           final members = generations[genIndex] ?? [];
-          return _buildGenerationColumn(members, genIndex, safeHeight);
+          final nextGenMembers = genIndex < generations.length - 1 
+              ? generations[genIndex + 1] ?? []
+              : <Membre>[];
+          return _buildGenerationColumn(members, genIndex, safeHeight, nextGenMembers, memberPositions);
         }),
       ),
     );
   }
 
+  // Construire les générations de descendants
   void _buildDescendants(Membre membre, int generation, Map<int, List<Membre>> generations) {
-    print("Traitement descendant: ${membre.nomComplet} (ID: ${membre.id}) - Génération: $generation");
-    
     if (!generations.containsKey(generation)) {
       generations[generation] = [];
     }
@@ -136,37 +146,131 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     // Ajouter les enfants (génération suivante)
-    if (membre.enfants.isNotEmpty) {
-      print("  -> ${membre.enfants.length} enfants trouvés pour ${membre.nomComplet}");
-      for (var enfant in membre.enfants) {
-        _buildDescendants(enfant, generation + 1, generations);
-      }
-    } else {
-      print("  -> Pas d'enfants pour ${membre.nomComplet}");
+    for (var enfant in membre.enfants) {
+      _buildDescendants(enfant, generation + 1, generations);
     }
   }
 
-  Widget _buildGenerationColumn(List<Membre> members, int generation, double totalHeight) {
+  // Calculer les positions verticales (style MyHeritage : centrer les parents par rapport à leurs enfants)
+  void _calculatePositions(
+    Map<int, List<Membre>> generations,
+    Map<int, Map<int, double>> memberPositions,
+  ) {
+    // Initialiser les maps de positions
+    for (var gen in generations.keys) {
+      memberPositions[gen] = {};
+    }
+
+    if (generations.isEmpty) return;
+
+    // Calculer les positions de la dernière génération vers la première
+    final sortedGens = generations.keys.toList()..sort((a, b) => b.compareTo(a));
+    
+    for (var gen in sortedGens) {
+      final members = generations[gen]!;
+      final positions = memberPositions[gen]!;
+      
+      if (gen == sortedGens.first) {
+        // Dernière génération : distribuer uniformément depuis le centre
+        final totalHeight = members.length * (_nodeHeight + _verticalSpacing) - _verticalSpacing;
+        final startY = (totalHeight - (members.length - 1) * (_nodeHeight + _verticalSpacing)) / 2;
+        
+        for (int i = 0; i < members.length; i++) {
+          positions[members[i].id] = startY + i * (_nodeHeight + _verticalSpacing) + _nodeHeight / 2;
+        }
+      } else {
+        // Générations précédentes : centrer par rapport aux enfants
+        final nextGenPositions = memberPositions[gen + 1]!;
+        
+        for (var member in members) {
+          if (member.enfants.isEmpty) {
+            // Pas d'enfants : utiliser une position par défaut
+            final index = members.indexOf(member);
+            positions[member.id] = index * (_nodeHeight + _verticalSpacing) + _nodeHeight / 2;
+          } else {
+            // Avoir des enfants : centrer par rapport à eux
+            final childPositions = <double>[];
+            
+            for (var enfant in member.enfants) {
+              if (nextGenPositions.containsKey(enfant.id)) {
+                childPositions.add(nextGenPositions[enfant.id]!);
+              }
+            }
+            
+            if (childPositions.isNotEmpty) {
+              childPositions.sort();
+              final minY = childPositions.first;
+              final maxY = childPositions.last;
+              positions[member.id] = (minY + maxY) / 2;
+            } else {
+              // Fallback
+              final index = members.indexOf(member);
+              positions[member.id] = index * (_nodeHeight + _verticalSpacing) + _nodeHeight / 2;
+            }
+          }
+        }
+        
+        // Ajuster les positions pour éviter les chevauchements dans la même génération
+        _adjustPositionsForOverlap(members, positions);
+      }
+    }
+  }
+
+  // Ajuster les positions pour éviter les chevauchements
+  void _adjustPositionsForOverlap(List<Membre> members, Map<int, double> positions) {
+    if (members.length <= 1) return;
+    
+    final sortedMembers = List<Membre>.from(members);
+    sortedMembers.sort((a, b) => positions[a.id]!.compareTo(positions[b.id]!));
+    
+    double minSpacing = _nodeHeight + _verticalSpacing;
+    
+    for (int i = 0; i < sortedMembers.length - 1; i++) {
+      final currentY = positions[sortedMembers[i].id]!;
+      final nextY = positions[sortedMembers[i + 1].id]!;
+      
+      if (nextY - currentY < minSpacing) {
+        positions[sortedMembers[i + 1].id] = currentY + minSpacing;
+      }
+    }
+  }
+
+  Widget _buildGenerationColumn(
+    List<Membre> members,
+    int generation,
+    double totalHeight,
+    List<Membre> nextGenMembers,
+    Map<int, Map<int, double>> memberPositions,
+  ) {
     return Row(
       children: [
-        // Colonne de membres
+        // Colonne de membres avec positions absolues
         SizedBox(
           width: _nodeWidth,
           height: totalHeight,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: members.map((membre) => _buildMemberCard(membre)).toList(),
+          child: Stack(
+            children: members.map((membre) {
+              final yPos = memberPositions[generation]?[membre.id] ?? 0.0;
+              return Positioned(
+                top: yPos - _nodeHeight / 2,
+                left: 0,
+                child: _buildMemberCard(membre),
+              );
+            }).toList(),
           ),
         ),
-        // Lignes de connexion vers la génération suivante (sauf pour la dernière)
-        if (members.isNotEmpty) 
+        // Lignes de connexion vers la génération suivante (style MyHeritage)
+        if (members.isNotEmpty && nextGenMembers.isNotEmpty)
           CustomPaint(
             size: Size(_horizontalSpacing, totalHeight),
             painter: _ConnectionLinePainter(
-              color: _brownDark.withOpacity(0.6),
-              members: members,
+              color: _brownDark.withOpacity(0.5),
+              parentMembers: members,
+              childMembers: nextGenMembers,
               nodeHeight: _nodeHeight,
-              verticalSpacing: _verticalSpacing,
+              nodeWidth: _nodeWidth,
+              parentPositions: memberPositions[generation] ?? {},
+              childPositions: memberPositions[generation + 1] ?? {},
             ),
           ),
       ],
@@ -329,15 +433,15 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     return InteractiveViewer(
       transformationController: _transformationController,
-      boundaryMargin: const EdgeInsets.all(1000),
+      boundaryMargin: const EdgeInsets.all(2000),
       minScale: 0.1,
-      maxScale: 3.0,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
+      maxScale: 4.0,
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(50),
+            padding: const EdgeInsets.all(80),
             child: _buildHorizontalTree(),
           ),
         ),
@@ -542,42 +646,111 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   }
 }
 
-// Custom painter pour les lignes de connexion horizontales
+// Custom painter pour les lignes de connexion (style MyHeritage)
 class _ConnectionLinePainter extends CustomPainter {
   final Color color;
-  final List<Membre> members;
+  final List<Membre> parentMembers;
+  final List<Membre> childMembers;
   final double nodeHeight;
-  final double verticalSpacing;
+  final double nodeWidth;
+  final Map<int, double> parentPositions; // memberId -> yPosition
+  final Map<int, double> childPositions; // memberId -> yPosition
 
   _ConnectionLinePainter({
     required this.color,
-    required this.members,
+    required this.parentMembers,
+    required this.childMembers,
     required this.nodeHeight,
-    required this.verticalSpacing,
+    required this.nodeWidth,
+    required this.parentPositions,
+    required this.childPositions,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2.0
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
 
-    // Dessiner une ligne horizontale pour chaque membre vers la droite
-    // On suppose que les membres sont distribués uniformément dans la hauteur
-    final totalHeight = size.height;
-    // La hauteur disponible par membre dans la colonne
-    final heightPerMember = totalHeight / members.length;
+    // Grouper les enfants par parent
+    final Map<int, List<Membre>> childrenByParent = {};
     
-    for (int i = 0; i < members.length; i++) {
-      // Le centre vertical de la carte
-      final y = (i * heightPerMember) + (heightPerMember / 2);
+    for (var parent in parentMembers) {
+      childrenByParent[parent.id] = [];
+      for (var child in childMembers) {
+        // Vérifier si l'enfant appartient à ce parent
+        // On peut vérifier via les IDs parents ou simplement par position
+        if (parent.enfants.any((e) => e.id == child.id)) {
+          childrenByParent[parent.id]!.add(child);
+        }
+      }
+    }
+
+    // Dessiner les connexions pour chaque parent
+    for (var parent in parentMembers) {
+      final children = childrenByParent[parent.id] ?? [];
+      if (children.isEmpty) continue;
+
+      final parentY = parentPositions[parent.id] ?? 0.0;
       
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
+      if (children.length == 1) {
+        // Un seul enfant : ligne droite
+        final childY = childPositions[children[0].id] ?? 0.0;
+        final midX = size.width / 2;
+        
+        // Ligne horizontale depuis le parent
+        canvas.drawLine(
+          Offset(0, parentY),
+          Offset(midX, parentY),
+          paint,
+        );
+        // Ligne verticale au milieu
+        canvas.drawLine(
+          Offset(midX, parentY),
+          Offset(midX, childY),
+          paint,
+        );
+        // Ligne horizontale vers l'enfant
+        canvas.drawLine(
+          Offset(midX, childY),
+          Offset(size.width, childY),
+          paint,
+        );
+      } else if (children.length > 1) {
+        // Plusieurs enfants : lignes en T (style MyHeritage)
+        final childrenYs = children.map((c) => childPositions[c.id] ?? 0.0).toList()..sort();
+        final minChildY = childrenYs.first;
+        final maxChildY = childrenYs.last;
+        final midX = size.width / 2;
+        
+        // Ligne horizontale depuis le parent vers le centre
+        canvas.drawLine(
+          Offset(0, parentY),
+          Offset(midX, parentY),
+          paint,
+        );
+        // Ligne verticale principale depuis le parent jusqu'au dernier enfant
+        canvas.drawLine(
+          Offset(midX, parentY),
+          Offset(midX, maxChildY),
+          paint,
+        );
+        // Ligne horizontale qui relie tous les enfants (du premier au dernier)
+        canvas.drawLine(
+          Offset(midX, minChildY),
+          Offset(midX, maxChildY),
+          paint,
+        );
+        // Lignes horizontales vers chaque enfant
+        for (var childY in childrenYs) {
+          canvas.drawLine(
+            Offset(midX, childY),
+            Offset(size.width, childY),
+            paint,
+          );
+        }
+      }
     }
   }
 
