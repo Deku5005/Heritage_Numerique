@@ -283,7 +283,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             children: [
               const Text("Arbre Généalogique", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
               if (_familleData != null)
-                Text(_familleData!.nomFamille, style: const TextStyle(fontSize: 14, color: _goldPrimary, fontStyle: FontStyle.italic)),
+                Text(_familleData!.nomFamille!, style: const TextStyle(fontSize: 14, color: _goldPrimary, fontStyle: FontStyle.italic)),
             ],
           ),
           IconButton(
