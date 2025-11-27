@@ -7,7 +7,6 @@ import '../service/ArbreGenealogiqueService.dart';
 import 'CreateTreeScreen.dart';
 import 'AppDrawer.dart';
 import 'MembresDetailsScreen.dart';
-
 // --- PALETTE DE COULEURS PREMIUM ---
 const Color _goldPrimary = Color(0xFFAA7311);
 const Color _brownDark = Color(0xFF5D4037);
