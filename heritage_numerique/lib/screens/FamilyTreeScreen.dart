@@ -111,7 +111,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       final rootNode = _addMemberRecursively(null, racine);
       if (virtualRoot != null && rootNode != null) {
         // IMPORTANT : On doit fournir un Paint même pour les arêtes invisibles
-        // sinon GraphView peut planter (Null check operator used on a null value)
         graph.addEdge(virtualRoot, rootNode, paint: Paint()
           ..color = Colors.transparent
           ..strokeWidth = 0.0
@@ -155,22 +154,43 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
   // ==================== DIMENSIONS & ZOOM ====================
   void _calculateGraphDimensions() {
-    // Estimation simple basée sur le nombre de nœuds pour agrandir le canvas si nécessaire
-    int totalNodes = _memberNodes.length;
-    _graphWidth = max(2000.0, totalNodes * 100.0);
-    _graphHeight = max(1500.0, totalNodes * 100.0);
+    if (_familleData == null) return;
+    
+    int maxLevel = 0;
+    Map<int, int> nodesPerLevel = {};
+    
+    // Parcours pour déterminer la largeur et la profondeur de l'arbre
+    void traverse(List<Membre> membres, int level) {
+      maxLevel = max(maxLevel, level);
+      nodesPerLevel[level] = (nodesPerLevel[level] ?? 0) + membres.length;
+      for (var m in membres) {
+        if (m.enfants.isNotEmpty) traverse(m.enfants, level + 1);
+      }
+    }
+
+    traverse(_familleData!.membres, 0);
+
+    int maxNodesInLevel = 0;
+    nodesPerLevel.forEach((k, v) {
+      maxNodesInLevel = max(maxNodesInLevel, v);
+    });
+
+    // Calcul des dimensions avec marge de sécurité
+    // Largeur = (Nb max de nœuds * largeur nœud) + espaces
+    _graphWidth = max(2000.0, (maxNodesInLevel * (_nodeWidth + 60.0)) + 400.0);
+    
+    // Hauteur = (Nb niveaux * hauteur nœud) + espaces
+    _graphHeight = max(1500.0, ((maxLevel + 1) * (_nodeHeight + 100.0)) + 400.0);
   }
 
   void _centerGraph() {
     if (_memberNodes.isEmpty) return;
     
-    // Réinitialiser à une vue centrée et dézoomée pour tout voir
     final size = MediaQuery.of(context).size;
-    // On essaie de centrer la racine (premier élément)
-    // C'est une approximation, GraphView ne donne pas facilement les coordonnées exactes avant le rendu
+    // On centre sur le haut du canvas (où se trouve la racine)
     _transformationController.value = Matrix4.identity()
-      ..translate(size.width / 2 - _nodeWidth, 50.0) 
-      ..scale(0.6);
+      ..translate(size.width / 2 - (_graphWidth / 2), 50.0) 
+      ..scale(0.5);
   }
 
   // ==================== NAVIGATION ====================
@@ -194,7 +214,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       drawer: AppDrawer(familyId: widget.familyId),
       body: Stack(
         children: [
-          // Fond décoratif subtil (optionnel)
+          // Fond décoratif subtil
           Positioned.fill(
             child: Opacity(
               opacity: 0.05,
@@ -326,25 +346,34 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     return InteractiveViewer(
       transformationController: _transformationController,
       constrained: false,
-      boundaryMargin: const EdgeInsets.all(2000), // Grande marge pour le pan
-      minScale: 0.1,
-      maxScale: 3.0,
-      child: GraphView(
-        graph: graph,
-        algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
-        paint: Paint()
-          ..color = _brownDark.withOpacity(0.8)
-          ..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke,
-        builder: (Node node) {
-          final int? id = node.key?.value as int?;
-          if (id == null || id < 0) return const SizedBox.shrink();
+      boundaryMargin: const EdgeInsets.all(2000),
+      minScale: 0.01,
+      maxScale: 4.0,
+      child: Container(
+        // 🔑 FIX CRITIQUE : On donne une taille explicite au conteneur du graphe
+        // pour éviter l'erreur "unbounded size" ou "NaN"
+        width: _graphWidth,
+        height: _graphHeight,
+        alignment: Alignment.topCenter,
+        child: GraphView(
+          graph: graph,
+          algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
+          paint: Paint()
+            ..color = _brownDark.withOpacity(0.8)
+            ..strokeWidth = 2.0
+            ..style = PaintingStyle.stroke,
+          builder: (Node node) {
+            final int? id = node.key?.value as int?;
+            
+            // 🔑 FIX CRITIQUE : Taille minimale pour la racine virtuelle pour éviter NaN
+            if (id == null || id < 0) return const SizedBox(width: 1, height: 1);
 
-          final member = _findMemberInHierarchicalData(id, _familleData!.membres);
-          if (member == null) return const SizedBox.shrink();
+            final member = _findMemberInHierarchicalData(id, _familleData!.membres);
+            if (member == null) return const SizedBox(width: 1, height: 1);
 
-          return _buildMemberCard(member);
-        },
+            return _buildMemberCard(member);
+          },
+        ),
       ),
     );
   }
@@ -364,13 +393,13 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       child: Container(
         width: _nodeWidth,
         height: _nodeHeight,
-        margin: const EdgeInsets.all(10), // Marge autour du nœud pour éviter que les lignes ne touchent
+        margin: const EdgeInsets.all(10),
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
             // Carte principale
             Positioned(
-              top: 40, // Laisse de la place pour la photo qui dépasse
+              top: 40,
               left: 0,
               right: 0,
               bottom: 0,
@@ -399,7 +428,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: _textDark,
-                          fontFamily: 'Serif', // Optionnel : utiliser une police serif si disponible
+                          fontFamily: 'Serif',
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -431,7 +460,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
               ),
             ),
 
-            // Photo de profil (Cercle qui dépasse)
+            // Photo de profil
             Positioned(
               top: 0,
               child: Container(
