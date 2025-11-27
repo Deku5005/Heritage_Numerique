@@ -103,21 +103,40 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     // Étape 1: Construire les générations
     final generations = <int, List<Membre>>{};
     _buildDescendants(_selectedMember!, 0, generations);
+    
+    // Debug: afficher le nombre de générations
+    print("Nombre de générations: ${generations.length}");
+    for (var gen in generations.keys.toList()..sort()) {
+      print("Génération $gen: ${generations[gen]!.length} membres");
+    }
 
     // Étape 2: Calculer les positions verticales pour chaque génération
     final memberPositions = <int, Map<int, double>>{};
     _calculatePositions(generations, memberPositions);
 
-    // Calculer la hauteur totale nécessaire
+    // Calculer la hauteur totale nécessaire en fonction des positions réelles
+    double maxHeight = 0.0;
+    for (var gen in generations.keys) {
+      final positions = memberPositions[gen] ?? {};
+      if (positions.isNotEmpty) {
+        final maxPos = positions.values.reduce((a, b) => a > b ? a : b);
+        final genHeight = maxPos + _nodeHeight / 2;
+        if (genHeight > maxHeight) {
+          maxHeight = genHeight;
+        }
+      }
+    }
+    
+    // Fallback si aucune position n'est calculée
     int maxMembersInGeneration = 0;
     for (var members in generations.values) {
       if (members.length > maxMembersInGeneration) {
         maxMembersInGeneration = members.length;
       }
     }
-
-    final totalHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
-    final safeHeight = totalHeight > 0 ? totalHeight : _nodeHeight + _verticalSpacing;
+    
+    final calculatedHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
+    final safeHeight = maxHeight > 0 ? maxHeight : (calculatedHeight > 0 ? calculatedHeight : _nodeHeight + _verticalSpacing);
     
     // Obtenir les générations triées
     final sortedGenerations = generations.keys.toList()..sort();
@@ -186,12 +205,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       final positions = memberPositions[gen]!;
       
       if (gen == sortedGens.first) {
-        // Dernière génération : distribuer uniformément depuis le centre
-        final totalHeight = members.length * (_nodeHeight + _verticalSpacing) - _verticalSpacing;
-        final startY = (totalHeight - (members.length - 1) * (_nodeHeight + _verticalSpacing)) / 2;
-        
+        // Dernière génération : distribuer uniformément depuis 0
         for (int i = 0; i < members.length; i++) {
-          positions[members[i].id] = startY + i * (_nodeHeight + _verticalSpacing) + _nodeHeight / 2;
+          positions[members[i].id] = i * (_nodeHeight + _verticalSpacing) + _nodeHeight / 2;
         }
       } else {
         // Générations précédentes : centrer par rapport aux enfants
@@ -229,6 +245,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         _adjustPositionsForOverlap(members, positions);
       }
     }
+    
+    // Normaliser toutes les positions pour qu'elles commencent à 0
+    for (var gen in sortedGens.reversed) {
+      final positions = memberPositions[gen]!;
+      if (positions.isEmpty) continue;
+      
+      final minPos = positions.values.reduce((a, b) => a < b ? a : b);
+      for (var key in positions.keys) {
+        positions[key] = positions[key]! - minPos + _nodeHeight / 2;
+      }
+    }
   }
 
   // Ajuster les positions pour éviter les chevauchements
@@ -257,16 +284,39 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     List<Membre> nextGenMembers,
     Map<int, Map<int, double>> memberPositions,
   ) {
+    if (members.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final positions = memberPositions[generation] ?? {};
+    
+    // Trier les membres par position Y
+    final sortedMembers = List<Membre>.from(members);
+    sortedMembers.sort((a, b) {
+      final posA = positions[a.id] ?? 0.0;
+      final posB = positions[b.id] ?? 0.0;
+      return posA.compareTo(posB);
+    });
+
+    // Calculer la hauteur réelle nécessaire
+    double maxPos = 0.0;
+    for (var member in sortedMembers) {
+      final pos = positions[member.id] ?? 0.0;
+      if (pos > maxPos) maxPos = pos;
+    }
+    final actualHeight = (maxPos + _nodeHeight / 2).clamp(totalHeight, double.infinity);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Colonne de membres avec positions absolues
+        // Colonne de membres avec Stack pour positionnement précis
         SizedBox(
           width: _nodeWidth,
-          height: totalHeight,
+          height: actualHeight,
           child: Stack(
-            children: members.map((membre) {
-              final yPos = memberPositions[generation]?[membre.id] ?? 0.0;
+            clipBehavior: Clip.none,
+            children: sortedMembers.map((membre) {
+              final yPos = positions[membre.id] ?? 0.0;
               return Positioned(
                 top: yPos - _nodeHeight / 2,
                 left: 0,
@@ -279,7 +329,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         if (members.isNotEmpty && nextGenMembers.isNotEmpty)
           SizedBox(
             width: _horizontalSpacing,
-            height: totalHeight,
+            height: actualHeight,
             child: CustomPaint(
               painter: _ConnectionLinePainter(
                 color: _brownDark.withOpacity(0.5),
@@ -452,19 +502,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       boundaryMargin: const EdgeInsets.all(2000),
       minScale: 0.1,
       maxScale: 4.0,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Padding(
-                padding: const EdgeInsets.all(80),
-                child: _buildHorizontalTree(),
-              ),
-            ),
-          );
-        },
+      child: Padding(
+        padding: const EdgeInsets.all(80),
+        child: _buildHorizontalTree(),
       ),
     );
   }
