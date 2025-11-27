@@ -130,8 +130,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     // Ajouter les parents (génération suivante)
     final allMembers = _getAllMembers(_familleData!.membres);
-    final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere, orElse: () => Membre(id: -1));
-    final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere, orElse: () => Membre(id: -1));
+    final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere, orElse: () => Membre(id: -1, enfants: []));
+    final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere, orElse: () => Membre(id: -1, enfants: []));
 
     if (parent1.id != -1) {
       _buildGenerations(parent1, generation + 1, generations);
