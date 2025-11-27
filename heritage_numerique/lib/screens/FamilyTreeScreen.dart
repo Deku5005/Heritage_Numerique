@@ -219,19 +219,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     return SizedBox(
       height: safeHeight,
-      child: IntrinsicWidth(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: sortedLevels.map((levelIndex) {
-            final members = levels[levelIndex] ?? [];
-            final nextLevelIndex = sortedLevels.indexOf(levelIndex) + 1;
-            final nextLevelMembers = nextLevelIndex < sortedLevels.length
-                ? levels[sortedLevels[nextLevelIndex]] ?? []
-                : <Membre>[];
-            return _buildLevelColumn(members, levelIndex, safeHeight, nextLevelMembers, memberPositions);
-          }).toList(),
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: sortedLevels.map((levelIndex) {
+          final members = levels[levelIndex] ?? [];
+          final nextLevelIndex = sortedLevels.indexOf(levelIndex) + 1;
+          final nextLevelMembers = nextLevelIndex < sortedLevels.length
+              ? levels[sortedLevels[nextLevelIndex]] ?? []
+              : <Membre>[];
+          return _buildLevelColumn(members, levelIndex, safeHeight, nextLevelMembers, memberPositions);
+        }).toList(),
       ),
     );
   }
@@ -358,11 +356,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
     final actualHeight = (maxPos + _nodeHeight / 2).clamp(totalHeight, double.infinity);
 
-    // Calculer la largeur de cette colonne
-    final columnWidth = _nodeWidth + (nextLevelMembers.isNotEmpty ? _horizontalSpacing : 0);
-
     return SizedBox(
-      width: columnWidth,
       height: actualHeight,
       child: Row(
         mainAxisSize: MainAxisSize.min,
