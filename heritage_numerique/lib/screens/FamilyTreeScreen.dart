@@ -218,7 +218,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     
     print("Largeur totale calculée: $totalWidth (${sortedLevels.length} niveaux)");
 
-    return SizedBox(
+    return Container(
       width: totalWidth,
       height: safeHeight,
       child: Row(
@@ -561,9 +561,12 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       boundaryMargin: const EdgeInsets.all(2000),
       minScale: 0.1,
       maxScale: 4.0,
-      child: Padding(
-        padding: const EdgeInsets.all(80),
-        child: _buildHorizontalTree(),
+      child: UnconstrainedBox(
+        constrainedAxis: Axis.vertical,
+        child: Padding(
+          padding: const EdgeInsets.all(80),
+          child: _buildHorizontalTree(),
+        ),
       ),
     );
   }
