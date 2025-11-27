@@ -290,12 +290,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
           ),
           Column(
             children: [
-<<<<<<< HEAD
 
-              const Text("Vue Pedigree", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
-=======
               const Text("Arbre Familial", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
->>>>>>> 8da462e8e9b26cca9600fc5a61f600f460180f01
+
               if (_selectedMember != null)
                 Text(_selectedMember!.nomComplet ?? "Membre", style: const TextStyle(fontSize: 12, color: _goldPrimary, fontStyle: FontStyle.italic)),
 
