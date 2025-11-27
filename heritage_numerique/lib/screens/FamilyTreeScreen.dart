@@ -96,9 +96,12 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   Widget _buildHorizontalPedigree() {
     if (_selectedMember == null) return const SizedBox.shrink();
 
+    // Récupérer tous les membres une seule fois pour l'efficacité
+    final allMembers = _getAllMembers(_familleData!.membres);
+
     // Construire les générations d'ancêtres
     final generations = <int, List<Membre>>{};
-    _buildGenerations(_selectedMember!, 0, generations);
+    _buildGenerations(_selectedMember!, 0, generations, allMembers);
 
     // Calculer la hauteur totale nécessaire
     int maxMembersInGeneration = 0;
@@ -109,35 +112,50 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     final totalHeight = maxMembersInGeneration * (_nodeHeight + _verticalSpacing);
+    // S'assurer que la hauteur est au moins suffisante pour une carte
+    final safeHeight = totalHeight > 0 ? totalHeight : _nodeHeight + _verticalSpacing;
 
     return SizedBox(
-      height: totalHeight,
+      height: safeHeight,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: List.generate(generations.length, (genIndex) {
           final members = generations[genIndex] ?? [];
-          return _buildGenerationColumn(members, genIndex, totalHeight);
+          return _buildGenerationColumn(members, genIndex, safeHeight);
         }),
       ),
     );
   }
 
-  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations) {
+  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations, List<Membre> allMembers) {
     if (!generations.containsKey(generation)) {
       generations[generation] = [];
     }
-    generations[generation]!.add(membre);
+    
+    // Éviter les doublons visuels dans la même génération
+    if (!generations[generation]!.any((m) => m.id == membre.id)) {
+      generations[generation]!.add(membre);
+    }
 
     // Ajouter les parents (génération suivante)
-    final allMembers = _getAllMembers(_familleData!.membres);
-    final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere, orElse: () => Membre(id: -1, enfants: []));
-    final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere, orElse: () => Membre(id: -1, enfants: []));
-
-    if (parent1.id != -1) {
-      _buildGenerations(parent1, generation + 1, generations);
+    // Recherche du père
+    if (membre.idPere != null) {
+      try {
+        final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere);
+        _buildGenerations(parent1, generation + 1, generations, allMembers);
+      } catch (e) {
+        // Père non trouvé dans les données chargées
+      }
     }
-    if (parent2.id != -1) {
-      _buildGenerations(parent2, generation + 1, generations);
+
+    // Recherche de la mère
+    if (membre.idMere != null) {
+      try {
+        final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere);
+        _buildGenerations(parent2, generation + 1, generations, allMembers);
+      } catch (e) {
+        // Mère non trouvée dans les données chargées
+      }
     }
   }
 
@@ -167,8 +185,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             children: members.map((membre) => _buildMemberCard(membre)).toList(),
           ),
         ),
-        // Lignes de connexion vers la génération suivante
-        if (generation < 3) // Limiter à 4 générations
+        // Lignes de connexion vers la génération suivante (sauf pour la dernière)
+        if (members.isNotEmpty) 
           CustomPaint(
             size: Size(_horizontalSpacing, totalHeight),
             painter: _ConnectionLinePainter(
@@ -290,9 +308,12 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            icon: const Icon(Icons.menu, color: _brownDark),
+          // Utilisation de Builder pour avoir le bon contexte pour Scaffold.of()
+          Builder(
+            builder: (context) => IconButton(
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              icon: const Icon(Icons.menu, color: _brownDark),
+            ),
           ),
           Column(
             children: [
@@ -567,10 +588,15 @@ class _ConnectionLinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Dessiner une ligne horizontale pour chaque membre vers la droite
-    final spacing = size.height / (members.length + 1);
+    // On suppose que les membres sont distribués uniformément dans la hauteur
+    final totalHeight = size.height;
+    // La hauteur disponible par membre dans la colonne
+    final heightPerMember = totalHeight / members.length;
+    
     for (int i = 0; i < members.length; i++) {
-      final y = spacing * (i + 1);
-      // Ligne horizontale
+      // Le centre vertical de la carte
+      final y = (i * heightPerMember) + (heightPerMember / 2);
+      
       canvas.drawLine(
         Offset(0, y),
         Offset(size.width, y),
