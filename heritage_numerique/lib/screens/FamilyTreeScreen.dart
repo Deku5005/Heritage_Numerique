@@ -62,6 +62,14 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
       setState(() {
         _familleData = famille;
+        // Debug: afficher tous les membres de la famille
+        print("=== DONNÉES FAMILLE ===");
+        print("Nombre total de membres racines: ${famille.membres.length}");
+        for (var membre in famille.membres) {
+          print("Membre racine: ${membre.nomComplet} (ID: ${membre.id}) - ${membre.enfants.length} enfants");
+          _printMemberTree(membre, 0);
+        }
+        
         // Sélectionner le premier membre racine par défaut
         if (famille.membres.isNotEmpty) {
           _selectedMember = famille.membres.first;
@@ -94,6 +102,15 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       _selectedMember = membre;
     });
     _centerTree();
+  }
+
+  // Fonction utilitaire pour afficher l'arbre des membres (debug)
+  void _printMemberTree(Membre membre, int depth) {
+    final indent = "  " * depth;
+    print("$indent- ${membre.nomComplet} (ID: ${membre.id}) - ${membre.enfants.length} enfants");
+    for (var enfant in membre.enfants) {
+      _printMemberTree(enfant, depth + 1);
+    }
   }
 
   // ==================== CONSTRUCTION DE L'ARBRE DESCENDANT (Style MyHeritage) ====================
@@ -149,6 +166,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     // Pour chaque génération : nodeWidth + horizontalSpacing (sauf la dernière)
     final totalWidth = sortedGenerations.length * _nodeWidth + 
                       (sortedGenerations.length > 1 ? (sortedGenerations.length - 1) * _horizontalSpacing : 0);
+    
+    print("Largeur totale calculée: $totalWidth (${sortedGenerations.length} générations)");
 
     return SizedBox(
       width: totalWidth,
@@ -177,9 +196,11 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     // Éviter les doublons visuels
     if (!generations[generation]!.any((m) => m.id == membre.id)) {
       generations[generation]!.add(membre);
+      print("  Ajouté membre ${membre.nomComplet} (ID: ${membre.id}) à la génération $generation");
     }
 
     // Ajouter les enfants (génération suivante)
+    print("  Membre ${membre.nomComplet} a ${membre.enfants.length} enfants");
     for (var enfant in membre.enfants) {
       _buildDescendants(enfant, generation + 1, generations);
     }
@@ -306,43 +327,50 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
     final actualHeight = (maxPos + _nodeHeight / 2).clamp(totalHeight, double.infinity);
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Colonne de membres avec Stack pour positionnement précis
-        SizedBox(
-          width: _nodeWidth,
-          height: actualHeight,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: sortedMembers.map((membre) {
-              final yPos = positions[membre.id] ?? 0.0;
-              return Positioned(
-                top: yPos - _nodeHeight / 2,
-                left: 0,
-                child: _buildMemberCard(membre),
-              );
-            }).toList(),
-          ),
-        ),
-        // Lignes de connexion vers la génération suivante (style MyHeritage)
-        if (members.isNotEmpty && nextGenMembers.isNotEmpty)
+    // Calculer la largeur de cette colonne
+    final columnWidth = _nodeWidth + (nextGenMembers.isNotEmpty ? _horizontalSpacing : 0);
+
+    return SizedBox(
+      width: columnWidth,
+      height: actualHeight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Colonne de membres avec Stack pour positionnement précis
           SizedBox(
-            width: _horizontalSpacing,
+            width: _nodeWidth,
             height: actualHeight,
-            child: CustomPaint(
-              painter: _ConnectionLinePainter(
-                color: _brownDark.withOpacity(0.5),
-                parentMembers: members,
-                childMembers: nextGenMembers,
-                nodeHeight: _nodeHeight,
-                nodeWidth: _nodeWidth,
-                parentPositions: memberPositions[generation] ?? {},
-                childPositions: memberPositions[generation + 1] ?? {},
-              ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: sortedMembers.map((membre) {
+                final yPos = positions[membre.id] ?? 0.0;
+                return Positioned(
+                  top: yPos - _nodeHeight / 2,
+                  left: 5, // Décalage pour la marge gauche
+                  child: _buildMemberCard(membre),
+                );
+              }).toList(),
             ),
           ),
-      ],
+          // Lignes de connexion vers la génération suivante (style MyHeritage)
+          if (members.isNotEmpty && nextGenMembers.isNotEmpty)
+            SizedBox(
+              width: _horizontalSpacing,
+              height: actualHeight,
+              child: CustomPaint(
+                painter: _ConnectionLinePainter(
+                  color: _brownDark.withOpacity(0.5),
+                  parentMembers: members,
+                  childMembers: nextGenMembers,
+                  nodeHeight: _nodeHeight,
+                  nodeWidth: _nodeWidth,
+                  parentPositions: memberPositions[generation] ?? {},
+                  childPositions: memberPositions[generation + 1] ?? {},
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -524,8 +552,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     return GestureDetector(
       onTap: () => _showMemberOptions(membre),
       child: Container(
-        width: _nodeWidth,
-        height: _nodeHeight,
+        width: _nodeWidth - 10, // Soustraire les marges horizontales (5 de chaque côté)
+        height: _nodeHeight - 10, // Soustraire les marges verticales
         margin: const EdgeInsets.all(5),
         child: Stack(
           alignment: Alignment.topCenter,
