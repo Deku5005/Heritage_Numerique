@@ -212,8 +212,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       return const SizedBox.shrink();
     }
     
-    // Calculer la largeur totale nécessaire
-    final totalWidth = sortedLevels.length * _nodeWidth + 
+    // Calculer la largeur totale nécessaire (ajouter 10 pour les marges de chaque colonne)
+    final totalWidth = sortedLevels.length * (_nodeWidth + 10) + 
                       (sortedLevels.length > 1 ? (sortedLevels.length - 1) * _horizontalSpacing : 0);
     
     print("Largeur totale calculée: $totalWidth (${sortedLevels.length} niveaux)");
@@ -364,7 +364,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         children: [
           // Colonne de membres avec Stack pour positionnement précis
           SizedBox(
-            width: _nodeWidth,
+            width: _nodeWidth + 10, // Ajouter 10 pour les marges (5 de chaque côté)
             height: actualHeight,
             child: Stack(
               clipBehavior: Clip.none,
@@ -372,7 +372,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                 final yPos = positions[membre.id] ?? 0.0;
                 return Positioned(
                   top: yPos - _nodeHeight / 2,
-                  left: 5, // Décalage pour la marge gauche
+                  left: 0, // Plus besoin de décalage, la marge est dans la carte
                   child: _buildMemberCard(membre),
                 );
               }).toList(),
