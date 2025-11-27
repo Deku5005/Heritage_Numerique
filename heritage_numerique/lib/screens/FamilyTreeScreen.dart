@@ -110,7 +110,13 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     for (var racine in racines) {
       final rootNode = _addMemberRecursively(null, racine);
       if (virtualRoot != null && rootNode != null) {
-        graph.addEdge(virtualRoot, rootNode);
+        // IMPORTANT : On doit fournir un Paint même pour les arêtes invisibles
+        // sinon GraphView peut planter (Null check operator used on a null value)
+        graph.addEdge(virtualRoot, rootNode, paint: Paint()
+          ..color = Colors.transparent
+          ..strokeWidth = 0.0
+          ..style = PaintingStyle.stroke
+        );
       }
     }
   }
@@ -283,7 +289,11 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             children: [
               const Text("Arbre Généalogique", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _brownDark)),
               if (_familleData != null)
+<<<<<<< HEAD
                 Text(_familleData!.nomFamille!, style: const TextStyle(fontSize: 14, color: _goldPrimary, fontStyle: FontStyle.italic)),
+=======
+                Text(_familleData!.nomFamille ?? "Famille", style: const TextStyle(fontSize: 14, color: _goldPrimary, fontStyle: FontStyle.italic)),
+>>>>>>> c47933035364d11c6bfd70bfd8f08e0d700495c3
             ],
           ),
           IconButton(
