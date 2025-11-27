@@ -43,10 +43,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   // Dimensions des cartes
   final double _nodeWidth = 180.0;
   final double _nodeHeight = 240.0;
-  
-  // Dimensions du canvas (calculées dynamiquement)
-  double _graphWidth = 2000;
-  double _graphHeight = 1500;
 
   @override
   void initState() {
@@ -77,7 +73,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         _familleData = famille;
         _isLoading = false;
         _buildGraphFromHierarchicalData(famille.membres);
-        _calculateGraphDimensions();
       });
 
       // Centrer la vue après le rendu
@@ -96,9 +91,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   void _buildGraphFromHierarchicalData(List<Membre> racines) {
     builder
       ..orientation = BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM
-      ..siblingSeparation = 40  // Espace entre frères/sœurs
-      ..levelSeparation = 80    // Espace vertical entre générations
-      ..subtreeSeparation = 50; // Espace entre cousins
+      ..siblingSeparation = 40
+      ..levelSeparation = 80
+      ..subtreeSeparation = 50;
 
     // Racine virtuelle pour gérer plusieurs ancêtres de même niveau
     Node? virtualRoot;
@@ -107,20 +102,29 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       graph.addNode(virtualRoot);
     }
 
+    // Set pour détecter les cycles lors de la construction
+    final Set<int> visited = {};
+
     for (var racine in racines) {
-      final rootNode = _addMemberRecursively(null, racine);
+      final rootNode = _addMemberRecursively(null, racine, visited);
       if (virtualRoot != null && rootNode != null) {
-        // IMPORTANT : On doit fournir un Paint même pour les arêtes invisibles
+        // Ajout explicite de Paint pour éviter le crash "Null check operator"
         graph.addEdge(virtualRoot, rootNode, paint: Paint()
           ..color = Colors.transparent
-          ..strokeWidth = 0.0
+          ..strokeWidth = 0.1 // Petite largeur pour éviter 0.0 si problématique
           ..style = PaintingStyle.stroke
         );
       }
     }
   }
 
-  Node _addMemberRecursively(Membre? parent, Membre membre) {
+  Node _addMemberRecursively(Membre? parent, Membre membre, Set<int> visited) {
+    // Prévention des cycles infinis
+    if (visited.contains(membre.id)) {
+      return _memberNodes[membre.id] ?? Node.Id(membre.id);
+    }
+    visited.add(membre.id);
+
     Node node;
     if (_memberNodes.containsKey(membre.id)) {
       node = _memberNodes[membre.id]!;
@@ -132,7 +136,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     if (parent != null) {
       final parentNode = _memberNodes[parent.id]!;
-      // Vérifier si l'arête existe déjà pour éviter les doublons
+      
+      // Vérifier si l'arête existe déjà
       final exists = graph.edges.any((e) =>
       (e.source == parentNode && e.destination == node) ||
           (e.source == node && e.destination == parentNode));
@@ -147,50 +152,19 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     for (var enfant in membre.enfants) {
-      _addMemberRecursively(membre, enfant);
+      _addMemberRecursively(membre, enfant, Set.from(visited)); // Copie du set pour le chemin
     }
+    
     return node;
-  }
-
-  // ==================== DIMENSIONS & ZOOM ====================
-  void _calculateGraphDimensions() {
-    if (_familleData == null) return;
-    
-    int maxLevel = 0;
-    Map<int, int> nodesPerLevel = {};
-    
-    // Parcours pour déterminer la largeur et la profondeur de l'arbre
-    void traverse(List<Membre> membres, int level) {
-      maxLevel = max(maxLevel, level);
-      nodesPerLevel[level] = (nodesPerLevel[level] ?? 0) + membres.length;
-      for (var m in membres) {
-        if (m.enfants.isNotEmpty) traverse(m.enfants, level + 1);
-      }
-    }
-
-    traverse(_familleData!.membres, 0);
-
-    int maxNodesInLevel = 0;
-    nodesPerLevel.forEach((k, v) {
-      maxNodesInLevel = max(maxNodesInLevel, v);
-    });
-
-    // Calcul des dimensions avec marge de sécurité
-    // Largeur = (Nb max de nœuds * largeur nœud) + espaces
-    _graphWidth = max(2000.0, (maxNodesInLevel * (_nodeWidth + 60.0)) + 400.0);
-    
-    // Hauteur = (Nb niveaux * hauteur nœud) + espaces
-    _graphHeight = max(1500.0, ((maxLevel + 1) * (_nodeHeight + 100.0)) + 400.0);
   }
 
   void _centerGraph() {
     if (_memberNodes.isEmpty) return;
     
     final size = MediaQuery.of(context).size;
-    // On centre sur le haut du canvas (où se trouve la racine)
     _transformationController.value = Matrix4.identity()
-      ..translate(size.width / 2 - (_graphWidth / 2), 50.0) 
-      ..scale(0.5);
+      ..translate(size.width / 2 - _nodeWidth / 2, 50.0) 
+      ..scale(0.6);
   }
 
   // ==================== NAVIGATION ====================
@@ -214,7 +188,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       drawer: AppDrawer(familyId: widget.familyId),
       body: Stack(
         children: [
-          // Fond décoratif subtil
+          // Fond décoratif
           Positioned.fill(
             child: Opacity(
               opacity: 0.05,
@@ -235,7 +209,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
             ],
           ),
 
-          // Bouton flottant personnalisé
+          // Bouton flottant
           Positioned(
             bottom: 30,
             right: 30,
@@ -343,35 +317,28 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     return InteractiveViewer(
       transformationController: _transformationController,
-      constrained: false,
-      boundaryMargin: const EdgeInsets.all(2000),
+      constrained: false, // Permet au graphe de prendre toute la place nécessaire
+      boundaryMargin: const EdgeInsets.all(1000),
       minScale: 0.01,
-      maxScale: 4.0,
-      child: Container(
-        // 🔑 FIX CRITIQUE : On donne une taille explicite au conteneur du graphe
-        // pour éviter l'erreur "unbounded size" ou "NaN"
-        width: _graphWidth,
-        height: _graphHeight,
-        alignment: Alignment.topCenter,
-        child: GraphView(
-          graph: graph,
-          algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
-          paint: Paint()
-            ..color = _brownDark.withOpacity(0.8)
-            ..strokeWidth = 2.0
-            ..style = PaintingStyle.stroke,
-          builder: (Node node) {
-            final int? id = node.key?.value as int?;
-            
-            // 🔑 FIX CRITIQUE : Taille minimale pour la racine virtuelle pour éviter NaN
-            if (id == null || id < 0) return const SizedBox(width: 1, height: 1);
+      maxScale: 5.0,
+      child: GraphView(
+        graph: graph,
+        algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
+        paint: Paint()
+          ..color = _brownDark.withOpacity(0.8)
+          ..strokeWidth = 2.0
+          ..style = PaintingStyle.stroke,
+        builder: (Node node) {
+          final int? id = node.key?.value as int?;
+          
+          // Fix: Taille minimale 1x1 pour éviter NaN sur la racine virtuelle
+          if (id == null || id < 0) return const SizedBox(width: 1, height: 1);
 
-            final member = _findMemberInHierarchicalData(id, _familleData!.membres);
-            if (member == null) return const SizedBox(width: 1, height: 1);
+          final member = _findMemberInHierarchicalData(id, _familleData!.membres);
+          if (member == null) return const SizedBox(width: 1, height: 1);
 
-            return _buildMemberCard(member);
-          },
-        ),
+          return _buildMemberCard(member);
+        },
       ),
     );
   }
