@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
-
-import 'package:graphview/GraphView.dart';
 
 import '../model/FamilleModel.dart';
 import '../model/Membre.dart';
@@ -13,7 +10,6 @@ import 'MembresDetailsScreen.dart';
 
 // --- PALETTE DE COULEURS PREMIUM ---
 const Color _goldPrimary = Color(0xFFAA7311);
-const Color _goldLight = Color(0xFFFFD700);
 const Color _brownDark = Color(0xFF5D4037);
 const Color _creamBackground = Color(0xFFF9F5F0);
 const Color _cardBackground = Colors.white;
@@ -33,11 +29,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
-
-  // GraphView
-  final Graph graph = Graph();
-  final BuchheimWalkerConfiguration builder = BuchheimWalkerConfiguration();
-  final Map<int, Node> _memberNodes = {};
   final TransformationController _transformationController = TransformationController();
 
   // Dimensions des cartes
@@ -47,7 +38,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   @override
   void initState() {
     super.initState();
-    _transformationController.value = Matrix4.identity()..scale(0.8);
     _fetchFamilyTree();
   }
 
@@ -61,9 +51,6 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      graph.nodes.clear();
-      graph.edges.clear();
-      _memberNodes.clear();
     });
 
     try {
@@ -72,13 +59,10 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       setState(() {
         _familleData = famille;
         _isLoading = false;
-        _buildGraphFromHierarchicalData(famille.membres);
       });
-
-      // Centrer la vue après le rendu
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _centerGraph();
-      });
+      
+      // Centrer l'arbre après chargement
+      WidgetsBinding.instance.addPostFrameCallback((_) => _centerTree());
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur de chargement : $e';
@@ -87,84 +71,11 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
   }
 
-  // ==================== CONSTRUCTION DU GRAPHE ====================
-  void _buildGraphFromHierarchicalData(List<Membre> racines) {
-    builder
-      ..orientation = BuchheimWalkerConfiguration.ORIENTATION_TOP_BOTTOM
-      ..siblingSeparation = 40
-      ..levelSeparation = 80
-      ..subtreeSeparation = 50;
-
-    // Racine virtuelle pour gérer plusieurs ancêtres de même niveau
-    Node? virtualRoot;
-    if (racines.length > 1) {
-      virtualRoot = Node.Id(-999);
-      graph.addNode(virtualRoot);
-    }
-
-    // Set pour détecter les cycles lors de la construction
-    final Set<int> visited = {};
-
-    for (var racine in racines) {
-      final rootNode = _addMemberRecursively(null, racine, visited);
-      if (virtualRoot != null && rootNode != null) {
-        // Ajout explicite de Paint pour éviter le crash "Null check operator"
-        graph.addEdge(virtualRoot, rootNode, paint: Paint()
-          ..color = Colors.transparent
-          ..strokeWidth = 0.1 // Petite largeur pour éviter 0.0 si problématique
-          ..style = PaintingStyle.stroke
-        );
-      }
-    }
-  }
-
-  Node _addMemberRecursively(Membre? parent, Membre membre, Set<int> visited) {
-    // Prévention des cycles infinis
-    if (visited.contains(membre.id)) {
-      return _memberNodes[membre.id] ?? Node.Id(membre.id);
-    }
-    visited.add(membre.id);
-
-    Node node;
-    if (_memberNodes.containsKey(membre.id)) {
-      node = _memberNodes[membre.id]!;
-    } else {
-      node = Node.Id(membre.id);
-      graph.addNode(node);
-      _memberNodes[membre.id] = node;
-    }
-
-    if (parent != null) {
-      final parentNode = _memberNodes[parent.id]!;
-      
-      // Vérifier si l'arête existe déjà
-      final exists = graph.edges.any((e) =>
-      (e.source == parentNode && e.destination == node) ||
-          (e.source == node && e.destination == parentNode));
-      
-      if (!exists) {
-        graph.addEdge(parentNode, node, paint: Paint()
-          ..color = _brownDark.withOpacity(0.6)
-          ..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke
-        );
-      }
-    }
-
-    for (var enfant in membre.enfants) {
-      _addMemberRecursively(membre, enfant, Set.from(visited)); // Copie du set pour le chemin
-    }
-    
-    return node;
-  }
-
-  void _centerGraph() {
-    if (_memberNodes.isEmpty) return;
-    
+  void _centerTree() {
     final size = MediaQuery.of(context).size;
     _transformationController.value = Matrix4.identity()
-      ..translate(size.width / 2 - _nodeWidth / 2, 50.0) 
-      ..scale(0.6);
+      ..translate(size.width / 2 - 100, 50.0)
+      ..scale(0.8);
   }
 
   // ==================== NAVIGATION ====================
@@ -204,7 +115,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                     ? const Center(child: CircularProgressIndicator(color: _goldPrimary))
                     : _errorMessage != null 
                         ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
-                        : _buildGraphViewLayout(),
+                        : _buildTreeView(),
               ),
             ],
           ),
@@ -221,7 +132,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
               elevation: 4,
             ),
           ),
-          
+
           // Contrôles de zoom
           Positioned(
             bottom: 30,
@@ -234,7 +145,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                   backgroundColor: Colors.white,
                   child: const Icon(Icons.add, color: _textDark),
                   onPressed: () {
-                    _transformationController.value *= Matrix4.identity()..scale(1.2);
+                    _transformationController.value = _transformationController.value.clone()..scale(1.2);
                   },
                 ),
                 const SizedBox(height: 10),
@@ -244,7 +155,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                   backgroundColor: Colors.white,
                   child: const Icon(Icons.remove, color: _textDark),
                   onPressed: () {
-                    _transformationController.value *= Matrix4.identity()..scale(0.8);
+                    _transformationController.value = _transformationController.value.clone()..scale(0.8);
                   },
                 ),
                 const SizedBox(height: 10),
@@ -253,7 +164,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                   mini: true,
                   backgroundColor: Colors.white,
                   child: const Icon(Icons.center_focus_strong, color: _textDark),
-                  onPressed: _centerGraph,
+                  onPressed: _centerTree,
                 ),
               ],
             ),
@@ -297,7 +208,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     );
   }
 
-  Widget _buildGraphViewLayout() {
+  Widget _buildTreeView() {
     if (_familleData!.membres.isEmpty) {
       return Center(
         child: Column(
@@ -319,29 +230,72 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
     return InteractiveViewer(
       transformationController: _transformationController,
-      constrained: false, // Permet au graphe de prendre toute la place nécessaire
       boundaryMargin: const EdgeInsets.all(1000),
-      minScale: 0.01,
-      maxScale: 5.0,
-      child: GraphView(
-        graph: graph,
-        algorithm: BuchheimWalkerAlgorithm(builder, TreeEdgeRenderer(builder)),
-        paint: Paint()
-          ..color = _brownDark.withOpacity(0.8)
-          ..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke,
-        builder: (Node node) {
-          final int? id = node.key?.value as int?;
-          
-          // Fix: Taille minimale 1x1 pour éviter NaN sur la racine virtuelle
-          if (id == null || id < 0) return const SizedBox(width: 1, height: 1);
-
-          final member = _findMemberInHierarchicalData(id, _familleData!.membres);
-          if (member == null) return const SizedBox(width: 1, height: 1);
-
-          return _buildMemberCard(member);
-        },
+      minScale: 0.1,
+      maxScale: 3.0,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Padding(
+            padding: const EdgeInsets.all(50),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: _familleData!.membres.map((racine) => _buildMemberTree(racine)).toList(),
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildMemberTree(Membre membre) {
+    return Column(
+      children: [
+        _buildMemberCard(membre),
+        if (membre.enfants.isNotEmpty) ...[
+          // Ligne verticale
+          Container(
+            width: 2,
+            height: 40,
+            color: _brownDark.withOpacity(0.6),
+          ),
+          // Ligne horizontale pour connecter les enfants
+          if (membre.enfants.length > 1)
+            SizedBox(
+              height: 2,
+              width: (membre.enfants.length * (_nodeWidth + 40)) - 40,
+              child: CustomPaint(
+                painter: _HorizontalLinePainter(
+                  color: _brownDark.withOpacity(0.6),
+                  childCount: membre.enfants.length,
+                  nodeWidth: _nodeWidth + 40,
+                ),
+              ),
+            ),
+          // Enfants
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: membre.enfants.map((enfant) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    if (membre.enfants.length > 1)
+                      Container(
+                        width: 2,
+                        height: 40,
+                        color: _brownDark.withOpacity(0.6),
+                      ),
+                    _buildMemberTree(enfant),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -527,14 +481,45 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       ),
     );
   }
+}
 
-  Membre? _findMemberInHierarchicalData(int? id, List<Membre> list) {
-    if (id == null) return null;
-    for (var m in list) {
-      if (m.id == id) return m;
-      final found = _findMemberInHierarchicalData(id, m.enfants);
-      if (found != null) return found;
+// Custom painter pour les lignes horizontales
+class _HorizontalLinePainter extends CustomPainter {
+  final Color color;
+  final int childCount;
+  final double nodeWidth;
+
+  _HorizontalLinePainter({
+    required this.color,
+    required this.childCount,
+    required this.nodeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    // Ligne horizontale principale
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      paint,
+    );
+
+    // Lignes verticales pour chaque enfant
+    for (int i = 0; i < childCount; i++) {
+      final x = (i * nodeWidth) + (nodeWidth / 2);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        paint,
+      );
     }
-    return null;
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
