@@ -39,6 +39,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   final double _horizontalSpacing = 100.0;
   final double _verticalSpacing = 30.0;
 
+  // Map pour stocker les parents de chaque membre (déduit de la structure hiérarchique)
+  final Map<int, List<Membre>> _parentsOfMember = {};
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +65,8 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
       setState(() {
         _familleData = famille;
+        _preprocessFamilyData(); // Prétraitement pour trouver les parents
+        
         // Sélectionner le premier membre racine par défaut
         if (famille.membres.isNotEmpty) {
           _selectedMember = famille.membres.first;
@@ -76,6 +81,32 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _preprocessFamilyData() {
+    _parentsOfMember.clear();
+    if (_familleData == null) return;
+
+    // Fonction récursive pour parcourir l'arbre et associer les parents aux enfants
+    void traverse(Membre parent) {
+      for (var enfant in parent.enfants) {
+        if (!_parentsOfMember.containsKey(enfant.id)) {
+          _parentsOfMember[enfant.id] = [];
+        }
+        // Ajouter le parent à la liste des parents de l'enfant
+        // On évite les doublons si l'arbre a des cycles ou références multiples
+        if (!_parentsOfMember[enfant.id]!.any((p) => p.id == parent.id)) {
+          _parentsOfMember[enfant.id]!.add(parent);
+        }
+        
+        traverse(enfant);
+      }
+    }
+
+    for (var racine in _familleData!.membres) {
+      traverse(racine);
+    }
+    print("Prétraitement terminé. Relations parents trouvées pour ${_parentsOfMember.length} membres.");
   }
 
   void _centerTree() {
@@ -96,12 +127,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   Widget _buildHorizontalPedigree() {
     if (_selectedMember == null) return const SizedBox.shrink();
 
-    // Récupérer tous les membres une seule fois pour l'efficacité
-    final allMembers = _getAllMembers(_familleData!.membres);
-
     // Construire les générations d'ancêtres
     final generations = <int, List<Membre>>{};
-    _buildGenerations(_selectedMember!, 0, generations, allMembers);
+    _buildGenerations(_selectedMember!, 0, generations);
 
     // Calculer la hauteur totale nécessaire
     int maxMembersInGeneration = 0;
@@ -127,7 +155,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     );
   }
 
-  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations, List<Membre> allMembers) {
+  void _buildGenerations(Membre membre, int generation, Map<int, List<Membre>> generations) {
     print("Traitement membre: ${membre.nomComplet} (ID: ${membre.id}) - Génération: $generation");
     
     if (!generations.containsKey(generation)) {
@@ -140,53 +168,30 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     // Ajouter les parents (génération suivante)
-    // Recherche du père
-    if (membre.idPere != null) {
-      try {
-        final parent1 = allMembers.firstWhere((m) => m.id == membre.idPere);
-        print("  -> Père trouvé: ${parent1.nomComplet} (ID: ${parent1.id})");
-        _buildGenerations(parent1, generation + 1, generations, allMembers);
-      } catch (e) {
-        print("  -> Père (ID: ${membre.idPere}) non trouvé dans la liste des membres");
-      }
-    } else {
-      print("  -> Pas d'ID père pour ${membre.nomComplet}");
-    }
-
-    // Recherche de la mère
-    if (membre.idMere != null) {
-      try {
-        final parent2 = allMembers.firstWhere((m) => m.id == membre.idMere);
-        print("  -> Mère trouvée: ${parent2.nomComplet} (ID: ${parent2.id})");
-        _buildGenerations(parent2, generation + 1, generations, allMembers);
-      } catch (e) {
-        print("  -> Mère (ID: ${membre.idMere}) non trouvée dans la liste des membres");
-      }
-    } else {
-      print("  -> Pas d'ID mère pour ${membre.nomComplet}");
-    }
-  }
-
-  List<Membre> _getAllMembers(List<Membre> racines) {
-    final allMembers = <Membre>[];
-    final Set<int> visitedIds = {};
-
-    void addRecursively(Membre m) {
-      if (visitedIds.contains(m.id)) return;
-      visitedIds.add(m.id);
-      allMembers.add(m);
-      
-      for (var enfant in m.enfants) {
-        addRecursively(enfant);
-      }
-    }
-
-    for (var racine in racines) {
-      addRecursively(racine);
+    // On utilise d'abord les champs explicites idPere/idMere s'ils sont valides et trouvables
+    // Sinon on utilise la map déduite _parentsOfMember
+    
+    final List<Membre> parentsToProcess = [];
+    
+    // 1. Essayer via la map de prétraitement (plus fiable si hiérarchie descendante)
+    if (_parentsOfMember.containsKey(membre.id)) {
+      parentsToProcess.addAll(_parentsOfMember[membre.id]!);
     }
     
-    print("Total membres trouvés dans l'arbre: ${allMembers.length}");
-    return allMembers;
+    // 2. Si la map est vide, essayer via les IDs explicites (si non déjà ajoutés)
+    // Cela sert de fallback si le prétraitement a raté quelque chose ou si l'arbre n'est pas complet
+    // (Note: _getAllMembers n'est plus nécessaire ici car on a _parentsOfMember, 
+    // mais on pourrait le garder si besoin. Pour l'instant on simplifie).
+    
+    if (parentsToProcess.isEmpty) {
+       print("  -> Aucun parent trouvé pour ${membre.nomComplet} (ni dans map, ni IDs)");
+    } else {
+       print("  -> ${parentsToProcess.length} parents trouvés pour ${membre.nomComplet}");
+    }
+
+    for (var parent in parentsToProcess) {
+      _buildGenerations(parent, generation + 1, generations);
+    }
   }
 
   Widget _buildGenerationColumn(List<Membre> members, int generation, double totalHeight) {
