@@ -7,6 +7,11 @@ import '../service/RecitService.dart';
 import 'AppDrawer.dart';
 import 'RecitDetailScreen.dart';
 
+// 💡 URL DE BASE À DÉFINIR
+// ⚠️ REMPLACER CETTE VALEUR PAR L'ADRESSE IP ET LE PORT DE VOTRE SERVEUR LOCAL !
+const String _BASE_URL = 'http://192.168.1.100:8000';
+
+
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
@@ -144,7 +149,7 @@ class _CulturalContentScreenState extends State<CulturalContentScreen> {
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Text(
-                'Erreur de chargement des récits: ${snapshot.error}',
+                'Erreur de chargement des récits: ${snapshot.error.toString().replaceFirst('Exception: ', '')}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red, fontSize: 16),
               ),
@@ -346,6 +351,7 @@ class _RecitCardState extends State<RecitCard> {
           _isRequesting = false;
         });
 
+        // 💡 Utilisation du contexte local pour le SnackBar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Demande de publication réussie. Statut: $newStatus.'),
@@ -479,8 +485,19 @@ class _RecitCardState extends State<RecitCard> {
       );
     }
 
-    final String imageUrl = widget.recit.urlPhoto;
-    final bool hasImage = imageUrl.isNotEmpty;
+    final String rawImageUrl = widget.recit.urlPhoto;
+
+    // 💡 Déterminer si l'URL est relative (commence par /uploads/ ou uploads/)
+    final bool isRelativePath = rawImageUrl.startsWith('/uploads/') || rawImageUrl.startsWith('uploads/');
+
+    // 💡 Créer l'URL complète : ajouter l'URL de base si le chemin est relatif
+    // On retire le premier slash de rawImageUrl si isRelativePath est true et si rawImageUrl commence par /
+    final String path = (isRelativePath && rawImageUrl.startsWith('/')) ? rawImageUrl.substring(1) : rawImageUrl;
+    final String completeImageUrl = isRelativePath ? '$_BASE_URL/$path' : rawImageUrl;
+
+    // hasImage doit vérifier que l'URL complétée est une URL réseau valide
+    final bool hasImage = completeImageUrl.isNotEmpty && completeImageUrl.startsWith('http');
+
 
     return InkWell(
       onTap: navigateToDetail,
@@ -511,7 +528,7 @@ class _RecitCardState extends State<RecitCard> {
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                     image: hasImage
                         ? DecorationImage(
-                      image: NetworkImage(imageUrl),
+                      image: NetworkImage(completeImageUrl), // Utilisation de l'URL complétée
                       fit: BoxFit.cover,
                     )
                         : null,

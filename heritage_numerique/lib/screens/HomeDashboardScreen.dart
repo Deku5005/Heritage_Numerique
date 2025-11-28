@@ -13,11 +13,9 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _welcomeCardBackground = Color(0xFFF7F2E8);
 
 class HomeDashboardScreen extends StatefulWidget {
-  // 💡 CORRECTION : L'ID de la famille est maintenant obligatoire (non-nullable)
   final int familyId;
   final String? familyName;
 
-  // 💡 familyId est marqué comme 'required'
   const HomeDashboardScreen({super.key, required this.familyId, this.familyName});
 
   @override
@@ -31,7 +29,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   // État des données
   Future<FamilyDashboardResponse>? _dashboardData;
-  // ❌ _mockFamilyId est supprimé car familyId est maintenant obligatoire.
+  // 🚀 État pour contrôler l'animation d'entrée
+  bool _dataLoaded = false;
 
   @override
   void initState() {
@@ -41,16 +40,28 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   // Fonction de chargement des données
   void _loadDashboardData() {
-    // 🚀 UTILISE DIRECTEMENT l'ID requis, sans vérifier le mock
     final int id = widget.familyId;
-    setState(() {
-      _dashboardData = _dashboardService.fetchFamilyDashboard(familleId: id);
+    _dashboardData = _dashboardService.fetchFamilyDashboard(familleId: id);
+
+    // 🚀 Déclenche l'animation une fois que le Future est terminé
+    _dashboardData!.then((_) {
+      if (mounted) {
+        setState(() {
+          _dataLoaded = true;
+        });
+      }
+    }).catchError((_) {
+      if (mounted) {
+        setState(() {
+          _dataLoaded = true; // S'affiche même en cas d'erreur
+        });
+      }
     });
+    setState(() {}); // Déclenche le FutureBuilder immédiatement
   }
 
   @override
   Widget build(BuildContext context) {
-    // 💡 Déplacement du FutureBuilder pour gérer le Scaffold et le Drawer
     return FutureBuilder<FamilyDashboardResponse>(
       future: _dashboardData,
       builder: (context, snapshot) {
@@ -80,32 +91,35 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         // 3. État des données prêtes
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          final int currentFamilyId = data.idFamille; // Récupération de l'ID dynamique
+          final int currentFamilyId = data.idFamille;
 
-          // 💡 Le Scaffold est construit ICI avec l'ID de famille
           return Scaffold(
             key: _scaffoldKey,
             backgroundColor: _backgroundColor,
-            // 💡 Transmission de l'ID au Drawer
             drawer: AppDrawer(familyId: currentFamilyId),
 
-            body: SingleChildScrollView(
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. En-tête (Menu + Titre)
-                  _buildCustomHeader(_scaffoldKey),
-                  const SizedBox(height: 20),
+            // 🚀 ANIMATION D'ENTRÉE : Fait apparaître le contenu après le chargement
+            body: AnimatedOpacity(
+              opacity: _dataLoaded ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 500),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. En-tête (Menu + Titre)
+                    _buildCustomHeader(_scaffoldKey),
+                    const SizedBox(height: 20),
 
-                  // 2. Carte de Bienvenue (avec le nom de famille réel)
-                  _buildWelcomeCard(data.nomFamille),
-                  const SizedBox(height: 30),
+                    // 2. Carte de Bienvenue (flottante et visiblement dansante)
+                    _buildWelcomeCard(data.nomFamille),
+                    const SizedBox(height: 30),
 
-                  // 3. Grille des Statistiques (avec les données réelles)
-                  _buildStatsGrid(data),
-                  const SizedBox(height: 30),
-                ],
+                    // 3. Grille des Statistiques (avec hover 3D/lévitation)
+                    _buildStatsGrid(data),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             ),
           );
@@ -117,7 +131,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- Le reste des méthodes de construction de l'UI est inchangé ---
+  // --- Le reste des méthodes de construction de l'UI ---
 
   Widget _buildCustomHeader(GlobalKey<ScaffoldState> scaffoldKey) {
     return Padding(
@@ -144,36 +158,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
+  // 🚀 UTILISATION DE LA CARTE FLOTTANTE ANIMÉE
   Widget _buildWelcomeCard(String nomFamille) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: _welcomeCardBackground,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Bienvenue dans la mémoire familiale des $nomFamille',
-            style: const TextStyle(
-              color: _cardTextColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Un lieu pour préserver, partager et transmettre votre héritage à travers les générations.',
-            style: TextStyle(
-              color: _cardTextColor.withOpacity(0.7),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
+    return _FloatingWelcomeCard(
+      nomFamille: nomFamille,
+      welcomeCardBackground: _welcomeCardBackground,
+      cardTextColor: _cardTextColor,
     );
   }
 
@@ -197,10 +187,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 2.2,
+          childAspectRatio: 1.2,
         ),
         itemBuilder: (context, index) {
           final stat = stats[index];
+          // 🚀 UTILISATION DU WIDGET ANIMÉ AVEC HOVER
           return _buildStatItemCard(stat['title'] as String, stat['count'] as int, stat['icon'] as IconData);
         },
       ),
@@ -208,57 +199,318 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Widget _buildStatItemCard(String title, int count, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                count.toString(),
-                style: const TextStyle(
-                  color: _cardTextColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: _cardTextColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+    return _AnimatedStatCard(
+      title: title,
+      count: count,
+      icon: icon,
+      mainAccentColor: _mainAccentColor,
+      cardTextColor: _cardTextColor,
+    );
+  }
+}
+
+// =========================================================================
+// --- WIDGET : CARTE FLOTTANTE DE BIENVENUE (MAINTENANT DANSANTE ET VISIBLE) ---
+// =========================================================================
+
+class _FloatingWelcomeCard extends StatefulWidget {
+  final String nomFamille;
+  final Color welcomeCardBackground;
+  final Color cardTextColor;
+
+  const _FloatingWelcomeCard({
+    required this.nomFamille,
+    required this.welcomeCardBackground,
+    required this.cardTextColor,
+  });
+
+  @override
+  State<_FloatingWelcomeCard> createState() => __FloatingWelcomeCardState();
+}
+
+class __FloatingWelcomeCardState extends State<_FloatingWelcomeCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Contrôleur : Durée de l'animation de respiration (3 secondes aller-retour)
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat(reverse: true); // Répéter l'animation en sens inverse SANS FIN
+
+    // 2. Animation : Déplace la carte de 0 à -5% de la hauteur du widget parent
+    _animation = Tween<Offset>(
+      begin: const Offset(0, 0),
+      end: const Offset(0, -0.05), // 🚀 Amplitude plus visible
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut, // Courbe douce
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _animation,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Colors.white, // Fond blanc
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: widget.welcomeCardBackground.withOpacity(0.5), // Ombre plus colorée
+              blurRadius: 15,
+              offset: const Offset(0, 8), // Ombre portée pour effet flottant
             ),
-          ),
-          Icon(icon, color: _mainAccentColor, size: 30),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bienvenue dans la mémoire familiale des ${widget.nomFamille}',
+              style: const TextStyle(
+                color: _cardTextColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Un lieu pour préserver, partager et transmettre votre héritage à travers les générations.',
+              style: TextStyle(
+                color: widget.cardTextColor.withOpacity(0.7),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+
+// =========================================================================
+// --- WIDGET ANIMÉ AVEC HOVER STYLE ANTIGRAVITY (TILT 3D) ---
+// =========================================================================
+
+class _AnimatedStatCard extends StatefulWidget {
+  final String title;
+  final int count;
+  final IconData icon;
+  final Color mainAccentColor;
+  final Color cardTextColor;
+
+  const _AnimatedStatCard({
+    required this.title,
+    required this.count,
+    required this.icon,
+    required this.mainAccentColor,
+    required this.cardTextColor,
+  });
+
+  @override
+  // 🚀 Ajout de SingleTickerProviderStateMixin pour l'AnimationController
+  State<_AnimatedStatCard> createState() => __AnimatedStatCardState();
+}
+
+// =========================================================================
+// --- WIDGET ANIMÉ AVEC HOVER STYLE ANTIGRAVITY (CORRIGÉ LateInitializationError) ---
+// =========================================================================
+
+class __AnimatedStatCardState extends State<_AnimatedStatCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  // 🚀 CORRECTION : Initialisation immédiate des Animations pour éviter LateInitializationError
+  // Nous les initialisons avec des tweens par défaut pour qu'elles ne soient jamais nulles
+  late Animation<double> _animationElevation;
+  late Animation<double> _animationTilt;
+
+  // Nouveaux états pour gérer les valeurs cibles
+  double _targetElevation = 5.0;
+  double _targetTiltAngle = 0.0;
+
+  // Micro-animation de pression
+  double _scale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // Initialisation SÛRE des animations dans initState
+    // Elles sont initialisées avec leur valeur de repos (5.0 et 0.0)
+    _animationElevation = Tween<double>(begin: _targetElevation, end: _targetElevation).animate(_controller);
+    _animationTilt = Tween<double>(begin: _targetTiltAngle, end: _targetTiltAngle).animate(_controller);
+
+    // Lancement immédiat de l'animation pour les tweens (pour s'assurer que .value est accessible)
+    _controller.forward(from: 0.0);
+    _controller.stop(); // On la stoppe car elle est à l'état de repos
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Met à jour les valeurs cibles et déclenche l'animation
+  void _updateAnimationTargets(double newElevation, double newTilt) {
+    if (!mounted) return;
+
+    // Mise à jour de l'état uniquement si les cibles changent
+    if (_targetElevation == newElevation && _targetTiltAngle == newTilt) return;
+
+    // On s'assure que le contrôleur est reset avant de créer de nouveaux Tweens
+    _controller.reset();
+
+    // Création de NOUVEAUX Tweens à partir de la valeur ACTUELLE (.value) vers la NOUVELLE CIBLE
+    _animationElevation = Tween<double>(
+      begin: _animationElevation.value,
+      end: newElevation,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _animationTilt = Tween<double>(
+      begin: _animationTilt.value,
+      end: newTilt,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+    _targetElevation = newElevation;
+    _targetTiltAngle = newTilt;
+
+    _controller.forward(from: 0.0); // Lance l'animation
+  }
+
+  // Micro-animation de pression
+  void _onTapDown(_) {
+    setState(() {
+      _scale = 0.95;
+    });
+  }
+  void _onTapUp(_) {
+    setState(() {
+      _scale = 1.0;
+    });
+  }
+  void _onTapCancel() {
+    setState(() {
+      _scale = 1.0;
+    });
+  }
+
+  // 🚀 Gestion du survol (Hover) - Effet Antigravity
+  void _onHoverEnter(PointerEvent details) {
+    _updateAnimationTargets(25.0, 0.08); // Haute élévation et tilt prononcé
+  }
+
+  void _onHoverExit(PointerEvent details) {
+    _updateAnimationTargets(5.0, 0.0); // Retour à l'état initial
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: _onHoverEnter,
+      onExit: _onHoverExit,
+      child: GestureDetector(
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: _onTapCancel,
+        onTap: () {
+          // Logique de navigation/action
+        },
+        child: AnimatedBuilder( // Utiliser AnimatedBuilder pour reconstruire avec les valeurs d'animation
+          animation: _controller,
+          builder: (context, child) {
+            // 💡 Définir la transformation 3D
+            Matrix4 transformMatrix = Matrix4.identity()
+              ..setEntry(3, 2, 0.001) // Ajout de perspective
+            // TILT agressif et rotation sur les axes X et Y
+              ..rotateX(-_animationTilt.value * 0.5)
+              ..rotateY(_animationTilt.value);
+
+            return AnimatedScale(
+              scale: _scale,
+              duration: const Duration(milliseconds: 150),
+              child: Transform( // Appliquer la transformation 3D
+                alignment: Alignment.center,
+                transform: transformMatrix,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: _animationElevation.value, // Valeur animée
+                        offset: Offset(0, _animationElevation.value / 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 1. Icone stylisée
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: widget.mainAccentColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: widget.mainAccentColor,
+                          size: 28,
+                        ),
+                      ),
+                      const Spacer(),
+
+                      // 2. Compte
+                      Text(
+                        widget.count.toString(),
+                        style: const TextStyle(
+                          color: _cardTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 28,
+                        ),
+                      ),
+
+                      // 3. Titre
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          color: widget.cardTextColor.withOpacity(0.8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
 }

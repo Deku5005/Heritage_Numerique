@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:heritage_numerique/screens/login_screen.dart';
 import 'registration_screen.dart';
 import 'home_screen.dart';
 
@@ -232,6 +233,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   /// PAGE 3 : Image de fond avec texte et deux boutons
+  /// PAGE 3 : Image de fond avec texte et deux boutons
   Widget _buildPage3_FullImageAction() {
     return Container(
       color: Colors.black,
@@ -253,42 +255,65 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Container(color: Colors.black.withOpacity(0.5)),
           ),
 
-          // Contenu
+          // Contenu centré verticalement
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center, //  CHANGEMENT : Centrage vertical principal
+
                 children: [
-                  // Texte principal
+                  // --- BLOC DE TEXTE CENTRÉ ET STYLISÉ ---
+                  const SizedBox(height: 100),
                   SafeArea(
                     child: Column(
-                      children: const [
-                        Text(
+                      children: [
+                        // Titre principal
+                        const Text(
                           'Héritage Numérique',
                           style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 40, // Plus grand
+                            fontWeight: FontWeight.w900, // Ultra-gras
                             color: Colors.white,
+                            letterSpacing: 2.0, // Espacement des lettres
+                            shadows: [
+                              Shadow(
+                                offset: Offset(2, 2),
+                                blurRadius: 4.0,
+                                color: Color.fromARGB(150, 0, 0, 0),
+                              ),
+                            ],
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 20),
-                        Text(
-                          'Préservons nos histoires\npartageons nos racines',
+                        const SizedBox(height: 25), // Augmentation de l'espace
+
+                        // Citation / Slogan
+                        const Text(
+                          'Préservons nos histoires\nPartageons nos racines',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 24, // Plus grand
                             fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w500,
                             color: Colors.white,
-                            height: 1.5,
+                            height: 1.4,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(1, 1),
+                                blurRadius: 3.0,
+                                color: Color.fromARGB(100, 0, 0, 0),
+                              ),
+                            ],
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 30),
-                        Text(
-                          'Une plateforme malienne dédiée à la préservation et à la valorisation du patrimoine culturel africain',
+                        const SizedBox(height: 40), // Augmentation de l'espace
+
+                        // Sous-texte descriptif
+                        const Text(
+                          'Une plateforme malienne dédiée à la préservation et à la valorisation du patrimoine culturel africain.',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 16, // Légèrement plus grand
                             color: Colors.white70,
                             height: 1.5,
                           ),
@@ -298,6 +323,10 @@ class _SplashScreenState extends State<SplashScreen> {
                     ),
                   ),
 
+                  // Spacer pour pousser les boutons vers le bas
+
+
+                  const Spacer(),
                   // Boutons d’action en bas
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
@@ -329,7 +358,7 @@ class _SplashScreenState extends State<SplashScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const RegistrationScreen()),
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
                             );
                           },
                           style: OutlinedButton.styleFrom(
@@ -341,7 +370,7 @@ class _SplashScreenState extends State<SplashScreen> {
                             ),
                           ),
                           child: const Text(
-                            'Créer un compte',
+                            'Se connecter',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),

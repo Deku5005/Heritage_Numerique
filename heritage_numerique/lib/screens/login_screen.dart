@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 // Nettoyage des imports
 import 'package:heritage_numerique/Service/Auth-service.dart';
 import 'package:heritage_numerique/model/auth-response.dart';
-// import 'package:heritage_numerique/screens/HomeDashboardScreen.dart'; // Non utilisé dans la navigation
 import 'registration_screen.dart';
 import 'dashboard_screen.dart';
 
@@ -67,26 +66,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // 2. ✅ Connexion réussie : Affichage du succès et navigation
       if (mounted) {
-        // Afficher un message de succès (avec le prénom si possible)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Connexion réussie ! Bienvenue ${authResponse.prenom}.'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2), // Ajout d'une durée
-          ),
-        );
-        // Naviguer vers la page Dashboard en remplaçant l'écran actuel
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            // ✅ CORRECTION : Utilisation de const, car l'erreur de "Not a constant expression" était liée au lambda
-            // Si la classe DashboardScreen a un constructeur const, cette ligne est correcte.
-            builder: (context) =>  DashboardScreen(),
-          ),
-        );
-      }} on Exception catch (e) {
+        // --- 🚀 NOUVEAU POPUP DE SUCCÈS ---
+        _showSuccessDialog(authResponse.prenom ?? "utilisateur");
 
+        // Attendre 2.5 secondes (légèrement plus que la durée du dialogue)
+        await Future.delayed(const Duration(milliseconds: 1100));
+
+        // Naviguer vers la page Dashboard en remplaçant l'écran actuel
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const DashboardScreen(), // Ajout de 'const' pour la propreté si possible
+            ),
+          );
+        }
+      }
+    } on Exception catch (e) {
       // 3. ❌ Échec de la connexion
       if (mounted) {
         final errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -106,6 +102,66 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     }
+  }
+
+  // --- NOUVELLE MÉTHODE : AFFICHAGE DU POPUP DE SUCCÈS ---
+  void _showSuccessDialog(String prenom) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Empêche la fermeture en tapant à l'extérieur
+      builder: (context) {
+        // Démarre un timer pour fermer la boîte de dialogue automatiquement
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            // Utiliser le même contexte que showDialog
+            Navigator.of(context, rootNavigator: true).pop(true);
+          }
+        });
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          backgroundColor: Colors.white,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 60,
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Connexion réussie !',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: _standardTextColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Bienvenue $prenom.',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              // Indicateur visuel du délai
+              SizedBox(
+                width: 100,
+                child: LinearProgressIndicator(
+                  color: Colors.green.shade400,
+                  backgroundColor: Colors.grey.shade200,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
