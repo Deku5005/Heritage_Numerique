@@ -155,14 +155,21 @@ class ArbreGenealogiqueService {
     String? telephone,
     String? email,
     String? biographie,
-    // 🔑 CORRECTION: Utilisation de la nomenclature du modèle Membre
     int? idPere,
     int? idMere,
   }) async {
     final String? token = await _getAuthToken();
 
-    // 1. Construction des paramètres de requête (Query Parameters)
-    final Map<String, dynamic> queryParams = {
+    // 1. Définir l'URI SANS QUERY PARAMETERS
+    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/ajouter-membre');
+
+    // 2. Création de la requête multipart
+    final http.MultipartRequest request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token';
+
+    // 🔑 3. CONSTRUCTION DES CHAMPS TEXTUELS POUR LE CORPS (request.fields)
+    final Map<String, String> fields = {
+      // Champs Requis
       'idFamille': idFamille.toString(),
       'nomComplet': nomComplet,
       'dateNaissance': dateNaissance,
@@ -170,24 +177,22 @@ class ArbreGenealogiqueService {
       'relationFamiliale': relationFamiliale,
     };
 
-    // Ajout des IDs des parents et autres champs optionnels
-    if (telephone != null && telephone.isNotEmpty) queryParams['telephone'] = telephone;
-    if (email != null && email.isNotEmpty) queryParams['email'] = email;
-    if (biographie != null && biographie.isNotEmpty) queryParams['biographie'] = biographie;
-    // 🔑 CORRECTION: Utilisation de la nomenclature du modèle Membre
-    if (idPere != null) queryParams['idPere'] = idPere.toString();
-    if (idMere != null) queryParams['idMere'] = idMere.toString();
+    // Ajout des champs optionnels
+    if (telephone != null && telephone.isNotEmpty) fields['telephone'] = telephone;
+    if (email != null && email.isNotEmpty) fields['email'] = email;
+    if (biographie != null && biographie.isNotEmpty) fields['biographie'] = biographie;
+
+    // 🔴 CORRECTION FINALE : Envoi systématique de Parent1Id et Parent2Id
+    // Même si l'ID est null (non sélectionné), on envoie "0" (String)
+    // pour forcer le DTO Java (qui attend Long) à mapper quelque chose.
+    fields['Parent1Id'] = (idPere ?? 0).toString();
+    fields['Parent2Id'] = (idMere ?? 0).toString();
+
+    // ASSIGNER TOUS LES CHAMPS AU CORPS DE LA REQUÊTE
+    request.fields.addAll(fields);
 
 
-    // 2. Construction de l'URI complète avec tous les query parameters
-    final Uri uri = Uri.parse('$_baseUrl/api/arbre-genealogique/ajouter-membre')
-        .replace(queryParameters: queryParams.map((k, v) => MapEntry(k, v.toString())));
-
-    // 3. Création de la requête multipart
-    final http.MultipartRequest request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token';
-
-    // 4. Ajouter le fichier photo au corps de la requête
+    // 4. Ajouter le fichier photo au corps de la requête (Files)
     if (photoPath != null && photoPath.isNotEmpty) {
       final File file = File(photoPath);
       if (await file.exists()) {
