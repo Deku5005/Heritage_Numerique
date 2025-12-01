@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 // --- Imports pour la Traduction et l'Audio ---
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:typed_data';
+// 💡 CONSERVATION pour 'mailto:' (email)
+import 'package:url_launcher/url_launcher.dart';
 
-import '../Service/Artisanatservice1.dart'; // 💡 Nouveau service Artisanat
-import '../service/LectureVocaleService.dart'; // Service audio réutilisé
-import '../model/ArtisanatTraduction.dart'; // Modèle de traduction Artisanat
+import '../Service/Artisanatservice1.dart';
+import '../service/LectureVocaleService.dart';
+import '../model/ArtisanatTraduction.dart';
 
 import '../widgets/bottom_navigation_widget.dart';
 import '../model/artisanat1.dart';
+// ✅ NOUVEAU : Import pour le widget de lecture vidéo
+import '../widgets/VideoPlayerWidget.dart';
 
 /// Écran affichant le profil détaillé d'un artisan et ses créations.
 class ArtisanDetailScreen extends StatefulWidget {
@@ -39,7 +43,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   String _selectedLanguageCode = 'fr';
   bool _isLoadingTranslation = false;
   String? _translationError;
-  List<String> _availableLanguages = ['fr', 'bm', 'en']; // Langues par défaut
+  List<String> _availableLanguages = ['fr', 'bm', 'en'];
 
   // --- PROPRIÉTÉS DE LECTURE VOCALE ---
   final LectureVocaleService _lectureVocaleService = LectureVocaleService();
@@ -52,9 +56,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // 1. Initialiser la traduction avec le contenu source
     _currentTranslation = _createSourceTranslation();
-    // 2. Lancer la récupération des langues disponibles
     _fetchAvailableLanguages();
 
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
@@ -73,23 +75,45 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     super.dispose();
   }
 
-  // LOGIQUE POUR COMPLÉTER LES URLS RELATIVES
+  // --- LOGIQUE POUR COMPLÉTER LES URLS RELATIVES ---
   String _getFullImageUrl(String? relativePath) {
-    if (relativePath == null || relativePath.isEmpty) {
-      return '';
-    }
-    if (relativePath.toLowerCase().startsWith('http')) {
-      return relativePath;
-    }
+    if (relativePath == null || relativePath.isEmpty) return '';
+    if (relativePath.toLowerCase().startsWith('http')) return relativePath;
 
     final String sanitizedPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-
     return '$_apiBaseUrlForImages/$sanitizedPath';
   }
 
-  // -------------------------------------------------------------------
-  // --- LOGIQUE DE TRADUCTION ---
-  // -------------------------------------------------------------------
+  // --- LOGIQUE D'ACTION (Contacter l'Auteur) ---
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+
+    try {
+      if (await launchUrl(url)) {
+        // Succès
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Impossible d\'ouvrir : $urlString'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du lancement de l\'URL: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // --- LOGIQUE DE TRADUCTION / LECTURE VOCALE (inchangée) ---
 
   ArtisanatTraduction _createSourceTranslation() {
     final Artisanat1 data = widget.artisanData;
@@ -115,13 +139,9 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   Future<void> _fetchAvailableLanguages() async {
     final int? artisanatId = widget.artisanData.id;
 
-    if (artisanatId == null || artisanatId <= 0) {
-      print("Erreur: ID artisanat est manquant ou invalide.");
-      return;
-    }
+    if (artisanatId == null || artisanatId <= 0) return;
 
     try {
-      // Appel à 'bm' pour potentiellement récupérer la liste complète des langues
       final translation = await _artisanatService.fetchArtisanatTranslationPublic(
         artisanatId: artisanatId,
         targetLanguageCode: 'bm',
@@ -133,7 +153,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
             .toList();
 
         setState(() {
-          // Maintien des langues connues + ajout des langues de l'API
           _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
         });
       }
@@ -145,7 +164,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   Future<void> _fetchTranslation(String langCode) async {
     if (_isLoadingTranslation || langCode == _selectedLanguageCode) return;
 
-    // Arrêter l'audio si on change de langue
     _audioPlayer.stop();
 
     if (langCode == 'fr') {
@@ -206,15 +224,12 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     }
   }
 
-  // --- Fonctions d'accès au contenu traduit ---
-
   String _getTranslatedText(String? originalText, Map<String, String> translationsMap, String langCode) {
     if (langCode == 'fr') return originalText ?? '';
 
     String? translated = translationsMap[langCode];
     if (translated != null && translated.isNotEmpty) return translated;
 
-    // Vérification des codes longs d'API
     if (langCode == 'bm') {
       translated = translationsMap['bam_Latn'];
       if (translated != null && translated.isNotEmpty) return translated;
@@ -242,10 +257,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
         _selectedLanguageCode
     );
   }
-
-  // -------------------------------------------------------------------
-  // --- LOGIQUE DE LECTURE VOCALE ---
-  // -------------------------------------------------------------------
 
   Future<void> _playTranslatedContent() async {
     if (_isPlaying) {
@@ -294,14 +305,13 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   // --- WIDGETS DE CONSTRUCTION ---
   // -------------------------------------------------------------------
 
-  // 💡 Intégration du sélecteur de langue et du bouton de lecture vocale
   Widget _buildLanguageSelector() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildPlayButton(), // Bouton de lecture vocale
+          _buildPlayButton(),
 
           Row(
             children: [
@@ -388,7 +398,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   }
 
   Widget _buildCustomAppBar(BuildContext context, String title) {
-    // L'App Bar est légèrement modifiée pour ne plus afficher le titre car il sera sous le sélecteur.
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
@@ -415,7 +424,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
             const SizedBox(width: 15),
             Expanded(
               child: Text(
-                // 💡 Affichage du titre traduit
                 title,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.left,
@@ -432,103 +440,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     );
   }
 
-
-  @override
-  Widget build(BuildContext context) {
-    final Artisanat1 data = widget.artisanData;
-
-    // 💡 1. GESTION DES VALEURS TRADUITES
-    final String titre = _getTitre();
-    final String description = _getDescription();
-
-    final String nomAuteurComplet = '${data.prenomAuteur ?? ''} ${data.nomAuteur ?? 'Auteur inconnu'}'.trim();
-
-    final String? videoPath = data.urlVideo;
-    final String? emailAuteur = data.emailAuteur;
-
-    final String fullVideoUrl = _getFullImageUrl(videoPath);
-    final List<String> allPhotosPaths = data.urlPhotos ?? [];
-    final String primaryImagePath = allPhotosPaths.isNotEmpty ? allPhotosPaths.first : '';
-    final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
-
-    const String watchVideoLabel = 'Regarder la vidéo';
-    const String supportArtisanLabel = 'Contacter l\'Auteur';
-
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'),
-      body: Column(
-        children: [
-          _buildCustomAppBar(context, titre),
-
-          // Sélecteur de langue et bouton de lecture vocale
-          _buildLanguageSelector(),
-
-          // Affichage des erreurs de traduction/audio
-          if (_translationError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(_translationError!, style: const TextStyle(color: Colors.red)),
-            ),
-          if (_audioError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 14)),
-            ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20),
-
-                  // --- IMAGE PRINCIPALE DE L'ARTISANAT ---
-                  _buildPrimaryImage(fullPrimaryImageUrl),
-                  const SizedBox(height: 30),
-
-                  // --- 1. PROFIL ARTISAN ---
-                  _buildArtisanProfile(
-                    nomAuteurComplet,
-                    emailAuteur?.isNotEmpty == true ? Icons.person : Icons.person_off,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- 2. BIO/DESCRIPTION (AFFICHANT LA TRADUCTION) ---
-                  Text(
-                    description, // 💡 Maintenant le contenu traduit
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _cardTextColor.withOpacity(0.7),
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // --- 3. VIDÉO DE L'ARTISAN ---
-                  if (fullVideoUrl.isNotEmpty)
-                    _buildVideoSection(fullVideoUrl, watchVideoLabel),
-                  if (fullVideoUrl.isNotEmpty) const SizedBox(height: 30),
-
-                  // --- 4. BOUTON DE SOUTIEN ---
-                  if (emailAuteur?.isNotEmpty == true)
-                    _buildActionButton(supportArtisanLabel, Icons.email, _accentColor, 'mailto:${emailAuteur!}'),
-
-                  const SizedBox(height: 50),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- Les widgets de structure (inchangés ou simplifiés) ---
-
-  /// Image Principale de l'Artisanat
   Widget _buildPrimaryImage(String imageUrl) {
     if (imageUrl.isEmpty) {
       return Container(
@@ -572,7 +483,6 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   }
 
 
-  /// 1. PROFIL ARTISAN
   Widget _buildArtisanProfile(String name, IconData icon) {
     return Column(
       children: [
@@ -594,45 +504,21 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     );
   }
 
-  /// 3. VIDÉO DE L'ARTISAN (Le titre a été enlevé car il était fixe et redondant)
+  /// 3. VIDÉO DE L'ARTISAN
   Widget _buildVideoSection(String url, String buttonLabel) {
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(15),
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(15),
-              image: const DecorationImage(
-                image: NetworkImage('https://via.placeholder.com/300x168.png?text=Video+Placeholder'),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
-              ),
-            ),
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _accentColor.withOpacity(0.8),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.play_arrow, color: Colors.white, size: 50),
-                  onPressed: () {
-                    // Action de lecture vidéo (à implémenter si nécessaire, ici c'est un Snackbar)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('$buttonLabel (URL: $url)'),
-                        backgroundColor: _actionColor,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
+            color: Colors.black,
+            // ✅ Utilisation du widget de lecteur vidéo
+            child: VideoPlayerWidget(videoUrl: url),
           ),
         ),
         const SizedBox(height: 10),
+        // Le bouton d'action est conservé pour l'esthétique et gère maintenant
+        // un message d'information pour la vidéo intégrée.
         _buildActionButton(buttonLabel, Icons.play_arrow, _actionColor, url),
       ],
     );
@@ -640,15 +526,18 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
 
   /// BOUTON D'ACTION
   Widget _buildActionButton(String text, IconData icon, Color color, String url) {
+    final bool isEmailAction = url.startsWith('mailto:');
+
     return GestureDetector(
-      onTap: () {
-        // Action du bouton (par exemple, lancer un mailto ou un navigateur web)
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$text (URL: $url)'),
-            backgroundColor: color,
-          ),
-        );
+      onTap: isEmailAction ? () => _launchUrl(url) : () {
+        if (!isEmailAction) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('La lecture vidéo est intégrée au-dessus.'),
+              backgroundColor: _actionColor,
+            ),
+          );
+        }
       },
       child: Container(
         width: double.infinity,
@@ -673,6 +562,89 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Artisanat1 data = widget.artisanData;
+
+    final String titre = _getTitre();
+    final String description = _getDescription();
+
+    final String nomAuteurComplet = '${data.prenomAuteur ?? ''} ${data.nomAuteur ?? 'Auteur inconnu'}'.trim();
+
+    final String? videoPath = data.urlVideo;
+    final String? emailAuteur = data.emailAuteur;
+
+    final String fullVideoUrl = _getFullImageUrl(videoPath);
+    final List<String> allPhotosPaths = data.urlPhotos ?? [];
+    final String primaryImagePath = allPhotosPaths.isNotEmpty ? allPhotosPaths.first : '';
+    final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
+
+    const String watchVideoLabel = 'Regarder la vidéo (intégrée)';
+    const String supportArtisanLabel = 'Contacter l\'Auteur (Email)';
+
+    return Scaffold(
+      backgroundColor: _backgroundColor,
+      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'),
+      body: Column(
+        children: [
+          _buildCustomAppBar(context, titre),
+          _buildLanguageSelector(),
+
+          if (_translationError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(_translationError!, style: const TextStyle(color: Colors.red)),
+            ),
+          if (_audioError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 14)),
+            ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  _buildPrimaryImage(fullPrimaryImageUrl),
+                  const SizedBox(height: 30),
+                  _buildArtisanProfile(
+                    nomAuteurComplet,
+                    emailAuteur?.isNotEmpty == true ? Icons.person : Icons.person_off,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    description,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _cardTextColor.withOpacity(0.7),
+                      fontSize: 16,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // --- 3. VIDÉO DE L'ARTISAN (Widget intégré) ---
+                  if (fullVideoUrl.isNotEmpty)
+                    _buildVideoSection(fullVideoUrl, watchVideoLabel),
+                  if (fullVideoUrl.isNotEmpty) const SizedBox(height: 30),
+
+                  // --- 4. BOUTON DE SOUTIEN (Email) ---
+                  if (emailAuteur?.isNotEmpty == true)
+                    _buildActionButton(supportArtisanLabel, Icons.email, _accentColor, 'mailto:${emailAuteur!}'),
+
+                  const SizedBox(height: 50),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

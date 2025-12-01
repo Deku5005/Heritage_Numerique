@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:typed_data'; // Ajout pour la nouvelle méthode binaire
 
 import '../model/ArtisanatModel.dart';
 import 'Auth-service.dart';
 import '../model/DemandePublication.dart';
-// 💡 NOUVEL IMPORTATION REQUISE
 import '../model/ArtisanatTraductionModel.dart';
 
 
@@ -36,7 +36,7 @@ class ArtisanatService {
   }
 
   // -------------------------------------------------------------------
-  // --- 6. Récupération des Traductions (NOUVELLE MÉTHODE) ---
+  // --- 6. Récupération des Traductions ---
   // -------------------------------------------------------------------
 
   Future<ArtisanatTraduction> fetchArtisanatTranslation({
@@ -75,7 +75,7 @@ class ArtisanatService {
 
 
   // -------------------------------------------------------------------
-  // --- 1. Récupération de la liste des Contenus Artisanat ---
+  // --- 1. Récupération de la liste des Contenus Artisanat (CORRIGÉ) ---
   // -------------------------------------------------------------------
 
   Future<List<Artisanat>> fetchArtisanatByFamilleId({
@@ -94,7 +94,39 @@ class ArtisanatService {
     );
 
     if (response.statusCode == 200) {
-      return artisanatsFromJson(response.body);
+      List<Artisanat> artisanats = artisanatsFromJson(response.body);
+
+      // 🛑 CORRECTION CLÉ : Préfixer les chemins de fichiers vidéo avec la base URL
+      artisanats = artisanats.map((artisanat) {
+        String? correctedUrlVideo = artisanat.urlVideo;
+
+        // On vérifie que le chemin existe, n'est pas vide, et ne commence PAS par un protocole HTTP/HTTPS.
+        if (correctedUrlVideo != null &&
+            correctedUrlVideo.isNotEmpty &&
+            !correctedUrlVideo.startsWith('http'))
+        {
+          // Concaténation : http://10.0.2.2:8080/uploads/video/...
+          correctedUrlVideo = '$_baseUrl$correctedUrlVideo';
+        }
+
+        // CORRECTION DE L'URL POUR LES PHOTOS AUSSI (PRÉCAUTION)
+        List<String> correctedUrlPhotos = artisanat.urlPhotos.map((photoUrl) {
+          if (!photoUrl.startsWith('http')) {
+            return '$_baseUrl$photoUrl';
+          }
+          return photoUrl;
+        }).toList();
+
+
+        // Utiliser copyWith pour créer une nouvelle instance avec les URLs corrigées.
+        // CELA NÉCESSITE LA MÉTHODE copyWith DANS VOTRE ArtisanatModel.
+        return artisanat.copyWith(
+          urlVideo: correctedUrlVideo,
+          urlPhotos: correctedUrlPhotos,
+        );
+      }).toList();
+
+      return artisanats;
     } else {
       String errorMessage = "Échec du chargement des contenus Artisanat (Statut: ${response.statusCode}).";
       try {
@@ -110,6 +142,7 @@ class ArtisanatService {
 
   // -------------------------------------------------------------------
   // --- 2. Création d'un Nouveau Contenu Artisanat ---
+  // ... (inchangée)
   // -------------------------------------------------------------------
 
   Future<void> createArtisanat({
@@ -138,6 +171,7 @@ class ArtisanatService {
 
   // -------------------------------------------------------------------
   // --- 3. Mise à Jour d'un Contenu Artisanat (PUT) ---
+  // ... (inchangée)
   // -------------------------------------------------------------------
 
   Future<void> updateArtisanat({
@@ -167,6 +201,7 @@ class ArtisanatService {
 
 
   // --- Méthode Générique pour Création et Mise à Jour ---
+  // ... (inchangée)
   Future<void> _sendArtisanatRequest({
     required String method,
     required String uriPath,
@@ -236,6 +271,7 @@ class ArtisanatService {
 
   // -------------------------------------------------------------------
   // --- 4. Suppression d'un Contenu Artisanat ---
+  // ... (inchangée)
   // -------------------------------------------------------------------
 
   Future<void> deleteArtisanat({
@@ -266,6 +302,7 @@ class ArtisanatService {
 
   // -------------------------------------------------------------------
   // --- 5. Demande de Publication (POST) ---
+  // ... (inchangée)
   // -------------------------------------------------------------------
 
   Future<Map<String, dynamic>> requestPublication({required int contenuId}) async {
@@ -312,4 +349,40 @@ class ArtisanatService {
       throw Exception('Échec de la connexion réseau ou erreur de traitement : $e');
     }
   }
+
+  // -------------------------------------------------------------------
+  // --- 7. Téléchargement d'une ressource Binaire (Audio/Vidéo) ---
+  // -------------------------------------------------------------------
+
+  // (Ajouté car utile pour le service audio dans la page précédente)
+  Future<Uint8List> telechargerRessourceBinaire({
+    required String path, // Ex: '/api/lecture-vocale/123/bm'
+  }) async {
+    final String? token = await _getAuthToken();
+
+    final Uri uri = Uri.parse(_baseUrl).resolve(path);
+
+    print('DEBUG ARTISANAT SERVICE: Tentative de téléchargement binaire : $uri');
+
+    final http.Response response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    } else {
+      String errorMessage = "Échec du téléchargement de la ressource (Statut: ${response.statusCode}).";
+      try {
+        final Map<String, dynamic> errorBody = json.decode(response.body);
+        errorMessage = errorBody['message'] ?? errorMessage;
+      } catch (_) {
+        errorMessage += " Réponse brute: ${response.body}";
+      }
+      throw Exception(errorMessage);
+    }
+  }
+
 }

@@ -5,7 +5,7 @@ import '../model/Membre.dart';
 import '../service/ArbreGenealogiqueService.dart';
 
 import 'CreateTreeScreen.dart';
-import 'AppDrawer.dart';
+import 'AppDrawer.dart'; // <--- Import de AppDrawer
 import 'MembresDetailsScreen.dart';
 
 // --- PALETTE DE COULEURS PREMIUM ---
@@ -30,6 +30,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   String? _errorMessage;
   final ArbreGenealogiqueService _apiService = ArbreGenealogiqueService();
   final TransformationController _transformationController = TransformationController();
+
+  // Clé pour accéder au Scaffold et ouvrir le Drawer
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // AJOUTÉ
 
   Membre? _selectedMember; // Membre au centre de la vue (Racine de l'arbre descendant)
 
@@ -510,9 +513,11 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Bouton Menu pour ouvrir le Drawer
           IconButton(
             icon: const Icon(Icons.menu, color: _textDark, size: 30),
-            onPressed: () => Scaffold.of(context).openDrawer(),
+            // CORRECTION CLÉ : Utiliser la clé du Scaffold pour ouvrir le drawer
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           const Text(
             'Arbre Généalogique',
@@ -555,8 +560,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey, // <-- AJOUT DE LA CLÉ DU SCAFFOLD
       backgroundColor: _creamBackground,
-      drawer: AppDrawer(familyId: widget.familyId),
+      drawer: AppDrawer(familyId: widget.familyId), // <-- AJOUT DU DRAWER
       body: Stack(
         children: [
           // Fond décoratif
@@ -638,12 +644,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 }
 
 // ==================== PAINTER POUR LES LIGNES ====================
-// Le code de ConnectionLinePainter est requis ici pour la compilation
-// Je n'ai pas le code du painter, mais je suppose qu'il est correct.
-// Le voici pour référence (si vous l'avez dans un autre fichier, il faudra l'importer)
-// Si ce code n'est pas fourni, le compilateur Dart échouera.
-// Je ne l'inclurai pas ici pour ne pas alourdir la réponse si vous le possédez déjà,
-// mais s'il manque, le fichier ne compilera pas.
+// Le code de ConnectionLinePainter est conservé tel quel pour la complétion.
 class _ConnectionLinePainter extends CustomPainter {
   final Color color;
   final List<Membre> parentMembers;
