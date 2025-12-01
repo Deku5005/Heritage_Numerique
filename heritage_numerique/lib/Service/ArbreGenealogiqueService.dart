@@ -182,7 +182,7 @@ class ArbreGenealogiqueService {
     if (email != null && email.isNotEmpty) fields['email'] = email;
     if (biographie != null && biographie.isNotEmpty) fields['biographie'] = biographie;
 
-    // 🔴 CORRECTION FINALE : Envoi systématique de Parent1Id et Parent2Id
+    //  CORRECTION FINALE : Envoi systématique de Parent1Id et Parent2Id
     // Même si l'ID est null (non sélectionné), on envoie "0" (String)
     // pour forcer le DTO Java (qui attend Long) à mapper quelque chose.
     fields['Parent1Id'] = (idPere ?? 0).toString();
