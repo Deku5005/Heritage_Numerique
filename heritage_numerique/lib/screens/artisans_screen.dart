@@ -21,7 +21,7 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
   String? _errorMessage;
 
   // URL DE BASE POUR LES IMAGES (Nécessaire pour les chemins relatifs)
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+  static const String _apiBaseUrlForImages = 'http://192.168.43.22:8080';
 
   // Couleurs statiques
   static const Color _accentColor = Color(0xFFD69301); // Ocre

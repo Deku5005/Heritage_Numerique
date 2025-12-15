@@ -10,7 +10,7 @@ import 'Auth-service.dart';
 class RecitService {
   // BASE URL : Adresse du serveur local
   // Assurez-vous que cette IP est correcte (10.0.2.2 pour l'émulateur Android)
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static const String _baseUrl = "http://192.168.43.22:8080";
 
   final AuthService _authService = AuthService();
 

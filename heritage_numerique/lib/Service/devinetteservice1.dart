@@ -6,7 +6,7 @@ import '../model/DevinetteTrductionModel.dart';
 
 class DevinetteService1 {
   // Base URL pour l'émulateur Android (pour accéder au localhost de la machine hôte)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = 'http://192.168.43.22:8080';
   static const String _endpoint = '/api/public/devinettes';
 
   // 💡 NOUVEL ENDPOINT POUR LA TRADUCTION

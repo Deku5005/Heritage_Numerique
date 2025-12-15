@@ -161,7 +161,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                                 child: const Text(
-                                  'JE DEMARRE L\'AVENTURE',
+                                  ' Visitons le patrimoine',
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontSize: 16,

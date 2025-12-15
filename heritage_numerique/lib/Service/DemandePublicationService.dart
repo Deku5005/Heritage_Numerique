@@ -7,7 +7,7 @@ import 'Auth-service.dart'; // 💡 AJOUT : Import du service d'authentification
 import 'dart:async'; // Ajout pour Future
 
 // Base URL de votre API
-const String _BASE_URL = 'http://10.0.2.2:8080';
+const String _BASE_URL = 'http://192.168.43.22:8080';
 
 class DemandePublicationService {
 

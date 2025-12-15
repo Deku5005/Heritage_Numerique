@@ -13,7 +13,7 @@ import '../service/LectureVocaleService.dart'; // ⚠️ NOUVEL IMPORT
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _serviceErrorColor = Colors.red;
 const String _defaultPlaceholder = 'assets/images/Djata.jpg';
-const String _imageHostUrl = "http://10.0.2.2:8080";
+const String _imageHostUrl = "http://192.168.43.22:8080";
 
 class ProverbeDetailPage extends StatefulWidget {
   final Proverbe proverbe;

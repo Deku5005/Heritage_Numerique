@@ -8,7 +8,7 @@ class FamilleMembreService {
   final AuthService _authService;
 
   // L'URL de base doit correspondre à celle utilisée dans AuthService
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = 'http://192.168.43.22:8080';
 
   FamilleMembreService(this._authService);
 

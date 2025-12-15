@@ -369,7 +369,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
             children: [
               // Parent 1 (Père ou Partenaire)
               Expanded(child: _buildParentSelector(
-                label: 'Parent 1 (Père/Partenaire)',
+                label: 'Parent1(Père)',
                 selectedMember: _selectedParent1,
                 // Le parent 1 est désactivé s'il a été injecté
                 isDisabled: widget.parentId != null && _selectedParent1 != _noneMemberPlaceholder,
@@ -382,7 +382,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
               const SizedBox(width: 15),
               // Parent 2 (Mère ou Partenaire)
               Expanded(child: _buildParentSelector(
-                label: 'Parent 2 (Mère/Partenaire)',
+                label: 'Parent2(Mère)',
                 selectedMember: _selectedParent2,
                 onChanged: (Membre? newValue) {
                   setState(() {

@@ -6,7 +6,7 @@ import 'Auth-service.dart';
 
 class FamilyMemberService {
   // ⚠️ Remplacez par votre URL de base (doit être la même que dans DashboardService)
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static const String _baseUrl = "http://192.168.43.22:8080";
   final AuthService _authService = AuthService(); // Instance de votre service d'authentification
 
   // --- Méthode d'utilitaire pour les appels API ---

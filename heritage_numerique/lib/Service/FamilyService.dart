@@ -5,7 +5,7 @@ import 'package:heritage_numerique/model/dashboard-models.dart';
 import 'token-storage-service.dart';
 
 // Remplacez par votre URL de base API réelle
-const String _baseUrl = "http://10.0.2.2:8080";
+const String _baseUrl = "http://192.168.43.22:8080";
 
 class FamilyService {
   final TokenStorageService _tokenStorageService = TokenStorageService();

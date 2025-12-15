@@ -15,7 +15,7 @@ const Color _roleContributorColor = Color(0xFFE6F3E6); // Vert pâle pour Contri
 const Color _roleTextColor = Color(0xFF7B521A); // Couleur marron foncé pour le texte des rôles
 
 // 🔑 URL DE BASE POUR LES IMAGES (Doit correspondre à celle du service)
-const String _baseUrl = "http://10.0.2.2:8080";
+const String _baseUrl = "http://192.168.43.22:8080";
 
 
 // 1. Transformer en StatefulWidget pour gérer l'état

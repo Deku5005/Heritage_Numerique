@@ -13,7 +13,7 @@ import 'package:heritage_numerique/screens/ArtisanatDetailsPage.dart';
 
 
 // --- Constantes Globales ---
-const String _BASE_URL = "http://10.0.2.2:8080"; // 💡 Ajout de la BASE URL
+const String _BASE_URL = "http://192.168.43.22:8080"; // 💡 Ajout de la BASE URL
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);

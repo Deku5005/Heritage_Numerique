@@ -19,7 +19,7 @@ class AuthService {
 
   // *********** Configuration des Endpoints ***********
   // NOTE: Adresse IP locale de l'émulateur Android vers l'hôte (Backend Java/Spring)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = 'http://192.168.43.22:8080';
 
   static const String _registerUrl = '$_baseUrl/api/auth/register';
   static const String _loginUrl = '$_baseUrl/api/auth/login';

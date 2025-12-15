@@ -35,7 +35,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   static const Color _backgroundColor = Colors.white;
 
   // URL DE BASE POUR LES IMAGES
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+  static const String _apiBaseUrlForImages = 'http://192.168.43.22:8080';
 
   // --- PROPRIÉTÉS DE TRADUCTION ---
   final ArtisanatService1 _artisanatService = ArtisanatService1();

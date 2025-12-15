@@ -9,7 +9,7 @@ class InvitationService {
   final AuthService _authService;
 
   // Configuration de l'URL de base (doit correspondre à celle de l'AuthService)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = 'http://192.168.43.22:8080';
 
   InvitationService(this._authService);
 

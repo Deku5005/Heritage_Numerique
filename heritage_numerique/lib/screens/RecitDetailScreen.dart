@@ -14,7 +14,7 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _serviceErrorColor = Colors.red;
 
 // ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
-const String _imageHostUrl = "http://10.0.2.2:8080";
+const String _imageHostUrl = "http://192.168.43.22:8080";
 
 class RecitDetailScreen extends StatefulWidget {
   final Recit recit;

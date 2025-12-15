@@ -9,7 +9,7 @@ import 'Auth-service.dart'; // Supposons que ceci expose une méthode pour obten
 
 class DashboardService {
   // ⚠️ Remplacez par votre URL de base
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static const String _baseUrl = "http://192.168.43.22:8080";
   final AuthService _authService = AuthService(); // Instance de votre service d'authentification
 
   /// Récupère les données du tableau de bord familial

@@ -11,7 +11,7 @@ import '../model/ArtisanatTraductionModel.dart';
 
 class ArtisanatService {
   // BASE URL : Adresse du serveur local
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static const String _baseUrl = "http://192.168.43.22:8080";
 
   final AuthService _authService = AuthService();
 

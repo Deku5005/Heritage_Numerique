@@ -6,7 +6,7 @@ import '../model/conte.dart';
 import '../model/traduction_conte_model.dart';
 
 // Adresse de l'émulateur Android
-const String _apiBaseUrl = 'http://10.0.2.2:8080';
+const String _apiBaseUrl = 'http://192.168.43.22:8080';
 
 class ConteService {
   final String _endpointContes = '/api/public/contes';

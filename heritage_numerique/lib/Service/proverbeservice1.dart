@@ -5,7 +5,7 @@ import '../model/ProverbeTraduction.dart'; // 💡 Importation du modèle de tra
 
 class ProverbeService1 {
   // L'URL de base pour l'émulateur Android vers votre machine locale
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = 'http://192.168.43.22:8080';
   static const String _endpoint = '/api/public/proverbes';
   // 💡 NOUVEL ENDPOINT pour la traduction
   static const String _translationPath = '/api/public/traduction/proverbes';

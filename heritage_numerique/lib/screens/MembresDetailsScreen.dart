@@ -10,7 +10,7 @@ const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _lightGreyBackground = Color(0xFFF0F0F0);
-const String _baseUrl = "http://10.0.2.2:8080";
+const String _baseUrl = "http://192.168.43.22:8080";
 
 class MembreDetailScreen extends StatefulWidget {
   final int membreId;
