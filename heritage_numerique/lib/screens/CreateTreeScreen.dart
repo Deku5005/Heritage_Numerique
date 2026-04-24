@@ -204,7 +204,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
     );
   }
 
-  // 🔑 LOGIQUE DE SOUMISSION CORRIGÉE
+  //  LOGIQUE DE SOUMISSION CORRIGÉE
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate() || _selectedDate == null) {
       _showSnackBar('Veuillez remplir tous les champs obligatoires (Nom, Date et Lieu).', Colors.red);
