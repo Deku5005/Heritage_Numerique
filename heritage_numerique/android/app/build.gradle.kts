@@ -4,24 +4,8 @@ import java.io.FileInputStream
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-     // Add the dependency for the Google services Gradle plugin
-    id("com.google.gms.google-services") version "4.5.0" apply false
-    
-    id("com.android.application")
-
-    // Add the Google services Gradle plugin
-    id("com.google.gms.google-services")
-
-
-}
-
-// Lecture du fichier key.properties pour la signature de la release
-val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    id("com.google.gms.google-services") // ✅ Uniquement le nom du plugin, pas de version
 }
 
 android {
@@ -38,21 +22,18 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    // Signature pour la release (directement avec vos mots de passe)
     signingConfigs {
         create("release") {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
-            }
+            keyAlias = "upload"
+            keyPassword = "motdepasse123"
+            storeFile = file("upload-keystore.jks") // Assurez-vous que ce fichier est dans android/app/
+            storePassword = "motdepasse123"
         }
     }
 
     defaultConfig {
         applicationId = "com.mali.heritagenumerique"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -61,11 +42,8 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug") // Fallback pendant le dev
-            }
+            // Utilise la config release
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }
@@ -73,17 +51,10 @@ android {
 }
 
 dependencies {
-  // Import the Firebase BoM
-  implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
-
-
-  // TODO: Add the dependencies for Firebase products you want to use
-  // When using the BoM, don't specify versions in Firebase dependencies
-  implementation("com.google.firebase:firebase-analytics")
-
-
-  // Add the dependencies for any other desired Firebase products
-  // https://firebase.google.com/docs/android/setup#available-libraries
+    // Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    // Ajoutez ici d'autres dépendances Firebase si besoin
 }
 
 flutter {

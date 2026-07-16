@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import '../config/api_config.dart';
 import '../service/ArbreGenealogiqueService.dart';
 import '../model/ContributionFamilleModel.dart';
 import 'AppDrawer.dart';
@@ -9,13 +10,13 @@ const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _searchBackground = Color(0xFFF7F2E8);
-const Color _roleAdminColor = Color(0xFFE5B0B0); // Rouge pâle pour Administrateur
-const Color _roleEditorColor = Color(0xFFF7E8D8); // Beige/Jaune pâle pour Éditeur
-const Color _roleContributorColor = Color(0xFFE6F3E6); // Vert pâle pour Contributeur
-const Color _roleTextColor = Color(0xFF7B521A); // Couleur marron foncé pour le texte des rôles
+const Color _roleAdminColor = Color(0xFFE5B0B0);
+const Color _roleEditorColor = Color(0xFFF7E8D8);
+const Color _roleContributorColor = Color(0xFFE6F3E6);
+const Color _roleTextColor = Color(0xFF7B521A);
 
 // 🔑 URL DE BASE POUR LES IMAGES (Doit correspondre à celle du service)
-const String _baseUrl = "http://10.0.2.2:8080";
+String get _baseUrl => ApiConfig.baseUrl;
 
 
 // 1. Transformer en StatefulWidget pour gérer l'état

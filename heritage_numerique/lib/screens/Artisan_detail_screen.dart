@@ -13,6 +13,7 @@ import '../widgets/bottom_navigation_widget.dart';
 import '../model/artisanat1.dart';
 // ✅ NOUVEAU : Import pour le widget de lecture vidéo
 import '../widgets/VideoPlayerWidget.dart';
+import '../config/api_config.dart';
 
 /// Écran affichant le profil détaillé d'un artisan et ses créations.
 class ArtisanDetailScreen extends StatefulWidget {
@@ -34,8 +35,8 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   static const Color _actionColor = Color(0xFF9F9646);
   static const Color _backgroundColor = Colors.white;
 
-  // URL DE BASE POUR LES IMAGES
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+  // URL DE BASE POUR LES IMAGES (centralisée via ApiConfig)
+  static String get _apiBaseUrlForImages => ApiConfig.baseUrl;
 
   // --- PROPRIÉTÉS DE TRADUCTION ---
   final ArtisanatService1 _artisanatService = ArtisanatService1();

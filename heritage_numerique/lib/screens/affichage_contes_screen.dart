@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-// import 'package:just_audio/just_audio.dart' show MediaItem; // RÉTIRÉ
 import 'dart:typed_data';
 import 'package:audio_session/audio_session.dart';
+import '../config/api_config.dart';
 
 // --- VÉRIFIEZ ET AJUSTEZ CES CHEMINS DANS VOTRE PROJET ---
 import '../model/conte.dart';
@@ -19,8 +19,8 @@ const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _serviceErrorColor = Colors.red;
 const Color _quizButtonColor = Color(0xFF6A994E);
 
-// ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
-const String _imageHostUrl = "https://heritage-numerique-api.onrender.com/uploads/conte1.jpg";
+// ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE (centralisée via ApiConfig)
+String get _imageHostUrl => ApiConfig.baseUrl;
 
 
 class AffichageContesScreen extends StatefulWidget {

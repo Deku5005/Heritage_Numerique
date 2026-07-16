@@ -1,7 +1,8 @@
 // Fichier : lib/screens/MembreDetailScreen.dart
 
 import 'package:flutter/material.dart';
-import '../model/MembreDetailsModel.dart'; // Assurez-vous d'avoir le bon import
+import '../config/api_config.dart';
+import '../model/MembreDetailsModel.dart';
 import '../service/ArbreGenealogiqueService.dart';
 import 'dart:math';
 
@@ -10,7 +11,7 @@ const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _lightGreyBackground = Color(0xFFF0F0F0);
-const String _baseUrl = "http://10.0.2.2:8080";
+String get _baseUrl => ApiConfig.baseUrl;
 
 class MembreDetailScreen extends StatefulWidget {
   final int membreId;

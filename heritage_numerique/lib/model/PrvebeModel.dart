@@ -2,11 +2,11 @@
 
 import 'dart:convert';
 import 'dart:developer'; // Ajouté pour le log plus précis (log plutôt que print)
+import '../config/api_config.dart';
 
-// 💡 ATTENTION : ADRESSE DU SERVEUR
-// Utilisez 'http://10.0.2.2:8080' pour un Émulateur Android et un serveur local.
-// Remplacez par l'IP locale (ex: http://192.168.1.50:8080) pour un téléphone physique.
-const String _baseUrl = "http://10.0.2.2:8080";
+// 💡 ATTENTION : ADRESSE DU SERVEUR (centralisée via ApiConfig)
+// La valeur est lue depuis le fichier .env à l'initialisation de l'application.
+String get _baseUrl => ApiConfig.baseUrl;
 
 // --- Fonction pour garantir une URL Absolue ---
 String? _ensureFullUrl(String? path) {

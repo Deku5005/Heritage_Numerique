@@ -8,6 +8,7 @@ import '../model/conte.dart';
 import '../Service/conteService.dart'; // VÉRIFIEZ LE CHEMIN
 import '../widgets/bottom_navigation_widget.dart';
 import 'affichage_contes_screen.dart'; // Écran de destination
+import '../config/api_config.dart';
 
 /// Écran affichant la liste des contes.
 class ContesScreen extends StatefulWidget {
@@ -28,8 +29,8 @@ class _ContesScreenState extends State<ContesScreen> {
   static const Color _cardTextColor = Color(0xFF2E2E2E);
   static const Color _backgroundColor = Colors.white;
 
-  // URL DE BASE POUR LES IMAGES
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+  // URL DE BASE POUR LES IMAGES (centralisée via ApiConfig)
+  static String get _apiBaseUrlForImages => ApiConfig.baseUrl;
 
   @override
   void initState() {

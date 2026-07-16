@@ -14,6 +14,7 @@ import '../model/utilisateur1.dart';
 // => Chemins ajustés
 import 'token-storage-service.dart';
 import 'user-id-storage-service.dart'; // Utilisation du nom MembreIdStorageService
+import '../config/api_config.dart';
 
 
 // =================================================================
@@ -21,8 +22,8 @@ import 'user-id-storage-service.dart'; // Utilisation du nom MembreIdStorageServ
 // =================================================================
 
 class UtilisateurService1 {
-  // REMPLACER avec l'URL de base de votre API
-  final String _baseUrl = 'https://heritage-numerique-api.onrender.com/api/utilisateurs';
+  // URL de base construite dynamiquement depuis ApiConfig
+  String get _baseUrl => '${ApiConfig.baseUrl}/api/utilisateurs';
 
   // Injection des dépendances des services de stockage
   final TokenStorageService _tokenStorage;

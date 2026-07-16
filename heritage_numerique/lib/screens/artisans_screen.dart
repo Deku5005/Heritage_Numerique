@@ -5,6 +5,7 @@ import '../widgets/bottom_navigation_widget.dart';
 import 'Artisan_detail_screen.dart';
 import '../model/artisanat1.dart';
 import '../Service/Artisanatservice1.dart';
+import '../config/api_config.dart';
 
 class ArtisansScreen extends StatefulWidget {
   const ArtisansScreen({super.key});
@@ -20,8 +21,8 @@ class _ArtisansScreenState extends State<ArtisansScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  // URL DE BASE POUR LES IMAGES (Nécessaire pour les chemins relatifs)
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
+  // URL DE BASE POUR LES IMAGES (centralisée via ApiConfig)
+  static String get _apiBaseUrlForImages => ApiConfig.baseUrl;
 
   // Couleurs statiques
   static const Color _accentColor = Color(0xFFD69301); // Ocre

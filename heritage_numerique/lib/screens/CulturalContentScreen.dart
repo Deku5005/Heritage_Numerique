@@ -7,9 +7,10 @@ import '../service/RecitService.dart';
 import 'AppDrawer.dart';
 import 'RecitDetailScreen.dart';
 
-// 💡 URL DE BASE À DÉFINIR
-// ⚠️ REMPLACER CETTE VALEUR PAR L'ADRESSE IP ET LE PORT DE VOTRE SERVEUR LOCAL !
-const String _BASE_URL = 'http://192.168.1.100:8000';
+import '../config/api_config.dart';
+
+// 💡 URL DE BASE centralisée via ApiConfig (lue depuis le fichier .env)
+String get _BASE_URL => ApiConfig.baseUrl;
 
 
 // --- Constantes de Couleurs Globales ---

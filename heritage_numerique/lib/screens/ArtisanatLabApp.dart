@@ -12,8 +12,9 @@ import 'package:heritage_numerique/model/ArtisanatModel.dart';
 import 'package:heritage_numerique/screens/ArtisanatDetailsPage.dart';
 
 
+import '../config/api_config.dart';
 // --- Constantes Globales ---
-const String _BASE_URL = "http://10.0.2.2:8080"; // 💡 Ajout de la BASE URL
+String get _BASE_URL => ApiConfig.baseUrl; // 💡 URL centralisée via ApiConfig
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);

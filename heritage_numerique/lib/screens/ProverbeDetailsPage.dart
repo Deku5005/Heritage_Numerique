@@ -2,18 +2,19 @@
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:typed_data'; // Nécessaire pour Uint8List
-import 'package:audioplayers/audioplayers.dart'; // ⚠️ NOUVEL IMPORT
+import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
+import '../config/api_config.dart';
 import '../model/PrvebeModel.dart';
 import '../model/TraductionProverbe.dart';
 import '../service/ProverbeService.dart';
-import '../service/LectureVocaleService.dart'; // ⚠️ NOUVEL IMPORT
+import '../service/LectureVocaleService.dart';
 
 // --- Constantes de Couleurs ---
 const Color _mainAccentColor = Color(0xFFAA7311);
 const Color _serviceErrorColor = Colors.red;
 const String _defaultPlaceholder = 'assets/images/Djata.jpg';
-const String _imageHostUrl = "http://10.0.2.2:8080";
+String get _imageHostUrl => ApiConfig.baseUrl;
 
 class ProverbeDetailPage extends StatefulWidget {
   final Proverbe proverbe;

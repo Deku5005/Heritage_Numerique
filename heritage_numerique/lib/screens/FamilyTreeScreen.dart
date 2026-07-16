@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import '../config/api_config.dart';
 
 import '../model/FamilleModel.dart';
 import '../model/Membre.dart';
 import '../service/ArbreGenealogiqueService.dart';
 
 import 'CreateTreeScreen.dart';
-import 'AppDrawer.dart'; // <--- Import de AppDrawer
+import 'AppDrawer.dart';
 import 'MembresDetailsScreen.dart';
 
 // --- PALETTE DE COULEURS PREMIUM ---
@@ -14,7 +15,7 @@ const Color _brownDark = Color(0xFF5D4037);
 const Color _creamBackground = Color(0xFFF9F5F0);
 const Color _cardBackground = Colors.white;
 const Color _textDark = Color(0xFF2E2E2E);
-const String _baseUrl = "http://10.0.2.2:8080";
+String get _baseUrl => ApiConfig.baseUrl;
 
 class FamilyTreeScreen extends StatefulWidget {
   final int familyId;

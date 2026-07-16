@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'dart:convert';
+import '../config/api_config.dart';
 
-// ⚠️ Définition de la BASE URL pour la désérialisation si l'API renvoie des chemins relatifs
-const String _baseUrl = "http://10.0.2.2:8080";
+// ⚠️ Définition de la BASE URL pour la désérialisation (centralisée via ApiConfig)
+String get _baseUrl => ApiConfig.baseUrl;
 
 // --- Désérialisation de la liste (utilitaire) ---
 List<Artisanat> artisanatsFromJson(String str) =>

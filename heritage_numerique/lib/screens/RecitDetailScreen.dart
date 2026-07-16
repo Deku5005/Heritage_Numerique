@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart'; // <-- AJOUTER L'IMPORT JUST_AUDIO
+import 'package:just_audio/just_audio.dart';
+import '../config/api_config.dart';
 
 // ⚠️ VÉRIFIEZ ET AJUSTEZ CES CHEMINS SI NÉCESSAIRE
 import 'package:heritage_numerique/model/Recits_model.dart';
 import 'package:heritage_numerique/model/Traduction-conte-model.dart';
 import 'package:heritage_numerique/service/RecitService.dart';
-import 'package:heritage_numerique/service/LectureVocaleService.dart'; // <-- AJOUTER L'IMPORT DU SERVICE AUDIO
+import 'package:heritage_numerique/service/LectureVocaleService.dart';
 
 // --- Constantes de Couleurs Globales ---
 const Color _mainAccentColor = Color(0xFFAA7311);
@@ -13,8 +14,8 @@ const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _serviceErrorColor = Colors.red;
 
-// ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
-const String _imageHostUrl = "http://10.0.2.2:8080";
+// ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE (centralisée via ApiConfig)
+String get _imageHostUrl => ApiConfig.baseUrl;
 
 class RecitDetailScreen extends StatefulWidget {
   final Recit recit;
