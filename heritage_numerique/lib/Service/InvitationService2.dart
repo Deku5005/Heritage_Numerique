@@ -3,13 +3,15 @@ import 'package:http/http.dart' as http;
 import 'package:heritage_numerique/model/InvitationResponse.dart'; // Import du modèle d'invitation
 import 'auth-service.dart'; // Pour l'accès au token
 
+import '../config/api_config.dart';
+
 /// Service dédié aux opérations liées aux invitations (envoi, récupération, gestion).
 class InvitationService {
   // Instance du service d'authentification pour accéder aux tokens
   final AuthService _authService;
 
   // Configuration de l'URL de base (doit correspondre à celle de l'AuthService)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   InvitationService(this._authService);
 

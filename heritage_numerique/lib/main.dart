@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io'; // Import pour la vérification de plateforme (nécessaire pour la correction)
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // Import pour sqflite_common_ffi
 import 'package:sqflite_common/sqflite.dart'; // Import pour databaseFactory
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'screens/splash_screen.dart';
 
@@ -9,6 +10,12 @@ Future<void> main() async {
 
   // 1. Initialisation des bindings Flutter (requis avant toute opération non-Flutter)
   WidgetsFlutterBinding.ensureInitialized(); // 💡 AJOUTÉ ICI
+
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("Erreur lors du chargement du fichier .env: $e");
+  }
 
   // 2. Correction de l'erreur "databaseFactory not initialized" pour flutter_cache_manager (cached_network_image)
   // Cette vérification est nécessaire pour que sqflite sache comment initialiser sa base de données

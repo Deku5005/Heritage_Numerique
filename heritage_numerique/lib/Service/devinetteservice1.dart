@@ -4,13 +4,15 @@ import '../model/Devinette1.dart'; // Importe le modèle de Devinette
 // 💡 AJOUT NÉCESSAIRE : Importation du modèle de traduction de devinette
 import '../model/DevinetteTrductionModel.dart';
 
+import '../config/api_config.dart';
+
 class DevinetteService1 {
   // Base URL pour l'émulateur Android (pour accéder au localhost de la machine hôte)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
-  static const String _endpoint = '/api/public/devinettes';
+  static String get _baseUrl => ApiConfig.baseUrl;
+  static String get _endpoint => '/api/public/devinettes';
 
   // 💡 NOUVEL ENDPOINT POUR LA TRADUCTION
-  static const String _endpointTraductionDevinette = '/api/public/traduction/devinettes';
+  static String get _endpointTraductionDevinette => '/api/public/traduction/devinettes';
 
   /// Récupère UN seul devinette par son ID.
   Future<Devinette1> getDevinette(int id) async {

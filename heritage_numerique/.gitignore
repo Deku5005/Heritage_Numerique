@@ -43,3 +43,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Variables d'environnement sensibles (clés API, secrets)
+.env
+*.env
+key.properties
+*.jks
+*.keystore

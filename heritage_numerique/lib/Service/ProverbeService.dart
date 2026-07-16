@@ -9,9 +9,11 @@ import 'Auth-service.dart'; // Import du service d'authentification
 import '../model/DemandePublication.dart'; // 💡 AJOUT DE L'IMPORT DU MODÈLE DE DEMANDE
 import '../model/TraductionProverbe.dart';
 
+import '../config/api_config.dart';
+
 class ProverbeService {
   // BASE URL : Adresse du serveur local
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   final AuthService _authService = AuthService();
 

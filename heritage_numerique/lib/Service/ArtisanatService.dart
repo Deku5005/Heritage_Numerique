@@ -9,9 +9,11 @@ import '../model/DemandePublication.dart';
 import '../model/ArtisanatTraductionModel.dart';
 
 
+import '../config/api_config.dart';
+
 class ArtisanatService {
   // BASE URL : Adresse du serveur local
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   final AuthService _authService = AuthService();
 

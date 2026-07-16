@@ -6,11 +6,11 @@ import 'dart:io';
 import 'package:heritage_numerique/model/Recits_model.dart';
 import '../model/Traduction-conte-model.dart';
 import 'Auth-service.dart';
+import '../config/api_config.dart';
 
 class RecitService {
   // BASE URL : Adresse du serveur local
-  // Assurez-vous que cette IP est correcte (10.0.2.2 pour l'émulateur Android)
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   final AuthService _authService = AuthService();
 

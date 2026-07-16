@@ -22,7 +22,7 @@ import 'user-id-storage-service.dart'; // Utilisation du nom MembreIdStorageServ
 
 class UtilisateurService1 {
   // REMPLACER avec l'URL de base de votre API
-  final String _baseUrl = 'http://10.0.2.2:8080/api/utilisateurs';
+  final String _baseUrl = 'https://heritage-numerique-api.onrender.com/api/utilisateurs';
 
   // Injection des dépendances des services de stockage
   final TokenStorageService _tokenStorage;

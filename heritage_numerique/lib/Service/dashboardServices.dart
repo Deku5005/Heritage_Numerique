@@ -7,9 +7,11 @@ import 'package:heritage_numerique/model/dashboard-models.dart';
 // Assurez-vous d'avoir un moyen fiable d'obtenir le token de l'utilisateur
 import 'Auth-service.dart'; // Supposons que ceci expose une méthode pour obtenir le token
 
+import '../config/api_config.dart';
+
 class DashboardService {
   // ⚠️ Remplacez par votre URL de base
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
   final AuthService _authService = AuthService(); // Instance de votre service d'authentification
 
   /// Récupère les données du tableau de bord familial

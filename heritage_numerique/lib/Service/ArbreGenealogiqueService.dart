@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../config/api_config.dart';
 
 // 🔑 CORRECTION IMPORT 1: On suppose que le modèle de Famille est Famille.dart (ou FamillyModel.dart, à vérifier)
 // J'utilise Famille.dart pour uniformiser, mais si FamilleModel.dart est votre nom final, remettez-le.
@@ -15,7 +16,7 @@ import '../model/ContributionFamilleModel.dart';
 import 'Auth-service.dart';
 
 class ArbreGenealogiqueService {
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   final AuthService _authService = AuthService();
 

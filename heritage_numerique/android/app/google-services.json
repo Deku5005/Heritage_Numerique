@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "296515079627",
+    "project_id": "heritage-numerique",
+    "storage_bucket": "heritage-numerique.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:296515079627:android:76a15cb97b873ef6573a4e",
+        "android_client_info": {
+          "package_name": "com.mali.heritagenumerique"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWEAUjjhSXklXVIgXGnMmryhcsuz62wlA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

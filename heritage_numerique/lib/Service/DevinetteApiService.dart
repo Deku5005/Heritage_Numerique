@@ -8,8 +8,10 @@ import '../model/DevinetteModel.dart'; // Import du modèle créé
 import 'Auth-service.dart'; // 💡 AJOUT : Import du service d'authentification
 import '../model/TraductionDevinette.dart';
 
+import '../config/api_config.dart';
+
 // Base URL de votre API (inspirée de l'exemple Proverbe)
-const String _baseUrl = 'http://10.0.2.2:8080';
+String get _baseUrl => ApiConfig.baseUrl;
 
 class DevinetteApiService {
   // 💡 SUPPRESSION : Le jeton n'est plus injecté directement, mais obtenu via AuthService.

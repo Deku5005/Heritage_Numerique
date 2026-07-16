@@ -3,12 +3,14 @@ import 'package:http/http.dart' as http;
 import '../model/proverbe1.dart'; // Assurez-vous que le chemin est correct
 import '../model/ProverbeTraduction.dart'; // 💡 Importation du modèle de traduction
 
+import '../config/api_config.dart';
+
 class ProverbeService1 {
   // L'URL de base pour l'émulateur Android vers votre machine locale
-  static const String _baseUrl = 'http://10.0.2.2:8080';
-  static const String _endpoint = '/api/public/proverbes';
+  static String get _baseUrl => ApiConfig.baseUrl;
+  static String get _endpoint => '/api/public/proverbes';
   // 💡 NOUVEL ENDPOINT pour la traduction
-  static const String _translationPath = '/api/public/traduction/proverbes';
+  static String get _translationPath => '/api/public/traduction/proverbes';
 
   /// Récupère UN seul proverbe (si l'API prend un ID).
   Future<Proverbe1> getProverbe(int id) async {

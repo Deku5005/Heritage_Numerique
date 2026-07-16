@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 // NOTE: Adresse IP locale de l'émulateur Android vers l'hôte (Backend Java/Spring)
-const String BASE_URL = 'http://10.0.2.2:8080';
+String get BASE_URL => ApiConfig.baseUrl;
 
 /// Service dédié à la gestion des invitations.
 class InvitationService {

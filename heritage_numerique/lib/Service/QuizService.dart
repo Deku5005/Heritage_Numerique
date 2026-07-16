@@ -4,8 +4,10 @@ import '../model/QuizModel.dart';
 import '../model/ResultatModel.dart'; // NOUVEL IMPORT
 import 'Auth-service.dart';
 
+import '../config/api_config.dart';
+
 class QuizService {
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
   final AuthService _authService = AuthService();
 
   Future<String?> _getAuthToken() async {

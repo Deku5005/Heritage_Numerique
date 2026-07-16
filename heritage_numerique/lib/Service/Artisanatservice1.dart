@@ -6,8 +6,10 @@ import 'package:http/http.dart' as http;
 import '../model/ArtisanatTraduction.dart';
 import '../model/artisanat1.dart';
 
+import '../config/api_config.dart';
+
 // Adresse de l'émulateur Android
-const String _apiBaseUrl = 'http://10.0.2.2:8080';
+String get _apiBaseUrl => ApiConfig.baseUrl;
 
 class ArtisanatService1 { // Nom de la classe changé
   // L'endpoint pour la récupération des artisanats

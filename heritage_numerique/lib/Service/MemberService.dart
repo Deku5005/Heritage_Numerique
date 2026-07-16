@@ -3,12 +3,14 @@ import 'package:http/http.dart' as http;
 import 'package:heritage_numerique/Service/auth-service.dart';
 import 'package:heritage_numerique/model/MemberResponseModel.dart'; // Votre modèle MembreResponse adapté
 
+import '../config/api_config.dart';
+
 /// Service dédié à la récupération des membres d'une famille via l'API Utilisateurs.
 class FamilleMembreService {
   final AuthService _authService;
 
   // L'URL de base doit correspondre à celle utilisée dans AuthService
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   FamilleMembreService(this._authService);
 

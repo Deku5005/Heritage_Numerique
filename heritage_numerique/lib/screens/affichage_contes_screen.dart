@@ -20,7 +20,7 @@ const Color _serviceErrorColor = Colors.red;
 const Color _quizButtonColor = Color(0xFF6A994E);
 
 // ✅ BASE URL UTILISÉE POUR CONSTRUIRE L'URL DE L'IMAGE
-const String _imageHostUrl = "http://10.0.2.2:8080";
+const String _imageHostUrl = "https://heritage-numerique-api.onrender.com/uploads/conte1.jpg";
 
 
 class AffichageContesScreen extends StatefulWidget {

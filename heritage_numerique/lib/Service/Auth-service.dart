@@ -5,6 +5,7 @@ import 'package:heritage_numerique/model/dashboard-models.dart';
 import 'token-storage-service.dart'; // Import du service de stockage du Token
 // ✅ CORRECTION DE L'IMPORT: Utilisation du service de stockage de l'ID Membre
 import 'user-id-storage-service.dart';
+import '../config/api_config.dart';
 
 /// Service centralisé pour l'authentification et les appels d'API protégés.
 class AuthService {
@@ -19,12 +20,12 @@ class AuthService {
 
   // *********** Configuration des Endpoints ***********
   // NOTE: Adresse IP locale de l'émulateur Android vers l'hôte (Backend Java/Spring)
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static String get _baseUrl => ApiConfig.baseUrl;
 
-  static const String _registerUrl = '$_baseUrl/api/auth/register';
-  static const String _loginUrl = '$_baseUrl/api/auth/login';
-  static const String _loginWithCodeUrl = '$_baseUrl/api/auth/login-with-code';
-  static const String _dashboardPersonnelUrl = '$_baseUrl/api/dashboard/personnel';
+  static String get _registerUrl => '$_baseUrl/api/auth/register';
+  static String get _loginUrl => '$_baseUrl/api/auth/login';
+  static String get _loginWithCodeUrl => '$_baseUrl/api/auth/login-with-code';
+  static String get _dashboardPersonnelUrl => '$_baseUrl/api/dashboard/personnel';
 
 
   // ✅ EXPOSITION DE getAuthToken

@@ -4,9 +4,11 @@ import '../model/family_member_model.dart';
 import '../model/family_model.dart'; // ✅ Import du modèle FamilyModel pour la réponse
 import 'Auth-service.dart';
 
+import '../config/api_config.dart';
+
 class FamilyMemberService {
   // ⚠️ Remplacez par votre URL de base (doit être la même que dans DashboardService)
-  static const String _baseUrl = "http://10.0.2.2:8080";
+  static String get _baseUrl => ApiConfig.baseUrl;
   final AuthService _authService = AuthService(); // Instance de votre service d'authentification
 
   // --- Méthode d'utilitaire pour les appels API ---

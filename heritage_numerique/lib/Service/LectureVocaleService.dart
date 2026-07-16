@@ -2,12 +2,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:typed_data'; // 💡 Importation nécessaire pour Uint8List
 
+import '../config/api_config.dart';
+
 class LectureVocaleService {
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   // Chemins des deux APIs
-  static const String _pathStandard = '/api/lecture-vocale/contenu';
-  static const String _pathPublic = '/api/public/lecture-vocale/contenu';
+  static String get _pathStandard => '/api/lecture-vocale/contenu';
+  static String get _pathPublic => '/api/public/lecture-vocale/contenu';
 
   final http.Client _client = http.Client();
 

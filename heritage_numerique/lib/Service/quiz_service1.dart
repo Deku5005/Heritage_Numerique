@@ -6,9 +6,10 @@ import 'package:http/http.dart' as http;
 import '../model/soumission_reponse.dart';
 // Assurez-vous d'importer votre service de stockage de token
 import 'token-storage-service.dart';
+import '../config/api_config.dart';
 
 // Remplacez par votre URL de base API réelle
-const String _baseUrl = "http://10.0.2.2:8080";
+String get _baseUrl => ApiConfig.baseUrl;
 
 class QuizService1 {
   final TokenStorageService _tokenStorageService = TokenStorageService();

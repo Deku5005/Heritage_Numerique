@@ -66,7 +66,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       return null;
     } catch (e) {
-      print("Erreur de décodage JWT: $e");
       return null;
     }
   }
