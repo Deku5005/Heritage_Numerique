@@ -53,6 +53,8 @@ class AuthService {
     required String motDePasse,
     String? codeInvitation,
   }) async {
+    // 👇 LOG 1
+    print('📤 [register] Début - email: $email');
     final Map<String, dynamic> requestBody = {
       "nom": nom,
       "prenom": prenom,
@@ -64,14 +66,25 @@ class AuthService {
         "codeInvitation": codeInvitation,
     };
 
+    // 👇 LOG 2
+    print('📤 [register] URL: $_registerUrl');
+    print('📤 [register] Body: $requestBody');
+
+
     try {
+      // 👇 LOG 3
+      print('📤 [register] Envoi de la requête...');
       final response = await http.post(
         Uri.parse(_registerUrl),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(requestBody),
-      );
+      ).timeout(Duration(seconds: 60)); ;
+
+      // 👇 LOG 4
+      print('📥 [register] Réponse reçue - Status: ${response.statusCode}');
+      print('📥 [register] Body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
 
@@ -109,6 +122,8 @@ class AuthService {
         }
       }
     } catch (e) {
+      // 👇 LOG 5
+      print('❌ [register] Exception: $e');
       throw Exception('Échec de la connexion réseau ou erreur non gérée : $e');
     }
   }
