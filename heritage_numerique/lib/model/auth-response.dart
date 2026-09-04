@@ -20,7 +20,7 @@ class AuthResponse {
 
   /// Méthode factory pour créer une instance à partir du JSON
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    int _safeParseInt(dynamic value) {
+    int safeParseInt(dynamic value) {
       if (value is int) return value;
       if (value is String) return int.tryParse(value) ?? 0;
       return 0;
@@ -29,7 +29,7 @@ class AuthResponse {
     return AuthResponse(
       accessToken: json['accessToken'] as String,
       tokenType: json['tokenType'] as String,
-      userId: _safeParseInt(json['userId']),
+      userId: safeParseInt(json['userId']),
       email: json['email'] as String,
       nom: json['nom'] as String,
       prenom: json['prenom'] as String,

@@ -1,108 +1,143 @@
 import 'package:flutter/material.dart';
-import 'package:heritage_numerique/screens/Profil.dart';
-import '../screens/contes_screen.dart';
-import '../screens/artisans_screen.dart';
-import '../screens/music_screen.dart';
-import '../screens/proverb_screen.dart';
+import 'package:heritage_numerique/Service/token-storage-service.dart';
+import 'package:heritage_numerique/screens/dashboard_screen.dart';
+import 'package:heritage_numerique/screens/home_screen.dart';
+import 'package:heritage_numerique/screens/login_screen.dart';
+import 'package:heritage_numerique/screens/public_home_screen.dart';
+import 'package:heritage_numerique/screens/public_quiz_screen.dart';
+import 'cultural_theme.dart';
 
-/// Widget de navigation inférieure partagé pour toutes les pages
+/// Widget de navigation inférieure pour l'Espace Public & Connecté (4 onglets selon la maquette)
 class BottomNavigationWidget extends StatelessWidget {
   final String currentPage;
-  // 💡 GARDÉ : Le familyId est présent
   final int? familyId;
 
   const BottomNavigationWidget({
     super.key,
     required this.currentPage,
-    // 💡 CORRECTION : Rendu OPTIONNEL pour éviter la cascade d'erreurs
     this.familyId,
   });
 
-  // Couleur principale Ocre Vif (D69301)
-  static const Color _accentColor = Color(0xFFD69301);
-
   @override
   Widget build(BuildContext context) {
-    // Liste des éléments de la barre de navigation
     final List<Map<String, dynamic>> navItems = [
-      {'icon': Icons.menu_book, 'label': 'Contes', 'page': 'contes'},
-      {'icon': Icons.lightbulb_outline, 'label': 'Devinette', 'page': 'music'},
-      {'icon': Icons.handyman, 'label': 'Artisanat', 'page': 'artisans'},
-      {'icon': Icons.chat_bubble, 'label': 'Proverbe', 'page': 'proverb'},
-      {'icon': Icons.person, 'label': 'Profil', 'page': 'profil'},
+      {
+        'id': 'accueil',
+        'label': 'Accueil',
+        'icon': Icons.home_outlined,
+        'activeIcon': Icons.home,
+      },
+      {
+        'id': 'explorer',
+        'label': 'Explorer',
+        'icon': Icons.public_outlined,
+        'activeIcon': Icons.public,
+      },
+      {
+        'id': 'quiz',
+        'label': 'Quiz',
+        'icon': Icons.help_outline,
+        'activeIcon': Icons.help,
+      },
+      {
+        'id': 'profil',
+        'label': 'Profil',
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person,
+      },
     ];
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE0E0E0), width: 1)),
+        border: const Border(
+          top: BorderSide(color: Color(0xFFEBEBEB), width: 1.0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: navItems.map((item) {
-            final isSelected = item['page'] == currentPage;
-            return GestureDetector(
-              onTap: () => _navigateToPage(context, item['page'] as String),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    item['icon'] as IconData,
-                    size: 24,
-                    color: isSelected ? _accentColor : Colors.grey,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: navItems.map((item) {
+              final isSelected = item['id'] == currentPage;
+              return InkWell(
+                onTap: () => _handleNavigation(context, item['id'] as String),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected
+                            ? (item['activeIcon'] as IconData)
+                            : (item['icon'] as IconData),
+                        size: 24,
+                        color: isSelected ? CulturalTheme.primaryOcre : CulturalTheme.textMuted,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? CulturalTheme.primaryOcre : CulturalTheme.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    item['label'] as String,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? _accentColor : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
   }
 
-  /// Navigation vers la page correspondante
-  void _navigateToPage(BuildContext context, String page) {
-    // Ne naviguer que si ce n'est pas la page actuelle
-    if (page == currentPage) return;
+  Future<void> _handleNavigation(BuildContext context, String target) async {
+    if (target == currentPage) return;
 
-    Widget targetScreen;
-    switch (page) {
-      case 'contes':
-        targetScreen = const ContesScreen();
+    Widget destination;
+    switch (target) {
+      case 'accueil':
+        destination = const PublicHomeScreen();
         break;
-      case 'music':
-        targetScreen = const MusicScreen();
+      case 'explorer':
+      case 'decouvrir':
+        destination = const HomeScreen();
         break;
-      case 'artisans':
-        targetScreen = const ArtisansScreen();
-        break;
-      case 'proverb':
-        targetScreen = const ProverbScreen();
+      case 'quiz':
+        destination = const PublicQuizScreen();
         break;
       case 'profil':
-      // 💡 UTILISATION SÉCURISÉE : on passe l'ID si on l'a, sinon on passe null.
-      // Puisque familyId est maintenant optionnel dans le constructeur,
-      // les pages qui n'en ont pas besoin (comme ContesScreen) peuvent l'ignorer.
-        targetScreen = ProfilePage(familyId: familyId);
+        final token = await TokenStorageService().getAuthToken();
+        if (token != null && token.isNotEmpty) {
+          destination = const DashboardScreen();
+        } else {
+          destination = const LoginScreen();
+        }
         break;
       default:
         return;
     }
 
-    // Navigation vers la page cible
+    if (!context.mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => targetScreen),
+      PageRouteBuilder(
+        pageBuilder: (context, anim1, anim2) => destination,
+        transitionDuration: Duration.zero,
+      ),
     );
   }
 }

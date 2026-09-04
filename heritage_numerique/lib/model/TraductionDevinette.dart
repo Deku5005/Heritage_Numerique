@@ -55,7 +55,7 @@ class TraductionDevinette {
   factory TraductionDevinette.fromJson(Map<String, dynamic> json) {
 
     // Fonction utilitaire pour gérer les Maps potentiellement nulles ou vides
-    Map<String, String> _safeMap(dynamic map) {
+    Map<String, String> safeMap(dynamic map) {
       if (map == null) return {};
       // S'assurer que chaque entrée est MapEntry<String, String>
       return Map.from(map).map((k, v) => MapEntry<String, String>(k.toString(), v.toString()));
@@ -72,12 +72,12 @@ class TraductionDevinette {
       regionOriginale: json["regionOriginale"] ?? '',
 
       // Utilisation de la fonction _safeMap pour garantir une Map non-null
-      traductionsTitre: _safeMap(json["traductionsTitre"]),
-      traductionsContenu: _safeMap(json["traductionsContenu"]),
-      traductionsDescription: _safeMap(json["traductionsDescription"]),
-      traductionsLieu: _safeMap(json["traductionsLieu"]),
-      traductionsRegion: _safeMap(json["traductionsRegion"]),
-      traductionsCompletes: _safeMap(json["traductionsCompletes"]),
+      traductionsTitre: safeMap(json["traductionsTitre"]),
+      traductionsContenu: safeMap(json["traductionsContenu"]),
+      traductionsDescription: safeMap(json["traductionsDescription"]),
+      traductionsLieu: safeMap(json["traductionsLieu"]),
+      traductionsRegion: safeMap(json["traductionsRegion"]),
+      traductionsCompletes: safeMap(json["traductionsCompletes"]),
 
       // Les Listes devraient être gérées avec un test de nullité
       languesDisponibles: List<String>.from(json["languesDisponibles"]?.map((x) => x) ?? []),

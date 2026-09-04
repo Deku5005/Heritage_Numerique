@@ -3,7 +3,6 @@
 import 'dart:convert';
 import 'package:heritage_numerique/model/family_response_dashboard.dart';
 import 'package:http/http.dart' as http;
-import 'package:heritage_numerique/model/dashboard-models.dart';
 // Assurez-vous d'avoir un moyen fiable d'obtenir le token de l'utilisateur
 import 'Auth-service.dart'; // Supposons que ceci expose une méthode pour obtenir le token
 

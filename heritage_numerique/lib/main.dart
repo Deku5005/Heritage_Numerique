@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io'; // Import pour la vérification de plateforme (nécessaire pour la correction)
 import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // Import pour sqflite_common_ffi
-import 'package:sqflite_common/sqflite.dart'; // Import pour databaseFactory
+// Import pour databaseFactory
 
 import 'screens/splash_screen.dart';
 

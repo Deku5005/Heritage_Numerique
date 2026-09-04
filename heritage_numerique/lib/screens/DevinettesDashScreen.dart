@@ -383,7 +383,7 @@ class _DevinetteCardState extends State<_DevinetteCard> {
     });
 
     try {
-      final responseMap = await widget.apiService.requestPublication(contenuId: widget.devinette.id!);
+      final responseMap = await widget.apiService.requestPublication(contenuId: widget.devinette.id);
       final String newStatus = responseMap['newStatus'];
 
       if (mounted) {

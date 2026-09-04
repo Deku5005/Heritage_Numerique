@@ -161,7 +161,7 @@ class _ArtisanatDetailPageState extends State<ArtisanatDetailPage> {
           _currentTranslation = translation;
           // Mettre à jour la liste des langues disponibles avec 'bm'
           final List<String> apiLangs = translation.languesDisponibles.map((code) => code == 'bam_Latn' ? 'bm' : code).toList();
-          _availableLanguages = ['fr', ...apiLangs].toSet().toList();
+          _availableLanguages = {'fr', ...apiLangs}.toList();
         });
       }
     } catch (e) {
@@ -298,12 +298,12 @@ class _ArtisanatDetailPageState extends State<ArtisanatDetailPage> {
     final String dateCreation = '${widget.artisanat.dateCreation.day}/${widget.artisanat.dateCreation.month}/${widget.artisanat.dateCreation.year}';
 
     // Récupérer les informations de lieu/région traduites (si disponibles)
-    final String? translatedLieu = _getTranslatedText(
+    final String translatedLieu = _getTranslatedText(
         widget.artisanat.lieu,
         _currentTranslation?.traductionsLieu ?? {},
         _selectedLanguageCode
     );
-    final String? translatedRegion = _getTranslatedText(
+    final String translatedRegion = _getTranslatedText(
         widget.artisanat.region,
         _currentTranslation?.traductionsRegion ?? {},
         _selectedLanguageCode

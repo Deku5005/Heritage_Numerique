@@ -72,7 +72,7 @@ class _ProverbeDetailPageState extends State<ProverbeDetailPage> {
 
   Future<TraductionProverbe> _fetchTranslation(String uiLanguageCode) {
     return _proverbeService.fetchProverbeTraduction(
-      proverbeId: widget.proverbe.id!,
+      proverbeId: widget.proverbe.id,
       langueCode: uiLanguageCode,
     );
   }
@@ -117,7 +117,7 @@ class _ProverbeDetailPageState extends State<ProverbeDetailPage> {
     try {
       // 2. Téléchargement du fichier audio (Endpoint NON public)
       final List<int> audioBytes = await _lectureVocaleService.telechargerLectureVocale(
-        widget.proverbe.id!,
+        widget.proverbe.id,
         _selectedLanguageCodeUI,
         usePublicApi: false, // <-- Utilise l'endpoint NON public
       );

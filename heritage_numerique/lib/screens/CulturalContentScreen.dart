@@ -342,7 +342,7 @@ class _RecitCardState extends State<RecitCard> {
 
     try {
       // Appel du service de publication
-      final responseMap = await widget.recitService.requestPublication(contenuId: widget.recit.id!);
+      final responseMap = await widget.recitService.requestPublication(contenuId: widget.recit.id);
       final String newStatus = responseMap['newStatus']; // Ex: EN_ATTENTE
 
       if (mounted) {
@@ -715,9 +715,12 @@ class _ContentCreationFormState extends State<_ContentCreationForm> {
 
         if (fileSizeMB > maxSizeMB) {
           setState(() {
-            _errorMessage = 'Fichier trop volumineux: ${fileSizeMB} Mo > $maxSizeMB Mo';
-            if (type == 'photo') _selectedPhotoFile = null;
-            else _selectedContentFile = null;
+            _errorMessage = 'Fichier trop volumineux: $fileSizeMB Mo > $maxSizeMB Mo';
+            if (type == 'photo') {
+              _selectedPhotoFile = null;
+            } else {
+              _selectedContentFile = null;
+            }
           });
           return;
         }

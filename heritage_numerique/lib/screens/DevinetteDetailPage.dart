@@ -82,7 +82,7 @@ class _DevinetteDetailPageState extends State<DevinetteDetailPage> {
 
   Future<TraductionDevinette> _fetchTranslation(String uiLanguageCode) {
     return _apiService.fetchDevinetteTraduction(
-      devinetteId: widget.devinette.id!,
+      devinetteId: widget.devinette.id,
       langueCode: uiLanguageCode,
     );
   }
@@ -118,12 +118,6 @@ class _DevinetteDetailPageState extends State<DevinetteDetailPage> {
   }
 
   Future<void> _playAudio() async {
-    if (widget.devinette.id == null) {
-      _showErrorSnackBar("Impossible de lire l'audio : ID de contenu manquant.");
-      return;
-    }
-
-    // 1. Début du chargement
     setState(() {
       _isAudioLoading = true;
       _audioErrorMessage = null;
@@ -132,7 +126,7 @@ class _DevinetteDetailPageState extends State<DevinetteDetailPage> {
     try {
       // 2. Téléchargement du fichier audio (Endpoint NON public)
       final List<int> audioBytes = await _lectureVocaleService.telechargerLectureVocale(
-        widget.devinette.id!,
+        widget.devinette.id,
         _selectedLanguageCodeUI,
         usePublicApi: false, // <-- Utilise l'endpoint NON public
       );
@@ -367,7 +361,7 @@ class _DevinetteDetailPageState extends State<DevinetteDetailPage> {
       appBar: AppBar(
         title: Text(
           // Utilisation de ?? 'Détail Devinette' pour garantir une String non nulle
-          widget.devinette.titre?.isNotEmpty == true ? widget.devinette.titre! : 'Détail Devinette',
+          widget.devinette.titre.isNotEmpty == true ? widget.devinette.titre : 'Détail Devinette',
           style: const TextStyle(color: _cardTextColor, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: _backgroundColor,

@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-// --- Imports pour la Traduction et l'Audio ---
 import 'package:audioplayers/audioplayers.dart';
 import 'dart:typed_data';
-// 💡 CONSERVATION pour 'mailto:' (email)
 import 'package:url_launcher/url_launcher.dart';
 
 import '../Service/Artisanatservice1.dart';
 import '../service/LectureVocaleService.dart';
 import '../model/ArtisanatTraduction.dart';
-
-import '../widgets/bottom_navigation_widget.dart';
-import '../model/artisanat1.dart';
-// ✅ NOUVEAU : Import pour le widget de lecture vidéo
+import '../model/Artisanat1.dart';
 import '../widgets/VideoPlayerWidget.dart';
+import '../widgets/cultural_theme.dart';
+
+const Color _backgroundColor = Color(0xFFFAF7F2);
+const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
 
 /// Écran affichant le profil détaillé d'un artisan et ses créations.
 class ArtisanDetailScreen extends StatefulWidget {
@@ -28,16 +27,6 @@ class ArtisanDetailScreen extends StatefulWidget {
 }
 
 class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
-  // COULEURS
-  static const Color _accentColor = Color(0xFFD69301);
-  static const Color _cardTextColor = Color(0xFF2E2E2E);
-  static const Color _actionColor = Color(0xFF9F9646);
-  static const Color _backgroundColor = Colors.white;
-
-  // URL DE BASE POUR LES IMAGES
-  static const String _apiBaseUrlForImages = 'http://10.0.2.2:8080';
-
-  // --- PROPRIÉTÉS DE TRADUCTION ---
   final ArtisanatService1 _artisanatService = ArtisanatService1();
   ArtisanatTraduction? _currentTranslation;
   String _selectedLanguageCode = 'fr';
@@ -45,13 +34,12 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   String? _translationError;
   List<String> _availableLanguages = ['fr', 'bm', 'en'];
 
-  // --- PROPRIÉTÉS DE LECTURE VOCALE ---
   final LectureVocaleService _lectureVocaleService = LectureVocaleService();
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isAudioLoading = false;
   bool _isPlaying = false;
   String? _audioError;
-
+  bool _isBookmarked = false;
 
   @override
   void initState() {
@@ -75,51 +63,13 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
     super.dispose();
   }
 
-  // --- LOGIQUE POUR COMPLÉTER LES URLS RELATIVES ---
-  String _getFullImageUrl(String? relativePath) {
-    if (relativePath == null || relativePath.isEmpty) return '';
-    if (relativePath.toLowerCase().startsWith('http')) return relativePath;
-
-    final String sanitizedPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-    return '$_apiBaseUrlForImages/$sanitizedPath';
-  }
-
-  // --- LOGIQUE D'ACTION (Contacter l'Auteur) ---
-  Future<void> _launchUrl(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-
-    try {
-      if (await launchUrl(url)) {
-        // Succès
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Impossible d\'ouvrir : $urlString'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors du lancement de l\'URL: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // --- LOGIQUE DE TRADUCTION / LECTURE VOCALE (inchangée) ---
+  // --- LOGIQUE DE TRADUCTION & LECTURE VOCALE ---
 
   ArtisanatTraduction _createSourceTranslation() {
     final Artisanat1 data = widget.artisanData;
 
     return ArtisanatTraduction(
-      idContenu: data.id ?? 0,
+      idContenu: data.id,
       titreOriginal: data.titre ?? '',
       descriptionOriginale: data.description ?? '',
       lieuOriginal: data.lieu,
@@ -137,9 +87,8 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
   }
 
   Future<void> _fetchAvailableLanguages() async {
-    final int? artisanatId = widget.artisanData.id;
-
-    if (artisanatId == null || artisanatId <= 0) return;
+    final int artisanatId = widget.artisanData.id;
+    if (artisanatId <= 0) return;
 
     try {
       final translation = await _artisanatService.fetchArtisanatTranslationPublic(
@@ -157,7 +106,7 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
         });
       }
     } catch (e) {
-      print("Erreur lors de la récupération initiale des langues: $e");
+      debugPrint("Erreur lors de la récupération initiale des langues: $e");
     }
   }
 
@@ -181,9 +130,8 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
       _selectedLanguageCode = langCode;
     });
 
-    final int? artisanatId = widget.artisanData.id;
-
-    if (artisanatId == null || artisanatId <= 0) {
+    final int artisanatId = widget.artisanData.id;
+    if (artisanatId <= 0) {
       if (mounted) {
         setState(() {
           _translationError = "Impossible de traduire : ID d'artisanat invalide.";
@@ -202,60 +150,52 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
       if (mounted) {
         setState(() {
           _currentTranslation = translation;
-          final List<String> apiLangs = translation.languesDisponibles
-              .map((code) => code == 'bam_Latn' ? 'bm' : code == 'eng_Latn' ? 'en' : code)
-              .toList();
-
-          _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
+          _isLoadingTranslation = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _translationError = 'Erreur de traduction: ${e.toString().replaceFirst('Exception: ', '')}';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
           _isLoadingTranslation = false;
+          _translationError = "La traduction n'a pas pu être récupérée : ${e.toString().split(':').last.trim()}";
         });
       }
     }
   }
 
-  String _getTranslatedText(String? originalText, Map<String, String> translationsMap, String langCode) {
-    if (langCode == 'fr') return originalText ?? '';
-
-    String? translated = translationsMap[langCode];
-    if (translated != null && translated.isNotEmpty) return translated;
-
-    if (langCode == 'bm') {
-      translated = translationsMap['bam_Latn'];
-      if (translated != null && translated.isNotEmpty) return translated;
+  String _getTranslatedText(Map<String, String> map, String defaultVal) {
+    if (map.containsKey(_selectedLanguageCode)) {
+      return map[_selectedLanguageCode]!;
     }
-    if (langCode == 'en') {
-      translated = translationsMap['eng_Latn'];
-      if (translated != null && translated.isNotEmpty) return translated;
+    const Map<String, String> codeMap = {
+      'bm': 'bam_Latn',
+      'en': 'eng_Latn',
+      'fr': 'fra_Latn',
+    };
+    final String? longCode = codeMap[_selectedLanguageCode];
+    if (longCode != null && map.containsKey(longCode)) {
+      return map[longCode]!;
     }
-
-    return originalText ?? 'Traduction non disponible.';
+    return map['fr'] ?? defaultVal;
   }
 
   String _getTitre() {
-    return _getTranslatedText(
-        widget.artisanData.titre,
-        _currentTranslation?.traductionsTitre ?? {},
-        _selectedLanguageCode
-    );
+    if (_currentTranslation == null) return widget.artisanData.titre ?? 'Sans titre';
+    return _getTranslatedText(_currentTranslation!.traductionsTitre, widget.artisanData.titre ?? 'Sans titre');
   }
 
   String _getDescription() {
-    return _getTranslatedText(
-        widget.artisanData.description,
-        _currentTranslation?.traductionsDescription ?? {},
-        _selectedLanguageCode
-    );
+    if (_currentTranslation == null) return widget.artisanData.description ?? 'Aucune description disponible.';
+    return _getTranslatedText(_currentTranslation!.traductionsDescription, widget.artisanData.description ?? 'Aucune description disponible.');
+  }
+
+  String _mapLanguageCodeToName(String code) {
+    switch (code) {
+      case 'fr': return 'Français';
+      case 'bm': return 'Bamanankan';
+      case 'en': return 'English';
+      default: return code.toUpperCase();
+    }
   }
 
   Future<void> _playTranslatedContent() async {
@@ -266,8 +206,8 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
 
     if (_isAudioLoading) return;
 
-    final int? artisanatId = widget.artisanData.id;
-    if (artisanatId == null || artisanatId <= 0) {
+    final int artisanatId = widget.artisanData.id;
+    if (artisanatId <= 0) {
       setState(() => _audioError = "ID artisanat invalide pour la lecture.");
       return;
     }
@@ -279,9 +219,9 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
 
     try {
       final Uint8List audioData = await _lectureVocaleService.telechargerLectureVocale(
-          artisanatId,
-          _selectedLanguageCode,
-          usePublicApi: true
+        artisanatId,
+        _selectedLanguageCode,
+        usePublicApi: true,
       );
 
       await _audioPlayer.play(BytesSource(audioData));
@@ -289,361 +229,550 @@ class _ArtisanDetailScreenState extends State<ArtisanDetailScreen> {
       setState(() {
         _isAudioLoading = false;
       });
-
     } catch (e) {
-      print("Erreur de lecture vocale: $e");
+      debugPrint("Erreur de lecture vocale: $e");
       if (mounted) {
         setState(() {
           _isAudioLoading = false;
-          _audioError = 'Échec de la lecture vocale. ($e)';
+          _audioError = 'Lecture vocale indisponible pour cette œuvre.';
         });
       }
     }
   }
 
-  // -------------------------------------------------------------------
-  // --- WIDGETS DE CONSTRUCTION ---
-  // -------------------------------------------------------------------
-
-  Widget _buildLanguageSelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildPlayButton(),
-
-          Row(
-            children: [
-              const Text("Langue : ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor)),
-              DropdownButton<String>(
-                value: _selectedLanguageCode,
-                icon: const Icon(Icons.arrow_drop_down),
-                underline: Container(height: 1, color: _accentColor),
-                itemHeight: 48,
-                onChanged: _isLoadingTranslation ? null : (String? newValue) {
-                  if (newValue != null && newValue != _selectedLanguageCode) {
-                    _fetchTranslation(newValue);
-                  }
-                },
-                items: _availableLanguages.map<DropdownMenuItem<String>>((String value) {
-                  String displayName;
-                  switch (value) {
-                    case 'fr':
-                      displayName = 'Français (Source)';
-                      break;
-                    case 'en':
-                      displayName = 'Anglais';
-                      break;
-                    case 'bm':
-                      displayName = 'Bambara';
-                      break;
-                    default:
-                      displayName = value.toUpperCase();
-                  }
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(displayName, style: const TextStyle(fontSize: 14)),
-                  );
-                }).toList(),
-              ),
-              if (_isLoadingTranslation)
-                const Padding(
-                  padding: EdgeInsets.only(left: 10.0),
-                  child: SizedBox(
-                      width: 15, height: 15,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _accentColor)
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlayButton() {
-    IconData icon;
-    String label;
-    Color color;
-
-    if (_isAudioLoading) {
-      icon = Icons.hourglass_empty;
-      label = "Chargement...";
-      color = Colors.grey;
-    } else if (_isPlaying) {
-      icon = Icons.pause;
-      label = "Pause";
-      color = Colors.red.shade700;
-    } else {
-      icon = Icons.play_arrow;
-      label = "Écouter";
-      color = _accentColor;
+  Widget _buildImageWidget(String path) {
+    if (path.isEmpty) {
+      return Image.asset('assets/images/artisanat.jpg', fit: BoxFit.cover);
     }
-
-    return ElevatedButton.icon(
-      onPressed: (_isAudioLoading || _isLoadingTranslation) ? null : _playTranslatedContent,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 3,
-      ),
-    );
-  }
-
-  Widget _buildCustomAppBar(BuildContext context, String title) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10, left: 20, right: 20, bottom: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: _accentColor),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                title,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.left,
-                style: const TextStyle(
-                  color: _cardTextColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrimaryImage(String imageUrl) {
-    if (imageUrl.isEmpty) {
-      return Container(
-        height: 200,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Center(
-            child: Icon(Icons.image_not_supported, size: 50, color: _cardTextColor.withOpacity(0.5))),
-      );
+    if (path.startsWith('assets/')) {
+      return Image.asset(path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Image.asset('assets/images/artisanat.jpg', fit: BoxFit.cover));
     }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        height: 200,
-        width: double.infinity,
-        color: Colors.grey[300],
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(
-              child: CircularProgressIndicator(
-                color: _accentColor,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) => Center(
-            child: Icon(Icons.image_not_supported, size: 50, color: _cardTextColor.withOpacity(0.5)),
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildArtisanProfile(String name, IconData icon) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 60,
-          backgroundColor: _accentColor.withOpacity(0.2),
-          child: Icon(icon, size: 60, color: _accentColor),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          name,
-          style: const TextStyle(
-            color: _cardTextColor,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 3. VIDÉO DE L'ARTISAN
-  Widget _buildVideoSection(String url, String buttonLabel) {
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Container(
-            color: Colors.black,
-            // ✅ Utilisation du widget de lecteur vidéo
-            child: VideoPlayerWidget(videoUrl: url),
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Le bouton d'action est conservé pour l'esthétique et gère maintenant
-        // un message d'information pour la vidéo intégrée.
-        _buildActionButton(buttonLabel, Icons.play_arrow, _actionColor, url),
-      ],
-    );
-  }
-
-  /// BOUTON D'ACTION
-  Widget _buildActionButton(String text, IconData icon, Color color, String url) {
-    final bool isEmailAction = url.startsWith('mailto:');
-
-    return GestureDetector(
-      onTap: isEmailAction ? () => _launchUrl(url) : () {
-        if (!isEmailAction) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('La lecture vidéo est intégrée au-dessus.'),
-              backgroundColor: _actionColor,
-            ),
-          );
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 5))],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: Colors.white),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
+    String url = path;
+    if (!path.startsWith('http')) {
+      final sanitized = path.startsWith('/') ? path.substring(1) : path;
+      url = '$_apiBaseUrlForImages/$sanitized';
+    }
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Image.asset('assets/images/artisanat.jpg', fit: BoxFit.cover),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final Artisanat1 data = widget.artisanData;
-
     final String titre = _getTitre();
     final String description = _getDescription();
-
-    final String nomAuteurComplet = '${data.prenomAuteur ?? ''} ${data.nomAuteur ?? 'Auteur inconnu'}'.trim();
-
+    final String nomAuteurComplet = '${data.prenomAuteur ?? ''} ${data.nomAuteur ?? 'Artisan Malien'}'.trim();
     final String? videoPath = data.urlVideo;
     final String? emailAuteur = data.emailAuteur;
 
-    final String fullVideoUrl = _getFullImageUrl(videoPath);
-    final List<String> allPhotosPaths = data.urlPhotos ?? [];
-    final String primaryImagePath = allPhotosPaths.isNotEmpty ? allPhotosPaths.first : '';
-    final String fullPrimaryImageUrl = _getFullImageUrl(primaryImagePath);
-
-    const String watchVideoLabel = 'Regarder la vidéo (intégrée)';
-    const String supportArtisanLabel = 'Contacter l\'Auteur (Email)';
+    final List<String> allPhotos = data.urlPhotos ?? [];
+    final String primaryImg = allPhotos.isNotEmpty ? allPhotos.first : '';
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'artisans'),
-      body: Column(
-        children: [
-          _buildCustomAppBar(context, titre),
-          _buildLanguageSelector(),
-
-          if (_translationError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(_translationError!, style: const TextStyle(color: Colors.red)),
-            ),
-          if (_audioError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 14)),
-            ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildSliverHeader(titre, primaryImg),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 60),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  _buildPrimaryImage(fullPrimaryImageUrl),
-                  const SizedBox(height: 30),
-                  _buildArtisanProfile(
-                    nomAuteurComplet,
-                    emailAuteur?.isNotEmpty == true ? Icons.person : Icons.person_off,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    description,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _cardTextColor.withOpacity(0.7),
-                      fontSize: 16,
-                      height: 1.4,
+                  // Sélecteur de langue moderne
+                  _buildLanguageSelector(),
+                  const SizedBox(height: 18),
+
+                  if (_translationError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Text(_translationError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                     ),
-                  ),
-                  const SizedBox(height: 30),
 
-                  // --- 3. VIDÉO DE L'ARTISAN (Widget intégré) ---
-                  if (fullVideoUrl.isNotEmpty)
-                    _buildVideoSection(fullVideoUrl, watchVideoLabel),
-                  if (fullVideoUrl.isNotEmpty) const SizedBox(height: 30),
+                  // Capsule Audio / Récit de l'artisan
+                  _buildAudioPlayerCard(),
+                  const SizedBox(height: 24),
 
-                  // --- 4. BOUTON DE SOUTIEN (Email) ---
-                  if (emailAuteur?.isNotEmpty == true)
-                    _buildActionButton(supportArtisanLabel, Icons.email, _accentColor, 'mailto:${emailAuteur!}'),
+                  // Profil du maître artisan
+                  _buildArtisanMasterCard(nomAuteurComplet, emailAuteur),
+                  const SizedBox(height: 24),
 
-                  const SizedBox(height: 50),
+                  // Toile descriptive & Savoir-faire ancestral
+                  _buildCraftDescriptionCard(description),
+                  const SizedBox(height: 24),
+
+                  // Vidéo de démonstration intégrée
+                  if (videoPath != null && videoPath.isNotEmpty)
+                    _buildVideoMasterclassCard(videoPath),
                 ],
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // --- 1. Header Sliver immersif ---
+  Widget _buildSliverHeader(String titre, String imagePath) {
+    final String regionLabel = widget.artisanData.region ?? 'Mali';
+    final String lieuLabel = widget.artisanData.lieu ?? 'Traditionnel';
+
+    return SliverAppBar(
+      expandedHeight: 320,
+      pinned: true,
+      backgroundColor: CulturalTheme.primaryDarkOcre,
+      elevation: 0,
+      leading: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.35),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
+            ),
+            child: IconButton(
+              icon: Icon(
+                _isBookmarked ? Icons.favorite : Icons.favorite_border,
+                color: _isBookmarked ? Colors.redAccent : Colors.white,
+                size: 20,
+              ),
+              onPressed: () {
+                setState(() => _isBookmarked = !_isBookmarked);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_isBookmarked ? 'Ajouté à vos créations préférées' : 'Retiré de vos favoris'),
+                    duration: const Duration(seconds: 1),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildImageWidget(imagePath),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withValues(alpha: 0.45),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.85),
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: CulturalTheme.primaryOcre,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.place, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$lieuLabel • $regionLabel',
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    titre,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: 0.2,
+                      shadows: [
+                        Shadow(color: Colors.black87, blurRadius: 8, offset: Offset(0, 2)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 2. Sélecteur de langue horizontal (Pill tabs) ---
+  Widget _buildLanguageSelector() {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFFE8E0D4)),
+        boxShadow: CulturalTheme.softShadow,
+      ),
+      child: Row(
+        children: _availableLanguages.map((lang) {
+          final isSelected = lang == _selectedLanguageCode;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => _fetchTranslation(lang),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? CulturalTheme.primaryDarkOcre : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: CulturalTheme.primaryDarkOcre.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isSelected) ...[
+                        const Icon(Icons.translate, color: Colors.white, size: 13),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        _mapLanguageCodeToName(lang),
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : CulturalTheme.textDark,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // --- 3. Carte Narration Vocale Haute Fidélité ---
+  Widget _buildAudioPlayerCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF261D16), Color(0xFF1B140F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _playTranslatedContent,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFE5A638), Color(0xFFAA7311)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: _isAudioLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                    )
+                  : Icon(
+                      _isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Récit de l\'Artisan',
+                  style: TextStyle(color: CulturalTheme.secondaryGold, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _isPlaying ? 'Lecture en cours...' : 'Écouter l\'histoire de cette pièce',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'En ${_mapLanguageCodeToName(_selectedLanguageCode)}',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          if (_audioError != null)
+            const Icon(Icons.info_outline, color: Colors.orangeAccent, size: 20),
+        ],
+      ),
+    );
+  }
+
+  // --- 4. Profil Maître Artisan ---
+  Widget _buildArtisanMasterCard(String name, String? email) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFEBE3D5)),
+        boxShadow: CulturalTheme.softShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFDECDB9), Color(0xFFC7B198)],
+                  ),
+                  border: Border.all(color: CulturalTheme.primaryOcre, width: 2),
+                ),
+                child: const Icon(Icons.palette_outlined, size: 30, color: CulturalTheme.primaryDarkOcre),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: CulturalTheme.primaryOcre.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Maître Artisan',
+                        style: TextStyle(fontSize: 10, color: CulturalTheme.primaryDarkOcre, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: CulturalTheme.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${widget.artisanData.roleAuteur ?? "Créateur d'art"} • ${widget.artisanData.region ?? "Mali"}',
+                      style: const TextStyle(fontSize: 12, color: CulturalTheme.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (email != null && email.isNotEmpty) ...[
+            const Divider(height: 24, color: Color(0xFFF0EBE0)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final Uri emailUri = Uri(
+                    scheme: 'mailto',
+                    path: email,
+                    query: 'subject=Demande d\'information sur ${widget.artisanData.titre ?? "votre œuvre"}',
+                  );
+                  if (await canLaunchUrl(emailUri)) {
+                    await launchUrl(emailUri);
+                  }
+                },
+                icon: const Icon(Icons.mail_outline, size: 18),
+                label: const Text('Contacter le créateur', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: CulturalTheme.primaryDarkOcre,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- 5. Descriptif du Savoir-Faire ---
+  Widget _buildCraftDescriptionCard(String description) {
+    final String firstLetter = description.isNotEmpty ? description.trim().substring(0, 1) : "L";
+    final String remainingText = description.isNotEmpty ? description.trim().substring(1) : "";
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF9),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE8DFD0), width: 1.2),
+        boxShadow: CulturalTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: CulturalTheme.primaryOcre,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'SAVOIR-FAIRE ANCESTRAL',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: CulturalTheme.primaryDarkOcre,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          RichText(
+            textAlign: TextAlign.justify,
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: firstLetter,
+                  style: const TextStyle(
+                    fontSize: 38,
+                    height: 0.9,
+                    fontWeight: FontWeight.w900,
+                    color: CulturalTheme.primaryDarkOcre,
+                    fontFamily: 'serif',
+                  ),
+                ),
+                TextSpan(
+                  text: remainingText,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.7,
+                    color: Color(0xFF332B25),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- 6. Vidéo Masterclass Intégrée ---
+  Widget _buildVideoMasterclassCard(String videoUrl) {
+    String fullUrl = videoUrl;
+    if (!videoUrl.startsWith('http')) {
+      final sanitized = videoUrl.startsWith('/') ? videoUrl.substring(1) : videoUrl;
+      fullUrl = '$_apiBaseUrlForImages/$sanitized';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: CulturalTheme.softShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: const Color(0xFF1F1813),
+            child: Row(
+              children: const [
+                Icon(Icons.videocam_outlined, color: CulturalTheme.accentGold, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Démonstration en Atelier',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          VideoPlayerWidget(videoUrl: fullUrl),
         ],
       ),
     );

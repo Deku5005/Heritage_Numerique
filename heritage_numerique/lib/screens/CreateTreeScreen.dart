@@ -99,7 +99,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
       // 2. Ajout du placeholder 'Non Spécifié' au début de la liste
       final List<Membre> membresWithPlaceholder = [
         _noneMemberPlaceholder,
-        ...fetchedMembres.where((m) => m.id != 0).toList(), // Filtrer si le placeholder était déjà là
+        ...fetchedMembres.where((m) => m.id != 0), // Filtrer si le placeholder était déjà là
       ];
 
       Membre? initialParent1;
@@ -534,7 +534,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
               borderRadius: BorderRadius.circular(5),
             ),
             child: DropdownButtonFormField<Membre>(
-              value: selectedMember,
+              initialValue: selectedMember,
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),
@@ -657,7 +657,7 @@ class _CreateTreeScreenState extends State<CreateTreeScreen> {
               borderRadius: BorderRadius.circular(5),
             ),
             child: DropdownButtonFormField<String>(
-              value: _selectedRole,
+              initialValue: _selectedRole,
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 0),

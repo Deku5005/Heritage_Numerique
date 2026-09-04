@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 // Assurez-vous d'importer le bon modèle
 import '../model/ArtisanatTraduction.dart';
-import '../model/artisanat1.dart';
+import '../model/Artisanat1.dart';
 
 // Adresse de l'émulateur Android
 const String _apiBaseUrl = 'http://10.0.2.2:8080';

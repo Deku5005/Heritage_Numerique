@@ -8,11 +8,10 @@ import 'package:heritage_numerique/screens/home_screen.dart';
 import 'package:heritage_numerique/screens/splash_screen.dart';
 import 'CreateFamilyAccountScreen.dart';
 import 'HomeDashboardScreen.dart';
-import 'login_screen.dart';
+import 'package:heritage_numerique/widgets/bottom_navigation_widget.dart';
 
 // --- Constantes de Couleurs ---
 const Color _mainAccentColor = Color(0xFFAA7311);
-const Color _buttonOpacityColor = Color(0x87D9D9D9);
 const Color _backgroundColor = Colors.white;
 const Color _cardTextColor = Color(0xFF2E2E2E);
 const Color _chocolateColor = Color(0xFF8B4513);
@@ -51,7 +50,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final parts = token.split('.');
       if (parts.length != 3) return null;
       String payload = parts[1].replaceAll('-', '+').replaceAll('_', '/');
-      while (payload.length % 4 != 0) payload += '=';
+      while (payload.length % 4 != 0) {
+        payload += '=';
+      }
       final decodedPayload = utf8.decode(base64Url.decode(payload));
       final Map<String, dynamic> payloadMap = jsonDecode(decodedPayload);
       if (payloadMap.containsKey('userId')) {
@@ -259,11 +260,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         if (snapshot.hasData) {
-          if (_currentDashboardData == null) _currentDashboardData = snapshot.data!;
+          _currentDashboardData ??= snapshot.data!;
           final data = _currentDashboardData!;
 
           return Scaffold(
             backgroundColor: _backgroundColor,
+            bottomNavigationBar: const BottomNavigationWidget(currentPage: 'profil'),
             body: RefreshIndicator(
               color: _mainAccentColor,
               onRefresh: () async {
@@ -330,8 +332,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFamilyCard(BuildContext context, Famille famille) {
-    final bool isAdmin = famille.idCreateur == _currentUserId;
-
     return GestureDetector(
       onTap: () => Navigator.push(
         context,

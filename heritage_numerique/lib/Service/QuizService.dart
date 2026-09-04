@@ -121,7 +121,7 @@ class QuizService {
 
         return QuizDetail(
           id: quizId,
-          titre: "Quiz #${quizId}",
+          titre: "Quiz #$quizId",
           description: "Détails non fournis par l'API questions",
           nombreQuestions: questions.length,
           questions: questions,

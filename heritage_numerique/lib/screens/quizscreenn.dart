@@ -35,7 +35,7 @@ class _QuizScreenState extends State<QuizScreen> {
   // Map pour stocker les sélections de l'utilisateur:
   // Clé: idQuestion (int)
   // Valeur: Liste d'idProposition sélectionné (List<int>)
-  Map<int, List<int>> _selectedResponses = {};
+  final Map<int, List<int>> _selectedResponses = {};
 
   bool _isSubmitting = false; // Indicateur de chargement
 
@@ -176,7 +176,7 @@ class _QuizScreenState extends State<QuizScreen> {
               question: question,
               index: index,
             );
-          }).toList(),
+          }),
           const SizedBox(height: 50),
           Center(
             child: ElevatedButton.icon(
@@ -295,7 +295,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 isSelected: isSelected,
                 isMultipleChoice: isMultipleChoice,
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

@@ -93,7 +93,7 @@ class _MembreDetailScreenState extends State<MembreDetailScreen> {
     final List<MembreDetail> apiOrderedMembers = _membresDetail;
 
     // Récupération du nom du membre sélectionné pour les libellés
-    final MembreDetail? selectedMember = apiOrderedMembers.firstWhere((m) => m.id == widget.membreId, orElse: () => apiOrderedMembers.first);
+    final MembreDetail selectedMember = apiOrderedMembers.firstWhere((m) => m.id == widget.membreId, orElse: () => apiOrderedMembers.first);
     final String selectedMemberName = selectedMember?.nomComplet ?? 'Membre sélectionné';
 
 

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 // Import du modèle et des services nécessaires
 import '../Service/UtilisateurService1.dart'; // Chemin ajusté
 import '../model/utilisateur1.dart'; // Correction du chemin vers models/utilisateur1.dart
-import 'package:http/http.dart' as http;
 
 
 // --- Constantes de Style (Repris de ProfilePage) ---

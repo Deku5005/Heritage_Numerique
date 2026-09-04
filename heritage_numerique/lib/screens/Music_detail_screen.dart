@@ -1,27 +1,18 @@
 import 'package:flutter/material.dart';
-// Import pour la lecture audio
 import 'package:audioplayers/audioplayers.dart';
-// Import pour le service vocal
 import '../service/LectureVocaleService.dart';
 import '../service/DevinetteService1.dart';
 import '../model/DevinetteTrductionModel.dart';
-import 'dart:typed_data'; // Pour Uint8List
+import '../widgets/cultural_theme.dart';
+import 'dart:typed_data';
 
-// Constantes de Couleurs
-const Color _accentColor = Color(0xFFD69301); // Ocre Vif
-const Color _cardTextColor = Color(0xFF2E2E2E); // Gris foncé
-const Color _backgroundColor = Colors.white;
-const Color _revealColor = Color(0xFF4CAF50); // Vert pour révéler
-
-/// Écran de Détail pour les Devinettes.
 class MusicDetailScreen extends StatefulWidget {
-  // Propriétés adaptées au contexte des Devinettes
   final String titre;
   final String devinette;
   final String reponse;
   final String conteur;
   final String imageUrl;
-  final Map<String, dynamic> details; // Doit contenir 'idDevinette' et 'lieu'
+  final Map<String, dynamic> details;
 
   const MusicDetailScreen({
     super.key,
@@ -38,7 +29,6 @@ class MusicDetailScreen extends StatefulWidget {
 }
 
 class _MusicDetailScreenState extends State<MusicDetailScreen> {
-  // --- Propriétés de la Traduction ---
   final DevinetteService1 _devinetteService = DevinetteService1();
   DevinetteTraduction? _currentTranslation;
   String _selectedLanguageCode = 'fr';
@@ -49,13 +39,11 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
 
   bool _isRevealed = false;
 
-  // --- Propriétés de la Lecture Vocale ---
   final LectureVocaleService _lectureVocaleService = LectureVocaleService();
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isAudioLoading = false;
   bool _isPlaying = false;
   String? _audioError;
-
 
   @override
   void initState() {
@@ -63,7 +51,6 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
     _currentTranslation = _createSourceTranslation();
     _fetchAvailableLanguages();
 
-    // Écouter les changements d'état du lecteur audio
     _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
       if (mounted) {
         setState(() {
@@ -86,18 +73,12 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
     });
   }
 
-  // -------------------------------------------------------------------
-  // --- LOGIQUE DE LECTURE VOCALE ---
-  // -------------------------------------------------------------------
-
   Future<void> _playTranslatedContent() async {
-    // Si l'audio est déjà en lecture, mettez-le en pause
     if (_isPlaying) {
       await _audioPlayer.pause();
       return;
     }
 
-    // Si le chargement est déjà en cours, ne faites rien
     if (_isAudioLoading) return;
 
     final int? devinetteId = widget.details['idDevinette'] as int?;
@@ -106,51 +87,40 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
       return;
     }
 
-    // Réinitialisation de l'état
     setState(() {
       _isAudioLoading = true;
       _audioError = null;
     });
 
     try {
-      // 💡 Appel du service pour télécharger l'audio
       final Uint8List audioData = await _lectureVocaleService.telechargerLectureVocale(
-          devinetteId,
-          _selectedLanguageCode,
-          usePublicApi: true // Utilisation de l'API publique
+        devinetteId,
+        _selectedLanguageCode,
+        usePublicApi: true,
       );
 
-      // 💡 Jouer l'audio à partir des données binaires
       await _audioPlayer.play(BytesSource(audioData));
 
-      setState(() {
-        _isAudioLoading = false;
-      });
-
-    } catch (e) {
-      print("Erreur de lecture vocale: $e");
       if (mounted) {
         setState(() {
           _isAudioLoading = false;
-          _audioError = 'Échec de la lecture vocale. ($e)';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAudioLoading = false;
+          _audioError = 'Échec de la lecture vocale : $e';
         });
       }
     }
   }
 
-
-  // -------------------------------------------------------------------
-  // --- LOGIQUE DE TRADUCTION (Ajustements mineurs pour la robustesse) ---
-  // -------------------------------------------------------------------
-
   Future<void> _fetchAvailableLanguages() async {
     final dynamic idValue = widget.details['idDevinette'];
     final int? devinetteId = idValue is int ? idValue : null;
 
-    if (devinetteId == null || devinetteId <= 0) {
-      print("Erreur: idDevinette est manquant, null ou n'est pas valide.");
-      return;
-    }
+    if (devinetteId == null || devinetteId <= 0) return;
 
     try {
       final translation = await _devinetteService.fetchDevinetteTranslationPublic(
@@ -167,9 +137,7 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
           _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
         });
       }
-    } catch (e) {
-      print("Erreur lors de la récupération initiale des langues: $e");
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchTranslation(String langCode) async {
@@ -180,7 +148,7 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
         _currentTranslation = _createSourceTranslation();
         _selectedLanguageCode = 'fr';
         _translationError = null;
-        _audioPlayer.stop(); // Arrêter l'audio si on change de langue
+        _audioPlayer.stop();
       });
       return;
     }
@@ -189,13 +157,15 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
       _isLoadingTranslation = true;
       _translationError = null;
       _selectedLanguageCode = langCode;
-      _audioPlayer.stop(); // Arrêter l'audio si on change de langue
+      _audioPlayer.stop();
     });
 
     final int? devinetteId = widget.details['idDevinette'] as int?;
-
     if (devinetteId == null || devinetteId <= 0) {
-      // ... (Gestion d'erreur inchangée)
+      setState(() {
+        _isLoadingTranslation = false;
+        _translationError = "ID de devinette manquant pour la traduction.";
+      });
       return;
     }
 
@@ -211,12 +181,15 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
           final List<String> apiLangs = translation.languesDisponibles
               .map((code) => code == 'bam_Latn' ? 'bm' : code == 'eng_Latn' ? 'en' : code)
               .toList();
-
           _availableLanguages = {'fr', 'bm', 'en', ...apiLangs}.toSet().toList();
         });
       }
     } catch (e) {
-      // ... (Gestion d'erreur inchangée)
+      if (mounted) {
+        setState(() {
+          _translationError = "Erreur de traduction : $e";
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -228,24 +201,22 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
 
   DevinetteTraduction _createSourceTranslation() {
     return DevinetteTraduction(
-      idContenu: widget.details['idDevinette'] ?? 0,
+      idContenu: widget.details['idDevinette'] is int ? widget.details['idDevinette'] : 0,
       titreOriginal: widget.titre,
       descriptionOriginale: widget.devinette,
-      lieuOriginal: widget.details['lieu'],
-      regionOriginale: widget.details['region'],
+      lieuOriginal: widget.details['lieu']?.toString(),
+      regionOriginale: widget.details['region']?.toString(),
       traductionsTitre: {'fr': widget.titre},
       traductionsContenu: {'fr': widget.devinette},
       traductionsDescription: {'fr': widget.devinette},
-      traductionsLieu: widget.details['lieu'] != null ? {'fr': widget.details['lieu']!} : {},
-      traductionsRegion: widget.details['region'] != null ? {'fr': widget.details['region']!} : {},
+      traductionsLieu: widget.details['lieu'] != null ? {'fr': widget.details['lieu'].toString()} : {},
+      traductionsRegion: widget.details['region'] != null ? {'fr': widget.details['region'].toString()} : {},
       traductionsCompletes: {'fr': widget.devinette},
       languesDisponibles: const [],
       langueSource: 'fra_Latn',
       statutTraduction: 'SOURCE',
     );
   }
-
-  // --- Fonctions d'accès au contenu traduit (inchangées) ---
 
   String _getTranslatedText(String? originalText, Map<String, String> translationsMap, String langCode) {
     if (langCode == 'fr') return originalText ?? '';
@@ -267,17 +238,17 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
 
   String _getTitre() {
     return _getTranslatedText(
-        widget.titre,
-        _currentTranslation?.traductionsTitre ?? {},
-        _selectedLanguageCode
+      widget.titre,
+      _currentTranslation?.traductionsTitre ?? {},
+      _selectedLanguageCode,
     );
   }
 
   String _getDevinette() {
     return _getTranslatedText(
-        widget.devinette,
-        _currentTranslation?.traductionsDescription ?? {},
-        _selectedLanguageCode
+      widget.devinette,
+      _currentTranslation?.traductionsDescription ?? {},
+      _selectedLanguageCode,
     );
   }
 
@@ -287,337 +258,326 @@ class _MusicDetailScreenState extends State<MusicDetailScreen> {
 
   String _getLieu() {
     return _getTranslatedText(
-        widget.details['lieu'],
-        _currentTranslation?.traductionsLieu ?? {},
-        _selectedLanguageCode
+      widget.details['lieu']?.toString(),
+      _currentTranslation?.traductionsLieu ?? {},
+      _selectedLanguageCode,
     );
   }
 
-
-  // -------------------------------------------------------------------
-  // --- WIDGETS DE CONSTRUCTION ---
-  // -------------------------------------------------------------------
-
-  Widget _buildLanguageSelector() {
-    // ... (widget inchangé)
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // 💡 NOUVEAU : Bouton de Lecture Vocale
-          _buildPlayButton(),
-
-          Row( // Conteneur pour le sélecteur de langue et l'indicateur de chargement
-            children: [
-              const Text("Langue : ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _cardTextColor)),
-              DropdownButton<String>(
-                value: _selectedLanguageCode,
-                icon: const Icon(Icons.arrow_drop_down),
-                underline: Container(height: 1, color: _accentColor),
-                itemHeight: 48,
-                onChanged: _isLoadingTranslation ? null : (String? newValue) {
-                  if (newValue != null && newValue != _selectedLanguageCode) {
-                    _fetchTranslation(newValue);
-                  }
-                },
-                items: _availableLanguages.map<DropdownMenuItem<String>>((String value) {
-                  String displayName;
-                  switch (value) {
-                    case 'fr':
-                      displayName = 'Français (Source)';
-                      break;
-                    case 'en':
-                      displayName = 'Anglais';
-                      break;
-                    case 'bm':
-                      displayName = 'Bambara';
-                      break;
-                    default:
-                      displayName = value.toUpperCase();
-                  }
-
-
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(displayName, style: const TextStyle(fontSize: 14)),
-                  );
-                }).toList(),
-              ),
-              if (_isLoadingTranslation)
-                const Padding(
-                  padding: EdgeInsets.only(left: 10.0),
-                  child: SizedBox(
-                      width: 15, height: 15,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: _accentColor)
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlayButton() {
-    IconData icon;
-    String label;
-    Color color;
-
-    if (_isAudioLoading) {
-      icon = Icons.hourglass_empty;
-      label = "Chargement...";
-      color = Colors.grey;
-    } else if (_isPlaying) {
-      icon = Icons.pause;
-      label = "Pause";
-      color = Colors.red.shade700;
-    } else {
-      icon = Icons.play_arrow;
-      label = "Écouter";
-      color = _accentColor;
+  String _mapLanguageCodeToName(String code) {
+    switch (code) {
+      case 'fr': return 'Français';
+      case 'bm': return 'Bambara';
+      case 'en': return 'Anglais';
+      default: return code.toUpperCase();
     }
-
-    return ElevatedButton.icon(
-      onPressed: (_isAudioLoading || _isLoadingTranslation) ? null : _playTranslatedContent,
-      icon: Icon(icon, color: Colors.white),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        elevation: 3,
-      ),
-    );
   }
-
 
   @override
   Widget build(BuildContext context) {
-    // Récupérer le contenu traduit
     final String titreAffiche = _getTitre();
     final String devinetteAffichee = _getDevinette();
     final String reponseAffichee = _getReponse();
     final String lieuAffiche = _getLieu();
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: CulturalTheme.backgroundLight,
       appBar: AppBar(
-        title: Text(titreAffiche, style: const TextStyle(color: _cardTextColor)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: _accentColor),
+          icon: const Icon(Icons.arrow_back, color: CulturalTheme.textDark),
           onPressed: () => Navigator.pop(context),
         ),
+        title: Text(
+          titreAffiche,
+          style: const TextStyle(
+            color: CulturalTheme.textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share, color: CulturalTheme.textDark),
+            onPressed: () {},
+          ),
+        ],
       ),
-      body: Column(
-        children: [
-          _buildLanguageSelector(),
-
-          if (_translationError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(_translationError!, style: const TextStyle(color: Colors.red)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Sélecteur de langue en pilules
+            Row(
+              children: [
+                const Text(
+                  'Traduction :',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: CulturalTheme.textDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ..._availableLanguages.map((lang) {
+                  final isSelected = lang == _selectedLanguageCode;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: InkWell(
+                      onTap: () => _fetchTranslation(lang),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? CulturalTheme.primaryBrown : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? CulturalTheme.primaryBrown : const Color(0xFFD6C7B2),
+                          ),
+                        ),
+                        child: Text(
+                          _mapLanguageCodeToName(lang),
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : CulturalTheme.textDark,
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
             ),
+            const SizedBox(height: 20),
 
-          if (_audioError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 14)),
-            ),
+            if (_translationError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Text(_translationError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+              ),
 
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+            if (_audioError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Text(_audioError!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+              ),
+
+            // Carte énigme stylisée
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFC89A3B), Color(0xFFAA7311)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: CulturalTheme.softShadow,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildRiddleBlock(titreAffiche, devinetteAffichee),
-                  const SizedBox(height: 30),
-
-                  _buildRevealButton(),
-                  const SizedBox(height: 30),
-
-                  if (_isRevealed) _buildAnswerBlock(reponseAffichee),
-
-                  const SizedBox(height: 30),
-
-                  _buildInformationCard(widget.conteur, lieuAffiche),
-
-                  const SizedBox(height: 50),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.lightbulb, color: Colors.white, size: 36),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'DEVINETTE ANCESTRALE',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (_isLoadingTranslation)
+                    const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(color: Colors.white),
+                    )
+                  else
+                    Text(
+                      '« $devinetteAffichee »',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _playTranslatedContent,
+                    icon: _isAudioLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(color: CulturalTheme.primaryDarkOcre, strokeWidth: 2),
+                          )
+                        : Icon(_isPlaying ? Icons.pause : Icons.volume_up, color: CulturalTheme.primaryDarkOcre, size: 20),
+                    label: Text(
+                      _isPlaying ? 'Pause' : 'Écouter la devinette',
+                      style: const TextStyle(
+                        color: CulturalTheme.primaryDarkOcre,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 2,
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 25),
 
-  // ... (Le reste des widgets _buildRiddleBlock, _buildRevealButton, etc. est inchangé)
-
-  Widget _buildRiddleBlock(String titre, String devinette) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0EAE0),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.quiz_outlined, color: _accentColor, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Énigme: $titre',
-                style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: _accentColor
+            // Bouton de révélation interactive de la solution
+            InkWell(
+              onTap: _toggleReveal,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: _isRevealed ? const Color(0xFFE8F5E9) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: _isRevealed ? const Color(0xFF81C784) : CulturalTheme.primaryOcre,
+                    width: 1.5,
+                  ),
+                  boxShadow: CulturalTheme.softShadow,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _isRevealed ? Icons.visibility_off : Icons.visibility,
+                      color: _isRevealed ? Colors.green.shade700 : CulturalTheme.primaryDarkOcre,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _isRevealed ? 'Masquer la réponse' : 'Découvrir la solution',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: _isRevealed ? Colors.green.shade700 : CulturalTheme.primaryDarkOcre,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const Divider(color: Colors.grey, height: 20),
-          Text(
-            devinette,
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.5,
-              color: _cardTextColor,
-              fontStyle: FontStyle.italic,
             ),
-            textAlign: TextAlign.justify,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildRevealButton() {
-    return ElevatedButton.icon(
-      onPressed: _toggleReveal,
-      icon: Icon(_isRevealed ? Icons.visibility_off : Icons.visibility, color: Colors.white),
-      label: Text(
-        _isRevealed ? 'Cacher la Réponse' : 'Révéler la Réponse',
-        style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: _isRevealed ? Colors.red.shade700 : _revealColor,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 5,
-      ),
-    );
-  }
-
-  Widget _buildAnswerBlock(String reponse) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: _revealColor.withOpacity(0.1),
-        border: Border.all(color: _revealColor, width: 2),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: _revealColor.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'La Réponse est:',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: _revealColor
-            ),
-          ),
-          const Divider(color: _revealColor, height: 20),
-          Center(
-            child: Text(
-              reponse,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: _cardTextColor,
+            // Solution révélée
+            AnimatedCrossFade(
+              firstChild: const SizedBox.shrink(),
+              secondChild: Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF81C784), width: 1.5),
+                    boxShadow: CulturalTheme.softShadow,
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        '💡 RÉPONSE :',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        reponseAffichee,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: CulturalTheme.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
+              crossFadeState: _isRevealed ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 300),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 30),
 
-  Widget _buildInformationCard(String conteur, String lieu) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Contexte Culturel',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _cardTextColor),
-          ),
-          const Divider(color: Colors.grey, height: 20),
-
-          _buildDetailRow(Icons.person, 'Conteur', conteur),
-          _buildDetailRow(Icons.location_on, 'Lieu d\'Origine', lieu),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: _accentColor),
-          const SizedBox(width: 8),
-          Text(
-            '$label:',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _cardTextColor),
-          ),
-          const Spacer(),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 16, color: _cardTextColor.withOpacity(0.7)),
+            // Détails du conteur & Contexte
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFEDE4D5)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.person_pin, color: CulturalTheme.primaryDarkOcre, size: 26),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Transmis par :', style: TextStyle(fontSize: 11, color: CulturalTheme.textMuted)),
+                            Text(
+                              widget.conteur.isNotEmpty ? widget.conteur : 'Tradition orale malienne',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: CulturalTheme.textDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (lieuAffiche.isNotEmpty && lieuAffiche != 'Traduction non disponible.') ...[
+                    const Divider(height: 18),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, color: CulturalTheme.primaryDarkOcre, size: 26),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Lieu d\'origine :', style: TextStyle(fontSize: 11, color: CulturalTheme.textMuted)),
+                              Text(
+                                lieuAffiche,
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: CulturalTheme.textDark),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

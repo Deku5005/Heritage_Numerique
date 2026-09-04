@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // NOTE: Assurez-vous que ces chemins d'importation sont corrects
 import 'package:heritage_numerique/Service/Auth-service.dart';
-import 'package:heritage_numerique/model/auth-response.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
 

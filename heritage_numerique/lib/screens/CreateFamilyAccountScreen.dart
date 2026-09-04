@@ -67,7 +67,9 @@ class _CreateFamilyAccountScreenState extends State<CreateFamilyAccountScreen>
 
   @override
   void dispose() {
-    for (var c in _fadeControllers) c.dispose();
+    for (var c in _fadeControllers) {
+      c.dispose();
+    }
     _buttonController.dispose();
     _nomController.dispose();
     _descriptionController.dispose();

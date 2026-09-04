@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
 // Imports nécessaires pour les appels API et le stockage (doivent être présents dans votre pubspec.yaml)
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // IMPORTS LOCAUX (CHEMINS MIS À JOUR)
 import 'editProfil.dart'; // Importe la page de modification
 import '../Service/UtilisateurService1.dart';
 import '../model/utilisateur1.dart'; // Correction du chemin de l'import (de 'model/' à 'models/')
-import '../Service/token-storage-service.dart';
-import '../Service/user-id-storage-service.dart'; // Correction du nom de l'import
+// Correction du nom de l'import
 // 💡 Import de l'écran de destination principal
 import '../screens/contes_screen.dart';
 

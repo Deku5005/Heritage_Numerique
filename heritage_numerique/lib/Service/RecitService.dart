@@ -171,8 +171,7 @@ class RecitService {
     String? photoPath,
     String? fichierContePath,
     String? lieu,
-    String? region,
-    int? conteId, // Optionnel, seulement pour la mise à jour (mais déjà dans uriPath)
+    String? region, // Optionnel, seulement pour la mise à jour (mais déjà dans uriPath)
   }) async {
     final String? token = await _getAuthToken();
     final Uri uri = Uri.parse(_baseUrl).resolve(uriPath);

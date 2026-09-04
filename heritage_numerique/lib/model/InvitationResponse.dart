@@ -28,7 +28,7 @@ class InvitationResponse {
   /// Méthode factory pour créer une instance de InvitationResponse à partir d'un JSON.
   factory InvitationResponse.fromJson(Map<String, dynamic> json) {
     // Fonction utilitaire pour gérer la conversion des IDs (au cas où ils seraient String)
-    int _safeParseInt(dynamic value) {
+    int safeParseInt(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
       if (value is String) return int.tryParse(value) ?? 0;
@@ -36,8 +36,8 @@ class InvitationResponse {
     }
 
     return InvitationResponse(
-      id: _safeParseInt(json['id']),
-      idFamille: _safeParseInt(json['idFamille']),
+      id: safeParseInt(json['id']),
+      idFamille: safeParseInt(json['idFamille']),
       nomFamille: json['nomFamille'] as String,
       nomInvite: json['nomInvite'] as String,
       emailInvite: json['emailInvite'] as String,

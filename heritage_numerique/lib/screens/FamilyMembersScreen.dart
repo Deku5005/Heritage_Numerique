@@ -484,7 +484,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     decoration: BoxDecoration(color: _searchBackground, borderRadius: BorderRadius.circular(12)),
                     child: DropdownButtonFormField<String>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       decoration: const InputDecoration(labelText: 'Rôle', border: InputBorder.none),
                       items: allowedRoles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                       onChanged: (v) => setStateLocal(() => selectedRole = v!),
@@ -574,7 +574,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen>
 
   // === CHANGER RÔLE ===
   void _showChangeRoleDialog(BuildContext context, FamilyMemberModel member) {
-    final initialRole = member.roleFamille?.toUpperCase() ?? 'LECTEUR';
+    final initialRole = member.roleFamille.toUpperCase() ?? 'LECTEUR';
     const allowedRoles = ['LECTEUR', 'EDITEUR', 'ADMIN'];
     String selectedRole = allowedRoles.contains(initialRole) ? initialRole : 'LECTEUR';
 
@@ -622,7 +622,7 @@ class _FamilyMembersScreenState extends State<FamilyMembersScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(color: _searchBackground, borderRadius: BorderRadius.circular(12)),
                 child: DropdownButtonFormField<String>(
-                  value: selectedRole,
+                  initialValue: selectedRole,
                   decoration: const InputDecoration(labelText: 'Nouveau rôle', border: InputBorder.none),
                   items: allowedRoles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                   onChanged: (v) => setStateLocal(() => selectedRole = v!),

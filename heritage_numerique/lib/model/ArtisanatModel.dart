@@ -52,7 +52,7 @@ class Artisanat {
   factory Artisanat.fromJson(Map<String, dynamic> json) {
 
     // Fonction utilitaire locale pour nettoyer et normaliser l'URL
-    String _normalizeUrl(String? url) {
+    String normalizeUrl(String? url) {
       if (url == null || url.isEmpty) return url ?? '';
 
       // Si l'URL est déjà complète (http/https), retourne-la (avec nettoyage)
@@ -80,7 +80,7 @@ class Artisanat {
       statut: json['statut'] as String,
 
       // 🛑 CORRECTION APPLIQUÉE ICI : Normalisation de l'URL de la vidéo
-      urlVideo: _normalizeUrl(json['urlVideo'] as String?),
+      urlVideo: normalizeUrl(json['urlVideo'] as String?),
 
       lieu: json['lieu'] as String?,
       region: json['region'] as String?,
@@ -89,7 +89,7 @@ class Artisanat {
 
       // Gère la liste d'URL et normalise chaque élément
       urlPhotos: (json['urlPhotos'] as List<dynamic>?)
-          ?.map((e) => _normalizeUrl(e.toString())) // Utilisation de _normalizeUrl
+          ?.map((e) => normalizeUrl(e.toString())) // Utilisation de _normalizeUrl
           .toList() ?? [],
     );
   }

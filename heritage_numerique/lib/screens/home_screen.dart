@@ -4,7 +4,8 @@ import 'contes_screen.dart';
 import 'artisans_screen.dart';
 import 'music_screen.dart';
 import 'proverb_screen.dart';
-import 'splash_screen.dart'; // IMPORTANT: Assurez-vous d'importer votre SplashScreen ici
+import '../widgets/bottom_navigation_widget.dart';
+// IMPORTANT: Assurez-vous d'importer votre SplashScreen ici
 
 /// Écran principal de l'application affichant les catégories de patrimoine culturel.
 class HomeScreen extends StatelessWidget {
@@ -77,6 +78,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'decouvrir'),
       body: CustomScrollView(
         slivers: [
           // --- 1. BARRE D'APPLICATION (Avec flèche de retour) ---

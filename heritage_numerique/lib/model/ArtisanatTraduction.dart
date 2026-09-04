@@ -42,7 +42,7 @@ class ArtisanatTraduction {
   /// Factory constructor pour créer une instance à partir d'un Map JSON.
   factory ArtisanatTraduction.fromJson(Map<String, dynamic> json) {
     // Fonction utilitaire pour s'assurer qu'un Map est bien de type Map<String, String>
-    Map<String, String> _parseMap(dynamic map) {
+    Map<String, String> parseMap(dynamic map) {
       if (map == null) return {};
       return Map<String, String>.from(map.map((k, v) => MapEntry(k as String, v as String)));
     }
@@ -54,12 +54,12 @@ class ArtisanatTraduction {
       lieuOriginal: json['lieuOriginal'] as String?,
       regionOriginale: json['regionOriginale'] as String?,
 
-      traductionsTitre: _parseMap(json['traductionsTitre']),
-      traductionsContenu: _parseMap(json['traductionsContenu']),
-      traductionsDescription: _parseMap(json['traductionsDescription']),
-      traductionsLieu: _parseMap(json['traductionsLieu']),
-      traductionsRegion: _parseMap(json['traductionsRegion']),
-      traductionsCompletes: _parseMap(json['traductionsCompletes']),
+      traductionsTitre: parseMap(json['traductionsTitre']),
+      traductionsContenu: parseMap(json['traductionsContenu']),
+      traductionsDescription: parseMap(json['traductionsDescription']),
+      traductionsLieu: parseMap(json['traductionsLieu']),
+      traductionsRegion: parseMap(json['traductionsRegion']),
+      traductionsCompletes: parseMap(json['traductionsCompletes']),
 
       languesDisponibles: List<String>.from(json['languesDisponibles'] ?? []),
       langueSource: json['langueSource'] as String,

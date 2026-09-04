@@ -332,9 +332,12 @@ class __ArtisanatCreationFormState extends State<_ArtisanatCreationForm> {
 
         if (fileSizeMB > maxSizeMB) {
           setState(() {
-            _errorMessage = 'Fichier trop volumineux: ${fileSizeMB} Mo > $maxSizeMB Mo';
-            if (type == 'photo') _selectedPhotoFile = null;
-            else _selectedContentFile = null;
+            _errorMessage = 'Fichier trop volumineux: $fileSizeMB Mo > $maxSizeMB Mo';
+            if (type == 'photo') {
+              _selectedPhotoFile = null;
+            } else {
+              _selectedContentFile = null;
+            }
           });
           return;
         }

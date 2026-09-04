@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:heritage_numerique/model/Recits_model.dart';
 import 'package:heritage_numerique/screens/ArtisanatLabApp.dart';
 import 'package:heritage_numerique/screens/DemandesAdminScreen.dart';
 import 'package:heritage_numerique/screens/Profil.dart';

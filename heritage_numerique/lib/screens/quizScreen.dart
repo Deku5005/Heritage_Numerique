@@ -348,7 +348,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                   const SizedBox(height: 20),
                 ],
               );
-            }).toList(),
+            }),
 
             // --- 3. BOUTONS D'ACTION (Ajouter Question / Ajouter Réponse / Valider) ---
 
@@ -672,7 +672,7 @@ class QuestionForm extends StatelessWidget {
               onRemove: () => onRemoveAnswer(index),
               canRemove: question.type == QuizType.qcm && question.answerControllers.length > 2,
             );
-          }).toList(),
+          }),
         ],
       ),
     );

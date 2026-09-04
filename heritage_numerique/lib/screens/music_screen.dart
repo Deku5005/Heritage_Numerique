@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_widget.dart';
-import '../model/Devinette1.dart'; // Importation du modèle Devinette
-import '../Service/DevinetteService1.dart'; // Importation du service Devinette
-import 'Music_detail_screen.dart'; // Écran de détail adapté aux Devinettes
+import 'package:heritage_numerique/screens/artisans_screen.dart';
+import 'package:heritage_numerique/screens/contes_screen.dart';
+import 'package:heritage_numerique/screens/proverb_screen.dart';
+import 'package:heritage_numerique/widgets/bottom_navigation_widget.dart';
+import 'package:heritage_numerique/widgets/cultural_theme.dart';
+import '../model/Devinette1.dart';
+import '../Service/DevinetteService1.dart';
+import 'Music_detail_screen.dart';
 
-/// Écran affichant la liste des Devinettes.
+/// Écran des Devinettes selon le nouveau design Figma
 class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
 
@@ -13,16 +17,36 @@ class MusicScreen extends StatefulWidget {
 }
 
 class _MusicScreenState extends State<MusicScreen> {
-  // Constantes de Couleurs
-  static const Color _accentColor = Color(0xFFD69301); // Ocre Vif
-  static const Color _cardTextColor = Color(0xFF2E2E2E);
-  static const Color _backgroundColor = Colors.white;
-
-  // Déclaration des états et du service
   final DevinetteService1 _devinetteService = DevinetteService1();
   List<Devinette1> _devinettes = [];
   bool _isLoading = true;
-  String? _errorMessage;
+  String _selectedFilter = 'Devinettes';
+
+  final List<String> _filters = ['Tous', 'Contes', 'Proverbes', 'Devinettes', 'Artisanat'];
+
+  final List<Map<String, String>> _fallbackDevinettes = [
+    {
+      'title': "L'énigme du Baobab",
+      'devinette': "Je suis souvent mon favorable, grand sans échelle, qui suis-je ?",
+      'reponse': "L'Ombre du Baobab",
+      'author': 'Vieux sage de Mopti',
+      'image': 'assets/images/ancient-baobab.jpg',
+    },
+    {
+      'title': "L'eau qui ne mouille pas",
+      'devinette': "Je traverse le fleuve Niger sans jamais toucher une goutte d'eau.",
+      'reponse': "Le Soleil",
+      'author': 'Tradition orale',
+      'image': 'assets/images/african-river.jpg',
+    },
+    {
+      'title': "Le voyageur immobile",
+      'devinette': "J'ai un pied mais je ne marche pas, j'ai une tête mais je ne pense pas.",
+      'reponse': "Le Pilon",
+      'author': 'Contes mandingues',
+      'image': 'assets/images/african-village.jpg',
+    },
+  ];
 
   @override
   void initState() {
@@ -30,398 +54,442 @@ class _MusicScreenState extends State<MusicScreen> {
     _fetchDevinettes();
   }
 
-  /// Fonction de récupération des données
   Future<void> _fetchDevinettes() async {
-    // Simulation du chargement et de la récupération de données
-    await Future.delayed(const Duration(seconds: 1));
     try {
       final data = await _devinetteService.getDevinettes();
-      setState(() {
-        _devinettes = data;
-        _isLoading = false;
-        _errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Impossible de charger les devinettes: ${e.toString()}';
-        _isLoading = false;
-      });
-      debugPrint('Erreur de chargement des devinettes: $e');
+      if (mounted) {
+        setState(() {
+          _devinettes = data;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
+  void _onFilterTap(String filter) {
+    if (filter == _selectedFilter) return;
+    setState(() {
+      _selectedFilter = filter;
+    });
+
+    if (filter == 'Contes') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ContesScreen()));
+    } else if (filter == 'Proverbes') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ProverbScreen()));
+    } else if (filter == 'Artisanat') {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ArtisansScreen()));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
-      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'devinette'),
+      backgroundColor: CulturalTheme.backgroundLight,
+      bottomNavigationBar: const BottomNavigationWidget(currentPage: 'decouvrir'),
       body: CustomScrollView(
         slivers: [
-          // 1. EN-TÊTE ET BARRE D'APPLICATION
-          _buildHeader(context),
+          // AppBar
+          SliverAppBar(
+            backgroundColor: Colors.white,
+            pinned: true,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: CulturalTheme.textDark),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            title: const Text(
+              'Héritage Numérique',
+              style: TextStyle(
+                color: CulturalTheme.textDark,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search, color: CulturalTheme.textDark),
+                onPressed: () {},
+              ),
+            ],
+          ),
+
+          // Bannière Explorer
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  // 2. BARRE DE RECHERCHE
-                  _buildSearchBar(),
-                  const SizedBox(height: 24),
-                ],
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              child: Container(
+                height: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  image: const DecorationImage(
+                    image: AssetImage('assets/images/musiques.jpg'),
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: CulturalTheme.softShadow,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      colors: [Colors.black.withOpacity(0.75), Colors.black.withOpacity(0.3)],
+                      begin: Alignment.bottomLeft,
+                      end: Alignment.topRight,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: const [
+                      Text(
+                        'Explorer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Énigmes & Devinettes ancestrales du Mali',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-          // 3. GRILLE DES DEVINETTES
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            sliver: _buildDevinettesGrid(),
+
+          // Filtres horizontaux
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 42,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _filters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final filter = _filters[index];
+                  final isSelected = filter == _selectedFilter;
+                  return InkWell(
+                    onTap: () => _onFilterTap(filter),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? CulturalTheme.primaryDarkOcre : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected ? CulturalTheme.primaryDarkOcre : const Color(0xFFE0E0E0),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          filter,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : CulturalTheme.textDark,
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+
+          // En vedette
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 20, 16, 10),
+              child: Text(
+                'En vedette',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: CulturalTheme.textDark,
+                ),
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 140,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _fallbackDevinettes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (context, index) {
+                  final item = _fallbackDevinettes[index];
+                  return Container(
+                    width: 240,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      image: DecorationImage(
+                        image: AssetImage(item['image']!),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: CulturalTheme.softShadow,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: const LinearGradient(
+                          colors: [Colors.transparent, Colors.black87],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            item['title']!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item['author']!,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          // Titre section
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 22, 16, 10),
+              child: Text(
+                'Toutes les devinettes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: CulturalTheme.textDark,
+                ),
+              ),
+            ),
+          ),
+
+          // Liste des devinettes
+          _buildDevinettesList(),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
     );
   }
 
-  // -------------------------------------------------------------------
-  // --- WIDGETS DE CONSTRUCTION ---
-  // -------------------------------------------------------------------
-
-  /// 1. Construction de l'en-tête
-  Widget _buildHeader(BuildContext context) {
-    return SliverAppBar(
-      automaticallyImplyLeading: false,
-      expandedHeight: 280,
-      pinned: true,
-      backgroundColor: _backgroundColor,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: EdgeInsets.zero,
-        centerTitle: true,
-        title: Container(
-          width: double.infinity,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.only(bottom: 8.0, top: 40.0),
-        ),
-        background: Stack(
-          children: [
-            // Grande carte thématique "Devinettes et Énigmes"
-            Container(
-              decoration: const BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(35)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Image de fond
-                    Image.asset(
-                      'assets/images/three-african-brothers-adventure-forest.jpg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: _accentColor.withOpacity(0.6),
-                        child: const Center(
-                          child: Text(
-                            'Jeu de Devinettes',
-                            style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Overlay sombre
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.1),
-                            Colors.black.withOpacity(0.5),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Texte et Icône
-                    Positioned(
-                      bottom: 45,
-                      left: 20,
-                      right: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Devinettes et Énigmes",
-                            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Testez votre esprit avec la sagesse ancestrale.',
-                                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 18, fontWeight: FontWeight.w500),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Barre d'application transparente avec bouton de retour
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                leading: Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: Container(
-                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), shape: BoxShape.circle),
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white.withOpacity(1)),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 2. Construction de la barre de recherche.
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
-        color: _accentColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _accentColor.withOpacity(0.5), width: 1.0),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))],
-      ),
-      child: TextField(
-        style: const TextStyle(fontSize: 16),
-        decoration: InputDecoration(
-          icon: const Icon(Icons.search, color: _accentColor, size: 24),
-          hintText: 'Rechercher des devinettes ou énigmes',
-          hintStyle: TextStyle(color: _cardTextColor.withOpacity(0.7), fontSize: 16),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
-        ),
-      ),
-    );
-  }
-
-  /// 3. Construction de la grille des devinettes.
-  Widget _buildDevinettesGrid() {
+  Widget _buildDevinettesList() {
     if (_isLoading) {
-      return const SliverFillRemaining(child: Center(child: Padding(
-        padding: EdgeInsets.all(40.0),
-        child: CircularProgressIndicator(color: _accentColor),
-      )));
-    }
-
-    if (_errorMessage != null) {
-      return SliverToBoxAdapter(
+      return const SliverToBoxAdapter(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(40.0),
-            child: Text(
-              'Erreur de chargement: $_errorMessage',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red, fontSize: 18),
-            ),
+            padding: EdgeInsets.all(30.0),
+            child: CircularProgressIndicator(color: CulturalTheme.primaryOcre),
           ),
         ),
       );
     }
 
-    if (_devinettes.isEmpty) {
-      return const SliverToBoxAdapter(child: Center(child: Padding(
-        padding: EdgeInsets.all(40.0),
-        child: Text('Aucune devinette trouvée.', style: TextStyle(fontSize: 18, color: _cardTextColor)),
-      )));
-    }
+    if (_devinettes.isNotEmpty) {
+      return SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final dev = _devinettes[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+              child: InkWell(
+                onTap: () {
+                  final String titre = dev.titre ?? 'Devinette';
+                  final String questionText = dev.devinette ?? '';
+                  final String reponseText = dev.reponse ?? '';
+                  final String auteurText = '${dev.prenomAuteur ?? ''} ${dev.nomAuteur ?? ''}'.trim().isNotEmpty
+                      ? '${dev.prenomAuteur ?? ''} ${dev.nomAuteur ?? ''}'.trim()
+                      : 'Tradition orale';
 
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.82,
-      ),
-      delegate: SliverChildBuilderDelegate(
-            (context, index) {
-          final devinette = _devinettes[index];
-
-          return GestureDetector(
-            onTap: () {
-              // --- LOGIQUE DE NAVIGATION CORRIGÉE ---
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MusicDetailScreen(
-                    titre: devinette.titre ?? 'Énigme',
-                    devinette: devinette.devinette ?? 'Devinette non spécifiée',
-                    reponse: devinette.reponse ?? 'Réponse non disponible',
-                    conteur: '${devinette.prenomAuteur ?? ''} ${devinette.nomAuteur ?? 'Auteur inconnu'}'.trim(),
-                    imageUrl: 'assets/icons/riddle.png',
-                    details: {
-                      // 💡 CORRECTION : Utilisation de 'id' qui est le nom du champ dans Devinette1
-                      'idDevinette': devinette.id,
-                      'nom': devinette.titre ?? 'Énigme',
-                      'langue':  'Inconnue',
-                      'lieu': devinette.lieu ?? 'Inconnu',
-                    },
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MusicDetailScreen(
+                        titre: titre,
+                        devinette: questionText,
+                        reponse: reponseText,
+                        conteur: auteurText,
+                        imageUrl: 'assets/images/musiques.jpg',
+                        details: {'idDevinette': dev.id ?? 1, 'lieu': dev.lieu ?? 'Mali', 'region': dev.region ?? 'Mali'},
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF0EBE0)),
+                    boxShadow: CulturalTheme.softShadow,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: CulturalTheme.primaryOcre.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.help_outline, color: CulturalTheme.primaryDarkOcre, size: 26),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              dev.titre ?? 'Devinette',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: CulturalTheme.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              dev.devinette ?? '',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: CulturalTheme.textMuted,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 14, color: CulturalTheme.primaryDarkOcre),
+                    ],
                   ),
                 ),
-              );
-            },
-            // Utilisation de la carte modernisée
-            child: _buildDevinetteCard(
-              devinette.titre ?? 'Énigme sans titre',
-              devinette.devinette ?? 'Devinette non spécifiée',
-              devinette.lieu ?? 'Lieu inconnu',
+              ),
+            );
+          },
+          childCount: _devinettes.length,
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final item = _fallbackDevinettes[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MusicDetailScreen(
+                      titre: item['title']!,
+                      devinette: item['devinette']!,
+                      reponse: item['reponse']!,
+                      conteur: item['author']!,
+                      imageUrl: item['image']!,
+                      details: const {'idDevinette': 1, 'lieu': 'Mali'},
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF0EBE0)),
+                  boxShadow: CulturalTheme.softShadow,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: CulturalTheme.primaryOcre.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.help_outline, color: CulturalTheme.primaryDarkOcre, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['title']!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: CulturalTheme.textDark,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item['devinette']!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: CulturalTheme.textMuted,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 14, color: CulturalTheme.primaryDarkOcre),
+                  ],
+                ),
+              ),
             ),
           );
         },
-        childCount: _devinettes.length,
-      ),
-    );
-  }
-
-  /// 4. Construction d'une seule carte de Devinette.
-  Widget _buildDevinetteCard(
-      String title,
-      String riddleText,
-      String location,
-      ) {
-    const Color modernCardColor = Color(0xFFF7F7F7);
-    const Color primaryAccent = _accentColor;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: modernCardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: primaryAccent.withOpacity(0.15),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: primaryAccent.withOpacity(0.4), width: 1.5),
-      ),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icône et Titre sur la même ligne
-          Row(
-            children: [
-              const Icon(Icons.psychology_outlined, color: primaryAccent, size: 28),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: _cardTextColor,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Séparateur fin
-          Divider(color: primaryAccent.withOpacity(0.5), height: 1, thickness: 1),
-          const SizedBox(height: 10),
-
-          // Texte de la Devinette (mis en valeur)
-          Expanded(
-            child: Text(
-              riddleText,
-              style: TextStyle(
-                color: _cardTextColor.withOpacity(0.9),
-                fontSize: 14,
-                fontStyle: FontStyle.normal,
-                height: 1.4,
-              ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Lieu (utilisant un Chip pour le style)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: primaryAccent.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.map_outlined, size: 16, color: primaryAccent),
-                const SizedBox(width: 6),
-                Text(
-                  location,
-                  style: const TextStyle(
-                    color: primaryAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Bouton Révéler / Jouer (Visuel)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 4,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-              child: const Text(
-                'Voir l\'Énigme',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
+        childCount: _fallbackDevinettes.length,
       ),
     );
   }

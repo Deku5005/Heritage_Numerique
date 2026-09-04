@@ -128,7 +128,7 @@ class AuthService {
     final Map<String, dynamic> requestBody = {
       "email": email,
       "motDePasse": motDePasse,
-      if (useCode) "codeInvitation": codeInvitation!,
+      if (useCode) "codeInvitation": codeInvitation,
     };
 
     try {
